@@ -1,117 +1,24 @@
+mod expression;
+mod function;
 use std::collections::HashMap;
-use std::fmt;
-use std::ops::{BitAnd, BitOr, BitXor, Not};
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-struct Function(u32);
+use expression::Expression;
+use function::Function;
 
-impl From<Function> for usize {
-    fn from(f: Function) -> Self {
-        f.0 as usize
-    }
-}
-
-impl Not for Function {
-    type Output = Self;
-
-    fn not(self) -> Self::Output {
-        Function(!self.0)
-    }
-}
-
-impl BitXor for Function {
-    type Output = Self;
-
-    fn bitxor(self, other: Self) -> Self::Output {
-        Function(self.0 ^ other.0)
-    }
-}
-
-impl BitAnd for Function {
-    type Output = Self;
-
-    fn bitand(self, other: Self) -> Self::Output {
-        Function(self.0 & other.0)
-    }
-}
-
-impl BitOr for Function {
-    type Output = Self;
-
-    fn bitor(self, other: Self) -> Self::Output {
-        Function(self.0 | other.0)
-    }
-}
-
-impl fmt::Display for Function {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:016b}", self.0)
-    }
-}
-
-impl fmt::Debug for Function {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self)
-    }
-}
-
-#[derive(Clone)]
-enum Expression {
-    Constant(Function),
-    And(Function, Function),
-    Or(Function, Function),
-    Xor(Function, Function),
-    ButNot(Function, Function),
-    NotBut(Function, Function),
-}
-
-impl Expression {
-    fn evaluate(&self) -> Function {
-        match self {
-            Expression::Constant(f) => *f,
-            Expression::And(f1, f2) => (*f1 & *f2) & TAUTOLOGY,
-            Expression::Or(f1, f2) => (*f1 | *f2) & TAUTOLOGY,
-            Expression::Xor(f1, f2) => (*f1 ^ *f2) & TAUTOLOGY,
-            Expression::ButNot(f1, f2) => (*f1 & (!*f2)) & TAUTOLOGY,
-            Expression::NotBut(f1, f2) => ((!*f1) & *f2) & TAUTOLOGY,
-        }
-    }
-}
-
-impl fmt::Display for Expression {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Expression::Constant(f1) => write!(f, "{}", f1),
-            Expression::And(f1, f2) => write!(f, "({} & {})", f1, f2),
-            Expression::Or(f1, f2) => write!(f, "({} | {})", f1, f2),
-            Expression::Xor(f1, f2) => write!(f, "({} ^ {})", f1, f2),
-            Expression::ButNot(f1, f2) => write!(f, "({} > {})", f1, f2),
-            Expression::NotBut(f1, f2) => write!(f, "({} < {})", f1, f2),
-        }
-    }
-}
-
-impl fmt::Debug for Expression {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self)
-    }
-}
+const N: u32 = 4;
+const INFINITY: u32 = 0xffffffff;
 
 #[derive(Debug)]
 struct Result {
     lengths: Vec<u32>,
-    expressions: Vec<Vec<Expression>>,
-    lists: Vec<Vec<Function>>,
+    expressions: Vec<Vec<Expression<N>>>,
+    lists: Vec<Vec<Function<N>>>,
     stats: Vec<u32>,
 }
 
-const N: u32 = 4;
-const INFINITY: u32 = 0xffffffff;
-const TAUTOLOGY: Function = Function(2u32.pow(2u32.pow(N)) - 1);
-
 fn find_normal_lengths(
-    inputs: &HashMap<Function, Vec<Expression>>,
-    target_functions: &Vec<Function>,
+    inputs: &HashMap<Function<N>, Expression<N>>,
+    target_functions: &Vec<Function<N>>,
 ) -> Result {
     // L1. Initialize.
     let mut result = Result {
@@ -183,20 +90,20 @@ fn find_normal_lengths(
 }
 
 fn main() {
-    let target_functions: Vec<Function> = vec![
-        Function(!0b1011011111100011) & TAUTOLOGY,
-        Function(!0b1111100111100100) & TAUTOLOGY,
-        Function(!0b1101111111110100) & TAUTOLOGY,
-        Function(!0b1011011011011110) & TAUTOLOGY,
-        Function(!0b1010001010111111) & TAUTOLOGY,
-        Function(!0b1000111111110011) & TAUTOLOGY,
-        Function(0b0011111011111111) & TAUTOLOGY,
+    let target_functions: Vec<Function<N>> = vec![
+        Function::new(!0b1011011111100011),
+        Function::new(!0b1111100111100100),
+        Function::new(!0b1101111111110100),
+        Function::new(!0b1011011011011110),
+        Function::new(!0b1010001010111111),
+        Function::new(!0b1000111111110011),
+        Function::new(0b0011111011111111),
     ];
-    let mut inputs: HashMap<Function, Vec<Expression>> = HashMap::new();
+    let mut inputs: HashMap<Function<N>, Expression<N>> = HashMap::new();
     for k in 1..=N {
         let slice = 2u32.pow(2u32.pow(N - k)) + 1;
-        let f = Function(TAUTOLOGY.0 / slice);
-        inputs.insert(f, vec![Expression::Constant(f)]);
+        let f = Function::new(Function::<N>::TAUTOLOGY.0 / slice);
+        inputs.insert(f, Expression::Constant(f));
     }
 
     let result = find_normal_lengths(&inputs, &target_functions);
