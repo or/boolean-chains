@@ -1,9 +1,11 @@
 mod algorithm_l;
+mod algorithm_l_extended;
 mod expression;
 mod function;
 use std::collections::HashMap;
 
 use algorithm_l::find_normal_lengths;
+use algorithm_l_extended::find_upper_bounds_and_footprints;
 use expression::Expression;
 use function::Function;
 
@@ -29,7 +31,14 @@ fn main() {
     let result = find_normal_lengths(&inputs, &target_functions);
     println!("{:?}", result.stats);
 
-    for f in target_functions {
+    for &f in &target_functions {
         println!("{}: {:?}", f, result.expressions[usize::from(f)]);
+    }
+
+    let result2 = find_upper_bounds_and_footprints(&inputs, &target_functions);
+    println!("{:?}", result2.stats);
+
+    for &f in &target_functions {
+        println!("{}: {:?}", f, result2.footprints[usize::from(f)]);
     }
 }

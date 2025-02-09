@@ -1,7 +1,7 @@
 use super::function::Function;
 use std::fmt;
 
-#[derive(Clone)]
+#[derive(Clone, Copy, Eq, PartialEq, Hash)]
 pub enum Expression<const N: u32> {
     Constant(Function<N>),
     And(Function<N>, Function<N>),
