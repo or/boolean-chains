@@ -47,7 +47,8 @@ fn find_normal_lengths(n: u32, target_functions: &Vec<Function>) -> Result {
             }
             // L4. Loop over all functions g and h in lists j and k
             for gi in 0..result.lists[j as usize].len() {
-                for hi in 0..result.lists[k as usize].len() {
+                let start_hi = if j == k { gi + 1 } else { 0 };
+                for hi in start_hi..result.lists[k as usize].len() {
                     let g = result.lists[j as usize][gi];
                     let h = result.lists[k as usize][hi];
                     // L5. Loop over all new functions f
