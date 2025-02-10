@@ -2,6 +2,7 @@ use super::expression::Expression;
 use super::function::Function;
 
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 pub struct ChainExpression<const N: u32> {
     pub index: usize,
@@ -22,13 +23,17 @@ impl<const N: u32> ChainExpression<N> {
 pub struct Chain<const N: u32> {
     pub expressions: Vec<ChainExpression<N>>,
     pub function_lookup: HashMap<Function<N>, usize>,
+    pub targets: Vec<Function<N>>,
+    pub target_lookup: HashSet<Function<N>>,
 }
 
 impl<const N: u32> Chain<N> {
-    pub fn new() -> Self {
+    pub fn new(targets: &Vec<Function<N>>) -> Self {
         Self {
             expressions: Vec::new(),
             function_lookup: HashMap::new(),
+            targets: targets.clone(),
+            target_lookup: targets.iter().cloned().collect(),
         }
     }
 
@@ -52,41 +57,57 @@ impl<const N: u32> Chain<N> {
 
     pub fn get_expression_as_str(&self, chain_expression: &ChainExpression<N>) -> String {
         let name = self.get_name(chain_expression);
+        let is_target = if self.target_lookup.contains(&chain_expression.function) {
+            " [target]"
+        } else {
+            ""
+        };
+
         match chain_expression.expression {
             Expression::Constant(f1) => format!("{name} = {f1}"),
             Expression::And(f1, f2) => {
                 format!(
-                    "{name} = {} & {}",
+                    "{name} = {} & {} = {}{}",
                     self.get_name_for_function(f1),
-                    self.get_name_for_function(f2)
+                    self.get_name_for_function(f2),
+                    chain_expression.function,
+                    is_target
                 )
             }
             Expression::Or(f1, f2) => {
                 format!(
-                    "{name} = {} | {}",
+                    "{name} = {} | {} = {}{}",
                     self.get_name_for_function(f1),
-                    self.get_name_for_function(f2)
+                    self.get_name_for_function(f2),
+                    chain_expression.function,
+                    is_target
                 )
             }
             Expression::Xor(f1, f2) => {
                 format!(
-                    "{name} = {} ^ {}",
+                    "{name} = {} ^ {} = {}{}",
                     self.get_name_for_function(f1),
-                    self.get_name_for_function(f2)
+                    self.get_name_for_function(f2),
+                    chain_expression.function,
+                    is_target
                 )
             }
             Expression::ButNot(f1, f2) => {
                 format!(
-                    "{name} = {} > {}",
+                    "{name} = {} > {} = {}{}",
                     self.get_name_for_function(f1),
-                    self.get_name_for_function(f2)
+                    self.get_name_for_function(f2),
+                    chain_expression.function,
+                    is_target
                 )
             }
             Expression::NotBut(f1, f2) => {
                 format!(
-                    "{name} = {} < {}",
+                    "{name} = {} < {} = {}{}",
                     self.get_name_for_function(f1),
-                    self.get_name_for_function(f2)
+                    self.get_name_for_function(f2),
+                    chain_expression.function,
+                    is_target
                 )
             }
         }
