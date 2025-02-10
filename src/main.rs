@@ -19,7 +19,7 @@ fn count_first_expressions_in_footprints<const N: u32>(
     let mut result = vec![0; algorithm_result.first_expressions.len() as usize];
     for &f in target_functions {
         for i in 0..algorithm_result.first_expressions.len() {
-            if algorithm_result.footprints[usize::from(f)][i] {
+            if algorithm_result.footprints[usize::from(f)].contains(&(i as u32)) {
                 result[i as usize] += 1;
             }
         }
@@ -70,7 +70,7 @@ fn main() {
         for &f in &target_functions {
             println!("{f}:");
             for &i in &range {
-                if result2.footprints[usize::from(f)][i] {
+                if result2.footprints[usize::from(f)].contains(&(i as u32)) {
                     println!(
                         "  {}: {}",
                         frequencies[i as usize], result2.first_expressions[i as usize]

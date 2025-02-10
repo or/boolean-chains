@@ -1,5 +1,5 @@
-use bitvec::prelude::*;
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 use super::expression::Expression;
 use super::function::Function;
@@ -10,7 +10,7 @@ const INFINITY: u32 = 0xffffffff;
 pub struct Result<const N: u32> {
     pub upper_bounds: Vec<u32>,
     pub first_expressions: Vec<Expression<N>>,
-    pub footprints: Vec<BitVec>,
+    pub footprints: Vec<HashSet<u32>>,
     pub lists: Vec<Vec<Function<N>>>,
     pub stats: Vec<u32>,
 }
@@ -18,12 +18,11 @@ pub struct Result<const N: u32> {
 pub fn find_upper_bounds_and_footprints<const N: u32>(
     inputs: &HashMap<Function<N>, Expression<N>>,
 ) -> Result<N> {
-    let bit_vector_size: usize = inputs.len() * (inputs.len() - 1) * 5;
     // U1. Initialize.
     let mut result = Result {
         upper_bounds: vec![INFINITY; 2u32.pow(2u32.pow(N) - 1) as usize],
         first_expressions: vec![],
-        footprints: vec![bitvec![0; bit_vector_size]; 2u32.pow(2u32.pow(N) - 1) as usize],
+        footprints: vec![HashSet::new(); 2u32.pow(2u32.pow(N) - 1) as usize],
         lists: vec![vec![]; 2],
         stats: vec![0; 2],
     };
@@ -55,10 +54,8 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(
                 result.lists[1].push(f);
                 result.stats[1] += 1;
 
-                let mut bv = bitvec![0; bit_vector_size];
-                bv.set(result.first_expressions.len(), true);
+                result.footprints[usize::from(f)].insert(result.first_expressions.len() as u32);
                 result.first_expressions.push(expr);
-                result.footprints[usize::from(f)] = bv;
             }
         }
     }
@@ -95,16 +92,19 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(
                     let h = result.lists[k as usize][hi];
 
                     let u: u32;
-                    let v = &mut result.footprints[usize::from(g)].clone();
-                    *v |= &result.footprints[usize::from(h)].clone();
+                    let v: HashSet<u32> = result.footprints[usize::from(g)]
+                        .union(&result.footprints[usize::from(h)])
+                        .cloned()
+                        .collect();
 
-                    if (result.footprints[usize::from(g)].clone()
-                        & result.footprints[usize::from(h)].clone())
-                    .any()
+                    if (result.footprints[usize::from(g)]
+                        .intersection(&result.footprints[usize::from(h)]))
+                    .next()
+                    .is_none()
                     {
-                        u = r - 1;
-                    } else {
                         u = r;
+                    } else {
+                        u = r - 1;
                     }
 
                     // U5. Loop over all new functions f
@@ -138,7 +138,7 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(
                             result.upper_bounds[usize::from(f)] = u;
                             result.footprints[usize::from(f)] = v.clone();
                         } else if result.upper_bounds[usize::from(f)] == u {
-                            result.footprints[usize::from(f)] |= v.clone();
+                            result.footprints[usize::from(f)].extend(&v);
                         }
                     }
                 }
