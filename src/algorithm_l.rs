@@ -15,7 +15,6 @@ pub struct Result<const N: u32> {
 
 pub fn find_normal_lengths<const N: u32>(
     inputs: &HashMap<Function<N>, Expression<N>>,
-    target_functions: &Vec<Function<N>>,
 ) -> Result<N> {
     // L1. Initialize.
     let mut result = Result {
@@ -71,9 +70,6 @@ pub fn find_normal_lengths<const N: u32>(
                             result.stats[r as usize] += 1;
                             c -= 1;
                             if c == 0 {
-                                for f in target_functions {
-                                    println!("{}: {}", *f, result.lengths[usize::from(*f)]);
-                                }
                                 return result;
                             }
                         }

@@ -15,8 +15,7 @@ pub struct Result<const N: u32> {
 }
 
 pub fn find_upper_bounds_and_footprints<const N: u32>(
-    inputs: &HashMap<Function<N>, Vec<Expression<N>>>,
-    target_functions: &Vec<Function<N>>,
+    inputs: &HashMap<Function<N>, Expression<N>>,
 ) -> Result<N> {
     // U1. Initialize.
     let mut result = Result {

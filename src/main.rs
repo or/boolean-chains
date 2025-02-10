@@ -28,14 +28,17 @@ fn main() {
         inputs.insert(f, Expression::Constant(f));
     }
 
-    let result = find_normal_lengths(&inputs, &target_functions);
+    let result = find_normal_lengths(&inputs);
+    for &f in &target_functions {
+        println!("{}: {}", f, result.lengths[usize::from(f)]);
+    }
     println!("{:?}", result.stats);
 
     for &f in &target_functions {
         println!("{}: {:?}", f, result.expressions[usize::from(f)]);
     }
 
-    let result2 = find_upper_bounds_and_footprints(&inputs, &target_functions);
+    let result2 = find_upper_bounds_and_footprints(&inputs);
     println!("{:?}", result2.stats);
 
     for &f in &target_functions {
