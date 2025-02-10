@@ -5,11 +5,27 @@ mod function;
 use std::collections::HashMap;
 
 use algorithm_l::find_normal_lengths;
-use algorithm_l_extended::find_upper_bounds_and_footprints;
+use algorithm_l_extended::{find_upper_bounds_and_footprints, Result};
 use expression::Expression;
 use function::Function;
 
 const N: u32 = 4;
+
+fn count_first_expressions_in_footprints<const N: u32>(
+    algorithm_result: &Result<N>,
+    target_functions: &Vec<Function<N>>,
+) -> Vec<u32> {
+    let mut result = vec![0; algorithm_result.first_expressions.len() as usize];
+    for &f in target_functions {
+        for i in 0..algorithm_result.first_expressions.len() {
+            if algorithm_result.footprints[usize::from(f)] & (1 << i) > 0 {
+                result[i as usize] += 1;
+            }
+        }
+    }
+
+    result
+}
 
 fn main() {
     let target_functions: Vec<Function<N>> = vec![
@@ -40,12 +56,18 @@ fn main() {
 
     let result2 = find_upper_bounds_and_footprints(&inputs);
     println!("{:?}", result2.stats);
+    let frequencies = count_first_expressions_in_footprints(&result2, &target_functions);
+    let mut range: Vec<u32> = (0..result2.first_expressions.len() as u32).collect();
+    range.sort_by_key(|&x| -(frequencies[x as usize] as i32));
 
     for &f in &target_functions {
         println!("{f}:");
-        for i in 0..(N * (N - 1) / 2 * 5) {
+        for &i in &range {
             if result2.footprints[usize::from(f)] & (1 << i) > 0 {
-                println!("  {}", result2.first_expressions[i as usize]);
+                println!(
+                    "  {}: {}",
+                    frequencies[i as usize], result2.first_expressions[i as usize]
+                );
             }
         }
     }
