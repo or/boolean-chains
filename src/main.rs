@@ -81,18 +81,18 @@ fn main() {
         let mut range: Vec<usize> = (0..result2.first_expressions.len()).collect();
         range.sort_by_key(|&x| [-(frequencies[x] as i32), -(x as i32)]);
 
-        println!("target footprints:");
-        for &f in &chain.targets {
-            println!("  {f}:");
-            for &i in &range {
-                if result2.footprints[usize::from(f)].contains(&(i as u32)) {
-                    println!(
-                        "    {}: {}",
-                        frequencies[i as usize], result2.first_expressions[i as usize]
-                    );
-                }
-            }
-        }
+        // println!("target footprints:");
+        // for &f in &chain.targets {
+        //     println!("  {f}:");
+        //     for &i in &range {
+        //         if result2.footprints[usize::from(f)].contains(&(i as u32)) {
+        //             println!(
+        //                 "    {}: {}",
+        //                 frequencies[i as usize], result2.first_expressions[i as usize]
+        //             );
+        //         }
+        //     }
+        // }
 
         let expr = pick_best_expression(&mut rng, &result2.first_expressions, &range, &frequencies);
         println!("new expression selected: {}", expr);
