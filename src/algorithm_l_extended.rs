@@ -117,7 +117,12 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(chain: &Chain<N>) -> Resul
                             c -= 1;
                         } else if result.upper_bounds[usize::from(f)] > u {
                             let previous_upper_bound = result.upper_bounds[usize::from(f)];
-                            result.lists[previous_upper_bound as usize].retain(|&x| x != f);
+                            if let Some(pos) = result.lists[previous_upper_bound as usize]
+                                .iter()
+                                .position(|&x| x == f)
+                            {
+                                result.lists[previous_upper_bound as usize].swap_remove(pos);
+                            }
                             result.stats[previous_upper_bound as usize] -= 1;
                             result.lists[u as usize].push(f);
                             result.stats[u as usize] += 1;
