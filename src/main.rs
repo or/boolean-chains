@@ -66,6 +66,16 @@ fn main() {
         Function::new(!0b1000111111110011),
         Function::new(0b0011111011111111),
     ]);
+    // uppercase C
+    //     let mut chain = Chain::<N>::new(&vec![
+    //     Function::new(!0b1011011111101011),
+    //     Function::new(!0b1111100111100100),
+    //     Function::new(!0b1101111111110100),
+    //     Function::new(!0b1011011011011110),
+    //     Function::new(!0b1010001010111111),
+    //     Function::new(!0b1000111111111011),
+    //     Function::new(0b0011111011110111),
+    // ]);
 
     for k in 1..=N {
         let slice = 2u32.pow(2u32.pow(N - k)) + 1;
