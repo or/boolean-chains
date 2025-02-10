@@ -21,8 +21,8 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(chain: &Chain<N>) -> Resul
         upper_bounds: vec![INFINITY; 2u32.pow(2u32.pow(N) - 1) as usize],
         first_expressions: vec![],
         footprints: vec![HashSet::new(); 2u32.pow(2u32.pow(N) - 1) as usize],
-        lists: vec![vec![]; 2],
-        stats: vec![0; 2],
+        lists: vec![vec![]; 10],
+        stats: vec![0; 10],
     };
     result.upper_bounds[0] = 0;
     result.stats[0] += 1;
@@ -69,10 +69,10 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(chain: &Chain<N>) -> Resul
         if c == 0 {
             break;
         }
-        while result.lists.len() <= r as usize {
+        if result.lists.len() <= r as usize {
             result.lists.push(vec![]);
         }
-        while result.stats.len() <= r as usize {
+        if result.stats.len() <= r as usize {
             result.stats.push(0);
         }
         // U3. Loop over j = [(r-1)/2], ..., 0, k = r - 1 - j
