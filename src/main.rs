@@ -42,6 +42,11 @@ fn main() {
     println!("{:?}", result2.stats);
 
     for &f in &target_functions {
-        println!("{}: {:?}", f, result2.footprints[usize::from(f)]);
+        println!("{f}:");
+        for i in 0..(N * (N - 1) / 2 * 5) {
+            if result2.footprints[usize::from(f)] & (1 << i) > 0 {
+                println!("  {}", result2.first_expressions[i as usize]);
+            }
+        }
     }
 }
