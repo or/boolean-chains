@@ -1,11 +1,9 @@
-mod algorithm_l;
 mod algorithm_l_extended;
 mod expression;
 mod function;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-use algorithm_l::find_normal_lengths;
 use algorithm_l_extended::{find_upper_bounds_and_footprints, Result};
 use expression::Expression;
 use function::Function;
@@ -44,16 +42,6 @@ fn main() {
         let slice = 2u32.pow(2u32.pow(N - k)) + 1;
         let f = Function::new(Function::<N>::TAUTOLOGY.0 / slice);
         inputs.insert(f, Expression::Constant(f));
-    }
-
-    let result = find_normal_lengths(&inputs);
-    for &f in &target_functions {
-        println!("{}: {}", f, result.lengths[usize::from(f)]);
-    }
-    println!("{:?}", result.stats);
-
-    for &f in &target_functions {
-        println!("{}: {:?}", f, result.expressions[usize::from(f)]);
     }
 
     loop {
