@@ -18,13 +18,9 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(
     inputs: &HashMap<Function<N>, Expression<N>>,
 ) -> Result<N> {
     // U1. Initialize.
-    let number_of_first_expressions: u32 = 5 * inputs.len() as u32 * (inputs.len() as u32 - 1) / 2;
     let mut result = Result {
         upper_bounds: vec![INFINITY; 2u32.pow(2u32.pow(N) - 1) as usize],
-        first_expressions: vec![
-            Expression::Constant(Function(0));
-            number_of_first_expressions as usize
-        ],
+        first_expressions: vec![],
         footprints: vec![0; 2u32.pow(2u32.pow(N) - 1) as usize],
         lists: vec![vec![]; 2],
         stats: vec![0; 2],
@@ -38,7 +34,6 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(
     }
 
     let input_keys: Vec<Function<N>> = inputs.keys().cloned().collect();
-    let mut first_expressions_index: usize = 0;
     for j in 0..input_keys.len() {
         for k in j + 1..input_keys.len() {
             let g = input_keys[j as usize];
@@ -51,18 +46,22 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(
                 Expression::NotBut(g, h),
             ] {
                 let f = expr.evaluate();
+                if inputs.contains_key(&f) {
+                    continue;
+                }
                 result.upper_bounds[usize::from(f)] = 1;
                 result.lists[1].push(f);
                 result.stats[1] += 1;
 
-                result.first_expressions[first_expressions_index] = expr;
-                result.footprints[usize::from(f)] = 1 << first_expressions_index;
-                first_expressions_index += 1;
+                result.first_expressions.push(expr);
+                result.footprints[usize::from(f)] =
+                    1 << (result.first_expressions.len() as u32 - 1);
             }
         }
     }
     // initialize c, the number of functions where U(f) = infinity
-    let mut c = 2u32.pow(2u32.pow(N) - 1) - number_of_first_expressions - inputs.len() as u32 - 1;
+    let mut c =
+        2u32.pow(2u32.pow(N) - 1) - result.first_expressions.len() as u32 - inputs.len() as u32 - 1;
 
     // U2. Loop over r = 2, 3, ... while c > 0
     for r in 2.. {

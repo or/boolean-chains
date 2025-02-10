@@ -54,21 +54,40 @@ fn main() {
         println!("{}: {:?}", f, result.expressions[usize::from(f)]);
     }
 
-    let result2 = find_upper_bounds_and_footprints(&inputs);
-    println!("{:?}", result2.stats);
-    let frequencies = count_first_expressions_in_footprints(&result2, &target_functions);
-    let mut range: Vec<u32> = (0..result2.first_expressions.len() as u32).collect();
-    range.sort_by_key(|&x| -(frequencies[x as usize] as i32));
+    loop {
+        let result2 = find_upper_bounds_and_footprints(&inputs);
+        println!("{:?}", result2.stats);
+        let frequencies = count_first_expressions_in_footprints(&result2, &target_functions);
+        let mut range: Vec<usize> = (0..result2.first_expressions.len()).collect();
+        range.sort_by_key(|&x| -(frequencies[x] as i32));
+        let expr = result2.first_expressions[range[0]];
+        inputs.insert(expr.evaluate(), expr);
 
-    for &f in &target_functions {
-        println!("{f}:");
-        for &i in &range {
-            if result2.footprints[usize::from(f)] & (1 << i) > 0 {
-                println!(
-                    "  {}: {}",
-                    frequencies[i as usize], result2.first_expressions[i as usize]
-                );
+        let mut num_fulfilled_target_functions: u32 = 0;
+        for &f in &target_functions {
+            if inputs.contains_key(&f) {
+                num_fulfilled_target_functions += 1;
             }
         }
+        println!(
+            "got {} inputs, {} targets fulfilled",
+            inputs.len(),
+            num_fulfilled_target_functions
+        );
+        if num_fulfilled_target_functions as usize == target_functions.len() {
+            break;
+        }
+
+        // for &f in &target_functions {
+        //     println!("{f}:");
+        //     for &i in &range {
+        //         if result2.footprints[usize::from(f)] & (1 << i) > 0 {
+        //             println!(
+        //                 "  {}: {}",
+        //                 frequencies[i as usize], result2.first_expressions[i as usize]
+        //             );
+        //         }
+        //     }
+        // }
     }
 }
