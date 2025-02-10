@@ -32,6 +32,7 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(chain: &Chain<N>) -> Resul
         result.stats[0] += 1;
     }
 
+    let mut num_removed_infinities = 0;
     for j in 0..chain.expressions.len() {
         for k in j + 1..chain.expressions.len() {
             let g = chain.expressions[j as usize].function;
@@ -47,6 +48,9 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(chain: &Chain<N>) -> Resul
                 if chain.function_lookup.contains_key(&f) {
                     continue;
                 }
+                if result.upper_bounds[usize::from(f)] == INFINITY {
+                    num_removed_infinities += 1;
+                }
                 result.upper_bounds[usize::from(f)] = 1;
                 result.lists[1].push(f);
                 result.stats[1] += 1;
@@ -57,10 +61,8 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(chain: &Chain<N>) -> Resul
         }
     }
     // initialize c, the number of functions where U(f) = infinity
-    let mut c = 2u32.pow(2u32.pow(N) - 1)
-        - result.first_expressions.len() as u32
-        - chain.expressions.len() as u32
-        - 1;
+    let mut c =
+        2u32.pow(2u32.pow(N) - 1) - num_removed_infinities - chain.expressions.len() as u32 - 1;
 
     // U2. Loop over r = 2, 3, ... while c > 0
     for r in 2.. {
@@ -75,18 +77,11 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(chain: &Chain<N>) -> Resul
         }
         // U3. Loop over j = [(r-1)/2], ..., 0, k = r - 1 - j
         for j in (0..=(r - 1) / 2).rev() {
-            if c == 0 {
-                break;
-            }
             let k = r - 1 - j;
             // U4. Loop over all functions g and h in lists j and k
             for gi in 0..result.lists[j as usize].len() {
                 let start_hi = if j == k { gi + 1 } else { 0 };
                 for hi in start_hi..result.lists[k as usize].len() {
-                    if c == 0 {
-                        break;
-                    }
-
                     let g = result.lists[j as usize][gi];
                     let h = result.lists[k as usize][hi];
 
@@ -114,9 +109,6 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(chain: &Chain<N>) -> Resul
                         Expression::ButNot(g, h),
                         Expression::NotBut(g, h),
                     ] {
-                        if c == 0 {
-                            break;
-                        }
                         let f = expr.evaluate();
                         // U6. Update upper_bound(f) and footprint(f)
                         if result.upper_bounds[usize::from(f)] == INFINITY {
