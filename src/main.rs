@@ -79,7 +79,7 @@ fn main() {
         println!("{:?}", result2.stats);
         let frequencies = count_first_expressions_in_footprints(&result2, &chain.targets);
         let mut range: Vec<usize> = (0..result2.first_expressions.len()).collect();
-        range.sort_by_key(|&x| -(frequencies[x] as i32));
+        range.sort_by_key(|&x| [-(frequencies[x] as i32), -(x as i32)]);
 
         println!("target footprints:");
         for &f in &chain.targets {
