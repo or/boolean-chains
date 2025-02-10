@@ -1,3 +1,7 @@
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
+use std::time::{SystemTime, UNIX_EPOCH};
+
 mod algorithm_l_extended;
 mod chain;
 mod expression;
@@ -26,7 +30,33 @@ fn count_first_expressions_in_footprints<const N: u32>(
     result
 }
 
+fn pick_best_expression<const N: u32>(
+    rng: &mut StdRng,
+    first_expressions: &Vec<Expression<N>>,
+    range: &Vec<usize>,
+    frequencies: &Vec<u32>,
+) -> Expression<N> {
+    first_expressions[range[0]]
+    //first_expressions[range[rng.random_range(0..2)]]
+    // let total_frequency: u32 = frequencies.iter().map(|x| *x * *x).sum();
+    // let mut value = rng.random_range(0..total_frequency);
+    // for &index in range {
+    //     let this_value = frequencies[index] * frequencies[index];
+    //     if value < this_value {
+    //         return first_expressions[index];
+    //     }
+    //     value -= this_value;
+    // }
+    // panic!("should not happen");
+}
+
 fn main() {
+    let seed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_nanos() as u64;
+    let mut rng = StdRng::seed_from_u64(seed);
+
     let mut chain = Chain::<N>::new(&vec![
         Function::new(!0b1011011111100011),
         Function::new(!0b1111100111100100),
@@ -51,28 +81,29 @@ fn main() {
         let mut range: Vec<usize> = (0..result2.first_expressions.len()).collect();
         range.sort_by_key(|&x| -(frequencies[x] as i32));
 
+        println!("target footprints:");
         for &f in &chain.targets {
-            println!("{f}:");
+            println!("  {f}:");
             for &i in &range {
                 if result2.footprints[usize::from(f)].contains(&(i as u32)) {
                     println!(
-                        "  {}: {}",
+                        "    {}: {}",
                         frequencies[i as usize], result2.first_expressions[i as usize]
                     );
                 }
             }
         }
 
-        let expr = result2.first_expressions[range[0]];
-        println!("first: {}", expr);
+        let expr = pick_best_expression(&mut rng, &result2.first_expressions, &range, &frequencies);
+        println!("new expression selected: {}", expr);
 
         chain.add(expr);
-        for &expr in &result2.first_expressions {
-            let f = expr.evaluate();
-            if chain.target_lookup.contains(&f) && !chain.function_lookup.contains_key(&f) {
-                chain.add(expr);
-            }
-        }
+        // for &expr in &result2.first_expressions {
+        //     let f = expr.evaluate();
+        //     if chain.target_lookup.contains(&f) && !chain.function_lookup.contains_key(&f) {
+        //         chain.add(expr);
+        //     }
+        // }
 
         let mut num_fulfilled_target_functions: u32 = 0;
         for &f in &chain.targets {
