@@ -1,10 +1,11 @@
 mod algorithm_l_extended;
+mod chain;
 mod expression;
 mod function;
-use std::collections::HashMap;
 use std::collections::HashSet;
 
 use algorithm_l_extended::{find_upper_bounds_and_footprints, Result};
+use chain::Chain;
 use expression::Expression;
 use function::Function;
 
@@ -37,19 +38,17 @@ fn main() {
         Function::new(0b0011111011111111),
     ];
     let target_functions_set: HashSet<Function<N>> = target_functions.clone().into_iter().collect();
-    let mut inputs: HashMap<Function<N>, Expression<N>> = HashMap::new();
+
+    let mut chain = Chain::<N>::new();
     for k in 1..=N {
         let slice = 2u32.pow(2u32.pow(N - k)) + 1;
         let f = Function::new(Function::<N>::TAUTOLOGY.0 / slice);
-        inputs.insert(f, Expression::Constant(f));
+        chain.add(Expression::Constant(f));
     }
 
     loop {
-        println!("inputs:");
-        for (f, expr) in &inputs {
-            println!("  {} = {}", f, expr);
-        }
-        let result2 = find_upper_bounds_and_footprints(&inputs);
+        chain.print();
+        let result2 = find_upper_bounds_and_footprints(&chain);
         println!("{:?}", result2.stats);
         let frequencies = count_first_expressions_in_footprints(&result2, &target_functions);
         let mut range: Vec<usize> = (0..result2.first_expressions.len()).collect();
@@ -69,28 +68,29 @@ fn main() {
 
         let expr = result2.first_expressions[range[0]];
         println!("first: {}", expr);
-        //break;
-        inputs.insert(expr.evaluate(), expr);
+
+        chain.add(expr);
         for &expr in &result2.first_expressions {
             let f = expr.evaluate();
             if target_functions_set.contains(&f) {
-                inputs.insert(f, expr);
+                chain.add(expr);
             }
         }
 
         let mut num_fulfilled_target_functions: u32 = 0;
         for &f in &target_functions {
-            if inputs.contains_key(&f) {
+            if chain.function_lookup.contains_key(&f) {
                 num_fulfilled_target_functions += 1;
             }
         }
         println!(
             "got {} inputs, {} targets fulfilled",
-            inputs.len(),
+            chain.expressions.len(),
             num_fulfilled_target_functions
         );
         if num_fulfilled_target_functions as usize == target_functions.len() {
             break;
         }
     }
+    chain.print();
 }

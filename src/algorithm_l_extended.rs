@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use std::collections::HashSet;
 
+use super::chain::Chain;
 use super::expression::Expression;
 use super::function::Function;
 
@@ -15,9 +15,7 @@ pub struct Result<const N: u32> {
     pub stats: Vec<u32>,
 }
 
-pub fn find_upper_bounds_and_footprints<const N: u32>(
-    inputs: &HashMap<Function<N>, Expression<N>>,
-) -> Result<N> {
+pub fn find_upper_bounds_and_footprints<const N: u32>(chain: &Chain<N>) -> Result<N> {
     // U1. Initialize.
     let mut result = Result {
         upper_bounds: vec![INFINITY; 2u32.pow(2u32.pow(N) - 1) as usize],
@@ -28,17 +26,16 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(
     };
     result.upper_bounds[0] = 0;
     result.stats[0] += 1;
-    for f in inputs.keys() {
-        result.upper_bounds[usize::from(*f)] = 0;
-        result.lists[0].push(*f);
+    for chain_expression in &chain.expressions {
+        result.upper_bounds[usize::from(chain_expression.function)] = 0;
+        result.lists[0].push(chain_expression.function);
         result.stats[0] += 1;
     }
 
-    let input_keys: Vec<Function<N>> = inputs.keys().cloned().collect();
-    for j in 0..input_keys.len() {
-        for k in j + 1..input_keys.len() {
-            let g = input_keys[j as usize];
-            let h = input_keys[k as usize];
+    for j in 0..chain.expressions.len() {
+        for k in j + 1..chain.expressions.len() {
+            let g = chain.expressions[j as usize].function;
+            let h = chain.expressions[k as usize].function;
             for expr in [
                 Expression::And(g, h),
                 Expression::Or(g, h),
@@ -47,7 +44,7 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(
                 Expression::NotBut(g, h),
             ] {
                 let f = expr.evaluate();
-                if inputs.contains_key(&f) {
+                if chain.function_lookup.contains_key(&f) {
                     continue;
                 }
                 result.upper_bounds[usize::from(f)] = 1;
@@ -60,8 +57,10 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(
         }
     }
     // initialize c, the number of functions where U(f) = infinity
-    let mut c =
-        2u32.pow(2u32.pow(N) - 1) - result.first_expressions.len() as u32 - inputs.len() as u32 - 1;
+    let mut c = 2u32.pow(2u32.pow(N) - 1)
+        - result.first_expressions.len() as u32
+        - chain.expressions.len() as u32
+        - 1;
 
     // U2. Loop over r = 2, 3, ... while c > 0
     for r in 2.. {
