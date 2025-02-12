@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bit_set.h"
+#include "bit_set_fast.h"
 #include "chain.h"
 #include "expression.h"
 #include "function.h"
