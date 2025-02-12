@@ -3,7 +3,7 @@ use rand::{Rng, SeedableRng};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 mod algorithm_l_extended;
-mod bit_set;
+mod bit_set_fast;
 mod chain;
 mod expression;
 mod function;
@@ -96,7 +96,7 @@ fn main() {
         // for &f in &chain.targets {
         //     println!("  {f}:");
         //     for &i in &range {
-        //         if result2.footprints[usize::from(f)].contains(&(i as u32)) {
+        //         if result2.footprints[usize::from(f)].get(i as u32) {
         //             println!(
         //                 "    {}: {}",
         //                 frequencies[i as usize], result2.first_expressions[i as usize]

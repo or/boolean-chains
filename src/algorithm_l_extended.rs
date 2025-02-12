@@ -1,4 +1,4 @@
-use super::bit_set::BitSet;
+use super::bit_set_fast::BitSet;
 use super::chain::Chain;
 use super::expression::Expression;
 use super::function::Function;
