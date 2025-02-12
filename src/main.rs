@@ -3,6 +3,7 @@ use rand::{Rng, SeedableRng};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 mod algorithm_l_extended;
+mod bit_set;
 mod chain;
 mod expression;
 mod function;
@@ -21,7 +22,7 @@ fn count_first_expressions_in_footprints<const N: u32>(
     let mut result = vec![0; algorithm_result.first_expressions.len() as usize];
     for &f in target_functions {
         for i in 0..algorithm_result.first_expressions.len() {
-            if algorithm_result.footprints[usize::from(f)].contains(&(i as u32)) {
+            if algorithm_result.footprints[usize::from(f)].get(i as u32) {
                 result[i as usize] += 1;
             }
         }

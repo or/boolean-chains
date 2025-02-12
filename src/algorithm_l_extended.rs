@@ -1,5 +1,4 @@
-use std::collections::HashSet;
-
+use super::bit_set::BitSet;
 use super::chain::Chain;
 use super::expression::Expression;
 use super::function::Function;
@@ -10,7 +9,7 @@ const INFINITY: u32 = 0xffffffff;
 pub struct Result<const N: u32> {
     pub upper_bounds: Vec<u32>,
     pub first_expressions: Vec<Expression<N>>,
-    pub footprints: Vec<HashSet<u32>>,
+    pub footprints: Vec<BitSet>,
     pub lists: Vec<Vec<Function<N>>>,
     pub stats: Vec<u32>,
 }
@@ -21,7 +20,7 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(chain: &Chain<N>) -> Resul
     let mut result = Result {
         upper_bounds: vec![INFINITY; 2u32.pow(2u32.pow(N) - 1) as usize],
         first_expressions: vec![],
-        footprints: vec![HashSet::new(); 2u32.pow(2u32.pow(N) - 1) as usize],
+        footprints: vec![BitSet::new(); 2u32.pow(2u32.pow(N) - 1) as usize],
         lists: vec![vec![]; 10],
         stats: vec![0; 10],
     };
@@ -92,18 +91,16 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(chain: &Chain<N>) -> Resul
                     let h = result.lists[k as usize][hi];
 
                     let u;
-                    let mut v: HashSet<u32>;
+                    let mut v = result.footprints[usize::from(g)].clone();
 
                     if result.footprints[usize::from(g)]
                         .is_disjoint(&result.footprints[usize::from(h)])
                     {
                         u = r;
-                        v = result.footprints[usize::from(g)].clone();
-                        v.extend(&result.footprints[usize::from(h)]);
+                        v.add(&result.footprints[usize::from(h)]);
                     } else {
                         u = r - 1;
-                        v = result.footprints[usize::from(g)].clone();
-                        v.retain(|&x| result.footprints[usize::from(h)].contains(&x));
+                        v.intersect(&result.footprints[usize::from(h)]);
                     };
 
                     // U5. Loop over all new functions f
@@ -139,7 +136,7 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(chain: &Chain<N>) -> Resul
                             result.upper_bounds[usize::from(f)] = u;
                             result.footprints[usize::from(f)] = v.clone();
                         } else if result.upper_bounds[usize::from(f)] == u {
-                            result.footprints[usize::from(f)].extend(&v);
+                            result.footprints[usize::from(f)].add(&v);
                         }
                     }
                 }
