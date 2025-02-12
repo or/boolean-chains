@@ -103,12 +103,16 @@ Result<N> find_upper_bounds_and_footprints(const Chain<N> &chain) {
           Function<N> h = result.lists[k][hi];
 
           BitSet v(result.footprints[g.to_size_t()]);
-          v.add(result.footprints[h.to_size_t()]);
+          uint32_t u;
 
-          uint32_t u = result.footprints[g.to_size_t()].is_disjoint(
-                           result.footprints[h.to_size_t()])
-                           ? r
-                           : r - 1;
+          if (result.footprints[g.to_size_t()].is_disjoint(
+                  result.footprints[h.to_size_t()])) {
+            u = r;
+            v.add(result.footprints[h.to_size_t()]);
+          } else {
+            u = r - 1;
+            v.intersect(result.footprints[h.to_size_t()]);
+          }
 
           for (const auto &expr :
                {Expression<N>(Expression<N>::Type::And, g, h),

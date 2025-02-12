@@ -91,15 +91,19 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(chain: &Chain<N>) -> Resul
                     let g = result.lists[j as usize][gi];
                     let h = result.lists[k as usize][hi];
 
-                    let mut v: HashSet<u32> = result.footprints[usize::from(g)].clone();
-                    v.extend(&result.footprints[usize::from(h)]);
+                    let u;
+                    let mut v: HashSet<u32>;
 
-                    let u: u32 = if result.footprints[usize::from(g)]
+                    if result.footprints[usize::from(g)]
                         .is_disjoint(&result.footprints[usize::from(h)])
                     {
-                        r
+                        u = r;
+                        v = result.footprints[usize::from(g)].clone();
+                        v.extend(&result.footprints[usize::from(h)]);
                     } else {
-                        r - 1
+                        u = r - 1;
+                        v = result.footprints[usize::from(g)].clone();
+                        v.retain(|&x| result.footprints[usize::from(h)].contains(&x));
                     };
 
                     // U5. Loop over all new functions f

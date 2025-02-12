@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <unordered_set>
 
 using std::unordered_set;
@@ -27,5 +28,11 @@ public:
 
   void add(const BitSet &other) {
     bit_set.insert(other.bit_set.begin(), other.bit_set.end());
+  }
+
+  void intersect(const BitSet &other) {
+    std::erase_if(bit_set, [&other](uint32_t x) {
+      return other.bit_set.find(x) == other.bit_set.end();
+    });
   }
 };
