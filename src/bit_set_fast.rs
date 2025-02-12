@@ -1,18 +1,19 @@
+const SIZE: usize = 30;
+
 #[derive(Clone, Debug, Default)]
 pub struct BitSet {
-    bit_set: Vec<u32>,
+    bit_set: [u32; SIZE],
 }
 
 impl BitSet {
     pub fn new() -> Self {
         Self {
-            bit_set: vec![0; 24],
+            bit_set: [0u32; SIZE],
         }
     }
 
     pub fn is_disjoint(&self, other: &BitSet) -> bool {
-        let min_len = self.bit_set.len().min(other.bit_set.len());
-        for i in 0..min_len {
+        for i in 0..self.bit_set.len() {
             if self.bit_set[i] & other.bit_set[i] != 0 {
                 return false;
             }
@@ -32,16 +33,10 @@ impl BitSet {
     pub fn insert(&mut self, bit: u32) {
         let index = (bit >> 5) as usize;
         let bit_index = bit & 0b11111;
-        if index >= self.bit_set.len() {
-            self.bit_set.resize(index + 1, 0);
-        }
         self.bit_set[index] |= 1 << bit_index;
     }
 
     pub fn add(&mut self, other: &BitSet) {
-        if self.bit_set.len() < other.bit_set.len() {
-            self.bit_set.resize(other.bit_set.len(), 0);
-        }
         for i in 0..other.bit_set.len() {
             self.bit_set[i] |= other.bit_set[i];
         }
@@ -49,11 +44,7 @@ impl BitSet {
 
     pub fn intersect(&mut self, other: &BitSet) {
         for i in 0..self.bit_set.len() {
-            if i < other.bit_set.len() {
-                self.bit_set[i] &= other.bit_set[i];
-            } else {
-                self.bit_set[i] = 0;
-            }
+            self.bit_set[i] &= other.bit_set[i];
         }
     }
 }
