@@ -16,6 +16,7 @@ pub struct Result<const N: u32> {
 }
 
 pub fn find_upper_bounds_and_footprints<const N: u32>(chain: &Chain<N>) -> Result<N> {
+    let max_num_first_expressions = chain.expressions.len() * (chain.expressions.len() - 1) * 5 / 2;
     // U1. Initialize.
     let mut result = Result {
         upper_bounds: vec![INFINITY; 2u32.pow(2u32.pow(N) - 1) as usize],
@@ -50,16 +51,21 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(chain: &Chain<N>) -> Resul
                 }
                 if result.upper_bounds[usize::from(f)] == INFINITY {
                     num_removed_infinities += 1;
-                }
-                result.upper_bounds[usize::from(f)] = 1;
-                result.lists[1].push(f);
-                result.stats[1] += 1;
+                    result.upper_bounds[usize::from(f)] = 1;
+                    result.lists[1].push(f);
+                    result.stats[1] += 1;
 
-                result.footprints[usize::from(f)].insert(result.first_expressions.len() as u32);
-                result.first_expressions.push(expr);
+                    result.footprints[usize::from(f)].insert(result.first_expressions.len() as u32);
+                    result.first_expressions.push(expr);
+                }
             }
         }
     }
+    println!(
+        "num first expressions: {} (max: {})",
+        result.first_expressions.len(),
+        max_num_first_expressions
+    );
     // initialize c, the number of functions where U(f) = infinity
     let mut c =
         2u32.pow(2u32.pow(N) - 1) - num_removed_infinities - chain.expressions.len() as u32 - 1;
