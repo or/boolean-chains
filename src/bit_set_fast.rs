@@ -6,7 +6,7 @@ pub struct BitSet {
 impl BitSet {
     pub fn new() -> Self {
         Self {
-            bit_set: Vec::new(),
+            bit_set: vec![0; 24],
         }
     }
 
