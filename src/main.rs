@@ -38,8 +38,13 @@ fn pick_best_expression<const N: u32>(
     frequencies: &Vec<u32>,
 ) -> Expression<N> {
     first_expressions[range[0]]
-    //first_expressions[range[rng.random_range(0..2)]]
-    // let total_frequency: u32 = frequencies.iter().map(|x| *x * *x).sum();
+    // first_expressions[range[rng.random_range(0..3)]]
+    // if rng.random_range(0..10) == 0 {
+    //     first_expressions[range[rng.random_range(0..3)]]
+    // } else {
+    //     first_expressions[range[0]]
+    // }
+    // let total_frequency: u32 = frequencies.iter().map(|x| *x).sum();
     // let mut value = rng.random_range(0..total_frequency);
     // for &index in range {
     //     let this_value = frequencies[index] * frequencies[index];
@@ -48,7 +53,7 @@ fn pick_best_expression<const N: u32>(
     //     }
     //     value -= this_value;
     // }
-    // panic!("should not happen");
+    // first_expressions[range[0]]
 }
 
 fn main() {
