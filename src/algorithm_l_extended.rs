@@ -39,10 +39,10 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(chain: &Chain<N>) -> Resul
             let h = chain.expressions[k as usize].function;
             for expr in [
                 Expression::And(g, h),
+                Expression::NotBut(g, h),
+                Expression::ButNot(g, h),
                 Expression::Or(g, h),
                 Expression::Xor(g, h),
-                Expression::ButNot(g, h),
-                Expression::NotBut(g, h),
             ] {
                 let f = expr.evaluate();
                 if chain.function_lookup.contains_key(&f) {
@@ -106,10 +106,10 @@ pub fn find_upper_bounds_and_footprints<const N: u32>(chain: &Chain<N>) -> Resul
                     // U5. Loop over all new functions f
                     for expr in [
                         Expression::And(g, h),
+                        Expression::NotBut(g, h),
+                        Expression::ButNot(g, h),
                         Expression::Or(g, h),
                         Expression::Xor(g, h),
-                        Expression::ButNot(g, h),
-                        Expression::NotBut(g, h),
                     ] {
                         let f = expr.evaluate();
                         // U6. Update upper_bound(f) and footprint(f)

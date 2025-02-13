@@ -54,12 +54,13 @@ Result<N> find_upper_bounds_and_footprints(const Chain<N> &chain) {
       Function<N> g = chain.expressions[j].function;
       Function<N> h = chain.expressions[k].function;
 
-      for (const auto &expr :
-           {Expression<N>(Expression<N>::Type::And, g, h),
-            Expression<N>(Expression<N>::Type::Or, g, h),
-            Expression<N>(Expression<N>::Type::Xor, g, h),
-            Expression<N>(Expression<N>::Type::ButNot, g, h),
-            Expression<N>(Expression<N>::Type::NotBut, g, h)}) {
+      for (const auto &expr : {
+               Expression<N>(Expression<N>::Type::And, g, h),
+               Expression<N>(Expression<N>::Type::NotBut, g, h),
+               Expression<N>(Expression<N>::Type::ButNot, g, h),
+               Expression<N>(Expression<N>::Type::Or, g, h),
+               Expression<N>(Expression<N>::Type::Xor, g, h),
+           }) {
         Function<N> f = expr.evaluate();
 
         if (chain.function_lookup.find(f) != chain.function_lookup.end()) {
@@ -114,12 +115,13 @@ Result<N> find_upper_bounds_and_footprints(const Chain<N> &chain) {
             v.intersect(result.footprints[h.to_size_t()]);
           }
 
-          for (const auto &expr :
-               {Expression<N>(Expression<N>::Type::And, g, h),
-                Expression<N>(Expression<N>::Type::Or, g, h),
-                Expression<N>(Expression<N>::Type::Xor, g, h),
-                Expression<N>(Expression<N>::Type::ButNot, g, h),
-                Expression<N>(Expression<N>::Type::NotBut, g, h)}) {
+          for (const auto &expr : {
+                   Expression<N>(Expression<N>::Type::And, g, h),
+                   Expression<N>(Expression<N>::Type::NotBut, g, h),
+                   Expression<N>(Expression<N>::Type::ButNot, g, h),
+                   Expression<N>(Expression<N>::Type::Or, g, h),
+                   Expression<N>(Expression<N>::Type::Xor, g, h),
+               }) {
             Function<N> f = expr.evaluate();
 
             if (result.upper_bounds[f.to_size_t()] == INFINITY_U32) {
