@@ -15,10 +15,7 @@ use function::Function;
 
 const N: u32 = 4;
 
-fn count_first_expressions_in_footprints<const N: u32>(
-    algorithm_result: &Result<N>,
-    chain: &Chain<N>,
-) -> Vec<u32> {
+fn count_first_expressions_in_footprints(algorithm_result: &Result, chain: &Chain) -> Vec<u32> {
     let mut result = vec![0; algorithm_result.first_expressions.len() as usize];
     for &f in &chain.targets {
         if chain.function_lookup.contains_key(&f) {
@@ -35,12 +32,12 @@ fn count_first_expressions_in_footprints<const N: u32>(
     result
 }
 
-fn pick_best_expression<const N: u32>(
+fn pick_best_expression(
     rng: &mut StdRng,
-    first_expressions: &Vec<Expression<N>>,
+    first_expressions: &Vec<Expression>,
     range: &Vec<usize>,
     frequencies: &Vec<u32>,
-) -> Expression<N> {
+) -> Expression {
     first_expressions[range[0]]
     // first_expressions[range[rng.random_range(0..3)]]
     // if rng.random_range(0..10) == 0 {
@@ -67,7 +64,7 @@ fn main() {
         .as_nanos() as u64;
     let mut rng = StdRng::seed_from_u64(seed);
 
-    let mut chain = Chain::<N>::new(&vec![
+    let mut chain = Chain::new(&vec![
         Function::new(!0b1011011111100011),
         Function::new(!0b1111100111100100),
         Function::new(!0b1101111111110100),
@@ -77,7 +74,7 @@ fn main() {
         Function::new(0b0011111011111111),
     ]);
     // uppercase C
-    //     let mut chain = Chain::<N>::new(&vec![
+    //     let mut chain = Chain::new(&vec![
     //     Function::new(!0b1011011111101011),
     //     Function::new(!0b1111100111100100),
     //     Function::new(!0b1101111111110100),
@@ -89,7 +86,7 @@ fn main() {
 
     for k in 1..=N {
         let slice = 2u32.pow(2u32.pow(N - k)) + 1;
-        let f = Function::new(Function::<N>::TAUTOLOGY.0 / slice);
+        let f = Function::new(Function::TAUTOLOGY.0 / slice);
         chain.add(Expression::Constant(f));
     }
 

@@ -1,20 +1,20 @@
 use super::bit_set_fast::BitSet;
 use super::chain::Chain;
 use super::expression::Expression;
-use super::function::Function;
+use super::function::{Function, N};
 
 const INFINITY: u32 = 0xffffffff;
 
 #[derive(Debug)]
-pub struct Result<const N: u32> {
+pub struct Result {
     pub upper_bounds: Vec<u32>,
-    pub first_expressions: Vec<Expression<N>>,
+    pub first_expressions: Vec<Expression>,
     pub footprints: Vec<BitSet>,
-    pub lists: Vec<Vec<Function<N>>>,
+    pub lists: Vec<Vec<Function>>,
     pub stats: Vec<u32>,
 }
 
-pub fn find_upper_bounds_and_footprints<const N: u32>(chain: &Chain<N>) -> Result<N> {
+pub fn find_upper_bounds_and_footprints(chain: &Chain) -> Result {
     let max_num_first_expressions = chain.expressions.len() * (chain.expressions.len() - 1) * 5 / 2;
     // U1. Initialize.
     let mut result = Result {

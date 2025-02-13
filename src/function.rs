@@ -1,32 +1,34 @@
 use std::fmt;
 use std::ops::{BitAnd, BitOr, BitXor, Not};
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Function<const B: u32>(pub u32);
+pub const N: u32 = 4;
 
-impl<const N: u32> Function<N> {
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Function(pub u32);
+
+impl Function {
     pub const TAUTOLOGY: Self = Function(2u32.pow(2u32.pow(N)) - 1);
 
     pub fn new(value: u32) -> Self {
-        Function::<N>(value & Function::<N>::TAUTOLOGY.0)
+        Function(value & Function::TAUTOLOGY.0)
     }
 }
 
-impl<const N: u32> From<Function<N>> for usize {
-    fn from(f: Function<N>) -> Self {
+impl From<Function> for usize {
+    fn from(f: Function) -> Self {
         f.0 as usize
     }
 }
 
-impl<const N: u32> Not for Function<N> {
+impl Not for Function {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        Function((!self.0) & Function::<N>::TAUTOLOGY.0)
+        Function((!self.0) & Function::TAUTOLOGY.0)
     }
 }
 
-impl<const N: u32> BitXor for Function<N> {
+impl BitXor for Function {
     type Output = Self;
 
     fn bitxor(self, other: Self) -> Self::Output {
@@ -34,7 +36,7 @@ impl<const N: u32> BitXor for Function<N> {
     }
 }
 
-impl<const N: u32> BitAnd for Function<N> {
+impl BitAnd for Function {
     type Output = Self;
 
     fn bitand(self, other: Self) -> Self::Output {
@@ -42,7 +44,7 @@ impl<const N: u32> BitAnd for Function<N> {
     }
 }
 
-impl<const N: u32> BitOr for Function<N> {
+impl BitOr for Function {
     type Output = Self;
 
     fn bitor(self, other: Self) -> Self::Output {
@@ -50,13 +52,13 @@ impl<const N: u32> BitOr for Function<N> {
     }
 }
 
-impl<const N: u32> fmt::Display for Function<N> {
+impl fmt::Display for Function {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:016b}", self.0)
     }
 }
 
-impl<const N: u32> fmt::Debug for Function<N> {
+impl fmt::Debug for Function {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self)
     }

@@ -1,21 +1,19 @@
 use std::collections::HashMap;
 
 use super::expression::Expression;
-use super::function::Function;
+use super::functionon::{Functionon, N};
 
 const INFINITY: u32 = 0xffffffff;
 
 #[derive(Debug)]
-pub struct Result<const N: u32> {
+pub struct Result {
     pub lengths: Vec<u32>,
-    pub expressions: Vec<Vec<Expression<N>>>,
-    pub lists: Vec<Vec<Function<N>>>,
+    pub expressions: Vec<Vec<Expression>>,
+    pub lists: Vec<Vec<Function>>,
     pub stats: Vec<u32>,
 }
 
-pub fn find_normal_lengths<const N: u32>(
-    inputs: &HashMap<Function<N>, Expression<N>>,
-) -> Result<N> {
+pub fn find_normal_lengths(inputs: &HashMap<Function, Expression>) -> Result {
     // L1. Initialize.
     let mut result = Result {
         lengths: vec![INFINITY; 2u32.pow(2u32.pow(N) - 1) as usize],
@@ -30,7 +28,7 @@ pub fn find_normal_lengths<const N: u32>(
         result.lists[0].push(*f);
         result.stats[0] += 1;
     }
-    // initialize c, the number of functions where L(f) = infinity
+    // initialize c, the number of functionons where L(f) = infinity
     let mut c = 2u32.pow(2u32.pow(N) - 1) - inputs.len() as u32 - 1;
 
     // L2. Loop over r = 1, 2, ...
@@ -47,13 +45,13 @@ pub fn find_normal_lengths<const N: u32>(
             if k < j {
                 break;
             }
-            // L4. Loop over all functions g and h in lists j and k
+            // L4. Loop over all functionons g and h in lists j and k
             for gi in 0..result.lists[j as usize].len() {
                 let start_hi = if j == k { gi + 1 } else { 0 };
                 for hi in start_hi..result.lists[k as usize].len() {
                     let g = result.lists[j as usize][gi];
                     let h = result.lists[k as usize][hi];
-                    // L5. Loop over all new functions f
+                    // L5. Loop over all new functionons f
                     for expr in [
                         Expression::And(g, h),
                         Expression::Or(g, h),
