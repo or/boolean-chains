@@ -89,6 +89,92 @@ fn main() {
         chain.add(Expression::Constant(f));
     }
 
+    // printed best
+    // chain.add(Expression::Xor(
+    //     chain.expressions[1].function,
+    //     chain.expressions[2].function,
+    // ));
+    // chain.add(Expression::NotBut(
+    //     chain.expressions[0].function,
+    //     chain.expressions[3].function,
+    // ));
+    // chain.add(Expression::ButNot(
+    //     chain.expressions[2].function,
+    //     chain.expressions[5].function,
+    // ));
+    // chain.add(Expression::Xor(
+    //     chain.expressions[0].function,
+    //     chain.expressions[1].function,
+    // ));
+    // chain.add(Expression::Xor(
+    //     chain.expressions[3].function,
+    //     chain.expressions[4].function,
+    // ));
+    // chain.add(Expression::Or(
+    //     chain.expressions[2].function,
+    //     chain.expressions[8].function,
+    // ));
+    // chain.add(Expression::Xor(
+    //     chain.expressions[5].function,
+    //     chain.expressions[9].function,
+    // ));
+    // chain.add(Expression::And(
+    //     chain.expressions[0].function,
+    //     chain.expressions[1].function,
+    // ));
+    // chain.add(Expression::ButNot(
+    //     chain.expressions[8].function,
+    //     chain.expressions[11].function,
+    // ));
+    // chain.add(Expression::NotBut(
+    //     chain.expressions[2].function,
+    //     chain.expressions[12].function,
+    // ));
+    // chain.add(Expression::Xor(
+    //     chain.expressions[4].function,
+    //     chain.expressions[13].function,
+    // ));
+    // chain.add(Expression::Xor(
+    //     chain.expressions[0].function,
+    //     chain.expressions[6].function,
+    // ));
+    // chain.add(Expression::Or(
+    //     chain.expressions[0].function,
+    //     chain.expressions[4].function,
+    // ));
+    // chain.add(Expression::Xor(
+    //     chain.expressions[5].function,
+    //     chain.expressions[12].function,
+    // ));
+    // chain.add(Expression::Xor(
+    //     chain.expressions[14].function,
+    //     chain.expressions[17].function,
+    // ));
+    // chain.add(Expression::ButNot(
+    //     chain.expressions[10].function,
+    //     chain.expressions[12].function,
+    // ));
+    // chain.add(Expression::NotBut(
+    //     chain.expressions[7].function,
+    //     chain.expressions[10].function,
+    // ));
+    // chain.add(Expression::ButNot(
+    //     chain.expressions[8].function,
+    //     chain.expressions[15].function,
+    // ));
+    // chain.add(Expression::Or(
+    //     chain.expressions[5].function,
+    //     chain.expressions[13].function,
+    // ));
+    // chain.add(Expression::NotBut(
+    //     chain.expressions[7].function,
+    //     chain.expressions[14].function,
+    // ));
+    // chain.add(Expression::Or(
+    //     chain.expressions[6].function,
+    //     chain.expressions[16].function,
+    // ));
+
     loop {
         chain.print();
         let result2 = find_upper_bounds_and_footprints(&chain);
