@@ -8,12 +8,9 @@
 #include <random>
 #include <vector>
 
-constexpr uint32_t N = 4;
-
-template <uint32_t N>
 std::vector<uint32_t>
-count_first_expressions_in_footprints(const Result<N> &algorithm_result,
-                                      const Chain<N> &chain) {
+count_first_expressions_in_footprints(const Result &algorithm_result,
+                                      const Chain &chain) {
 
   std::vector<uint32_t> result(algorithm_result.first_expressions.size(), 0);
 
@@ -31,10 +28,9 @@ count_first_expressions_in_footprints(const Result<N> &algorithm_result,
   return result;
 }
 
-template <uint32_t N>
-Expression<N>
+Expression
 pick_best_expression(std::mt19937_64 &rng,
-                     const std::vector<Expression<N>> &first_expressions,
+                     const std::vector<Expression> &first_expressions,
                      const std::vector<size_t> &range,
                      const std::vector<uint32_t> &frequencies) {
 
@@ -64,20 +60,20 @@ int main() {
           .count();
   std::mt19937_64 rng(seed);
 
-  Chain<N> chain({
-      Function<N>(~0b1011011111100011),
-      Function<N>(~0b1111100111100100),
-      Function<N>(~0b1101111111110100),
-      Function<N>(~0b1011011011011110),
-      Function<N>(~0b1010001010111111),
-      Function<N>(~0b1000111111110011),
-      Function<N>(0b0011111011111111),
+  Chain chain({
+      Function(~0b1011011111100011),
+      Function(~0b1111100111100100),
+      Function(~0b1101111111110100),
+      Function(~0b1011011011011110),
+      Function(~0b1010001010111111),
+      Function(~0b1000111111110011),
+      Function(0b0011111011111111),
   });
 
   for (uint32_t k = 1; k <= N; k++) {
     uint32_t slice = (1u << (1u << (N - k))) + 1;
-    Function<N> f = Function<N>(Function<N>::TAUTOLOGY / slice);
-    chain.add(Expression<N>(f));
+    Function f = Function(Function::TAUTOLOGY / slice);
+    chain.add(Expression(f));
   }
 
   while (true) {
@@ -102,8 +98,8 @@ int main() {
     //     frequencies[i] << " (" << i << ")" << std::endl;
     // }
 
-    Expression<N> expr = pick_best_expression(rng, result2.first_expressions,
-                                              range, frequencies);
+    Expression expr = pick_best_expression(rng, result2.first_expressions,
+                                           range, frequencies);
     std::cout << "new expression selected: " << expr.to_string() << std::endl;
 
     chain.add(expr);

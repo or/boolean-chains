@@ -4,7 +4,9 @@
 #include <cstdint>
 #include <string>
 
-template <uint32_t N> class Function {
+const uint32_t N = 4;
+
+class Function {
 public:
   uint32_t value;
 
@@ -36,8 +38,8 @@ public:
 };
 
 namespace std {
-template <std::size_t N> struct hash<Function<N>> {
-  size_t operator()(const Function<N> &f) const {
+template <> struct hash<Function> {
+  size_t operator()(const Function &f) const {
     return std::hash<uint32_t>{}(f.value);
   }
 };
