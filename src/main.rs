@@ -103,8 +103,8 @@ fn main() {
         //     for &i in &range {
         //         if result2.footprints[usize::from(f)].get(i as u32) {
         //             println!(
-        //                 "    {}: {}",
-        //                 frequencies[i as usize], result2.first_expressions[i as usize]
+        //                 "    {}: {} ({})",
+        //                 frequencies[i as usize], result2.first_expressions[i as usize], i
         //             );
         //         }
         //     }

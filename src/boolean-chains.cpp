@@ -97,7 +97,7 @@ int main() {
 
     // for (size_t i : range) {
     //     std::cout << result2.first_expressions[i].to_string() << " " <<
-    //     frequencies[i] << std::endl;
+    //     frequencies[i] << " (" << i << ")" << std::endl;
     // }
 
     Expression<N> expr = pick_best_expression(rng, result2.first_expressions,
