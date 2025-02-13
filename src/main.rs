@@ -17,10 +17,14 @@ const N: u32 = 4;
 
 fn count_first_expressions_in_footprints<const N: u32>(
     algorithm_result: &Result<N>,
-    target_functions: &Vec<Function<N>>,
+    chain: &Chain<N>,
 ) -> Vec<u32> {
     let mut result = vec![0; algorithm_result.first_expressions.len() as usize];
-    for &f in target_functions {
+    for &f in &chain.targets {
+        if chain.function_lookup.contains_key(&f) {
+            continue;
+        }
+
         for i in 0..algorithm_result.first_expressions.len() {
             if algorithm_result.footprints[usize::from(f)].get(i as u32) {
                 result[i as usize] += 1;
@@ -179,7 +183,7 @@ fn main() {
         chain.print();
         let result2 = find_upper_bounds_and_footprints(&chain);
         println!("{:?}", result2.stats);
-        let frequencies = count_first_expressions_in_footprints(&result2, &chain.targets);
+        let frequencies = count_first_expressions_in_footprints(&result2, &chain);
         let mut range: Vec<usize> = (0..result2.first_expressions.len()).collect();
         range.sort_by_key(|&x| [-(frequencies[x] as i32), -(x as i32)]);
 

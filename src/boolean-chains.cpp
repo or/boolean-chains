@@ -11,13 +11,16 @@
 constexpr uint32_t N = 4;
 
 template <uint32_t N>
-std::vector<uint32_t> count_first_expressions_in_footprints(
-    const Result<N> &algorithm_result,
-    const std::vector<Function<N>> &target_functions) {
+std::vector<uint32_t>
+count_first_expressions_in_footprints(const Result<N> &algorithm_result,
+                                      const Chain<N> &chain) {
 
   std::vector<uint32_t> result(algorithm_result.first_expressions.size(), 0);
 
-  for (const auto &f : target_functions) {
+  for (const auto &f : chain.targets) {
+    if (chain.function_lookup.find(f) != chain.function_lookup.end()) {
+      continue;
+    }
     for (size_t i = 0; i < algorithm_result.first_expressions.size(); i++) {
       if (algorithm_result.footprints[f.to_size_t()].get(i)) {
         result[i]++;
@@ -82,8 +85,7 @@ int main() {
 
     auto result2 = find_upper_bounds_and_footprints(chain);
 
-    auto frequencies =
-        count_first_expressions_in_footprints(result2, chain.targets);
+    auto frequencies = count_first_expressions_in_footprints(result2, chain);
 
     std::vector<size_t> range(result2.first_expressions.size());
     std::iota(range.begin(), range.end(), 0);
