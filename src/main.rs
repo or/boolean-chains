@@ -90,6 +90,15 @@ fn main() {
         chain.add(Expression::Constant(f));
     }
 
+    // chain.add(Expression::Constant(chain.targets[0]));
+    // chain.add(Expression::Constant(chain.targets[1]));
+    // chain.add(Expression::Constant(chain.targets[2]));
+    // chain.add(Expression::Constant(chain.targets[3]));
+    // chain.add(Expression::Constant(chain.targets[4]));
+
+    //chain.add(Expression::Constant(chain.targets[5]));
+    //chain.add(Expression::Constant(chain.targets[6]));
+
     // printed best
     // chain.add(Expression::Xor(
     //     chain.expressions[1].function,
@@ -178,35 +187,58 @@ fn main() {
 
     loop {
         chain.print();
-        let result2 = find_upper_bounds_and_footprints(&chain);
-        println!("{:?}", result2.stats);
-        let frequencies = count_first_expressions_in_footprints(&result2, &chain);
-        let mut range: Vec<usize> = (0..result2.first_expressions.len()).collect();
-        range.sort_by_key(|&x| [-(frequencies[x] as i32), -(x as i32)]);
+        let result = find_upper_bounds_and_footprints(&chain);
+        println!("{:?}", result.stats);
+        let frequencies = count_first_expressions_in_footprints(&result, &chain);
+        let mut range: Vec<usize> = (0..result.first_expressions.len()).collect();
+        range.sort_by_key(|&x| {
+            [
+                chain
+                    .targets
+                    .iter()
+                    .map(|&y| {
+                        if result.footprints[usize::from(y)].get(x as u32) {
+                            result.upper_bounds[usize::from(y)]
+                        } else {
+                            1000
+                        }
+                    })
+                    .min()
+                    .unwrap() as i32,
+                -(frequencies[x] as i32),
+                -(x as i32),
+            ]
+        });
 
         // println!("target footprints:");
         // for &f in &chain.targets {
         //     println!("  {f}:");
         //     for &i in &range {
-        //         if result2.footprints[usize::from(f)].get(i as u32) {
+        //         if result.footprints[usize::from(f)].get(i as u32) {
         //             println!(
         //                 "    {}: {} ({})",
-        //                 frequencies[i as usize], result2.first_expressions[i as usize], i
+        //                 frequencies[i as usize], result.first_expressions[i as usize], i
         //             );
         //         }
         //     }
         // }
+        // println!("range: {:?}", range);
 
-        let expr = pick_best_expression(&mut rng, &result2.first_expressions, &range, &frequencies);
-        println!("new expression selected: {}", expr);
-
-        chain.add(expr);
-        // for &expr in &result2.first_expressions {
+        let mut added_new_expression = false;
+        // for &expr in &result.first_expressions {
         //     let f = expr.evaluate();
         //     if chain.target_lookup.contains(&f) && !chain.function_lookup.contains_key(&f) {
         //         chain.add(expr);
+        //         println!("new expression selected for target: {}", expr);
+        //         added_new_expression = true;
         //     }
         // }
+        if !added_new_expression {
+            let expr =
+                pick_best_expression(&mut rng, &result.first_expressions, &range, &frequencies);
+            println!("new expression selected: {}", expr);
+            chain.add(expr);
+        }
 
         let mut num_fulfilled_target_functions: u32 = 0;
         for &f in &chain.targets {
