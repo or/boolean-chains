@@ -1,5 +1,6 @@
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
+use std::process;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 mod algorithm_l_extended;
@@ -71,6 +72,9 @@ fn find_optimal_chain(chain: &mut Chain, current_best_length: &mut usize) {
             chain.print();
             *current_best_length = chain.expressions.len();
         }
+        // if chain.expressions.len() == 25 {
+        //     process::exit(1);
+        // }
         return;
     }
 
@@ -102,38 +106,38 @@ fn find_optimal_chain(chain: &mut Chain, current_best_length: &mut usize) {
         ]
     });
 
-    let current_length = chain.expressions.len();
-    let mut added_new_expression = false;
-    for &expr in &result.first_expressions {
-        let f = expr.evaluate();
-        if chain.target_lookup.contains(&f) && !chain.function_lookup.contains_key(&f) {
-            chain.add(expr);
-            added_new_expression = true;
-        }
-    }
+    // let current_length = chain.expressions.len();
+    // let mut added_new_expression = false;
+    // for &expr in &result.first_expressions {
+    //     let f = expr.evaluate();
+    //     if chain.target_lookup.contains(&f) && !chain.function_lookup.contains_key(&f) {
+    //         chain.add(expr);
+    //         added_new_expression = true;
+    //     }
+    // }
 
-    if added_new_expression {
-        find_optimal_chain(chain, current_best_length);
-        while chain.expressions.len() > current_length {
-            chain.remove_last();
-        }
+    // if added_new_expression {
+    //     find_optimal_chain(chain, current_best_length);
+    //     while chain.expressions.len() > current_length {
+    //         chain.remove_last();
+    //     }
+    // }
+
+    let max = if chain.expressions.len() < 12 {
+        5
+    } else if chain.expressions.len() < 18 {
+        1
     } else {
-        let max = if chain.expressions.len() < 12 {
-            5
-        } else if chain.expressions.len() < 18 {
-            3
-        } else {
-            2
-        };
-        for i in 0..max {
-            if chain.expressions.len() <= 19 {
-                println!("{}: {} / {}", chain.expressions.len(), i, max);
-            }
-
-            chain.add(result.first_expressions[range[i]]);
-            find_optimal_chain(chain, current_best_length);
-            chain.remove_last();
+        1
+    };
+    for i in 0..max {
+        if chain.expressions.len() <= 17 {
+            println!("{}: {} / {}", chain.expressions.len(), i, max);
         }
+
+        chain.add(result.first_expressions[range[i]]);
+        find_optimal_chain(chain, current_best_length);
+        chain.remove_last();
     }
 }
 
