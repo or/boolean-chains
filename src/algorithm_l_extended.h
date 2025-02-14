@@ -79,8 +79,8 @@ Result find_upper_bounds_and_footprints(const Chain &chain) {
     }
   }
 
-  std::cout << "num first expressions: " << result.first_expressions.size()
-            << " (max: " << max_num_first_expressions << ")\n";
+  // std::cout << "num first expressions: " << result.first_expressions.size()
+  //           << " (max: " << max_num_first_expressions << ")\n";
 
   uint32_t c =
       num_functions - num_removed_infinities - chain.expressions.size() - 1;

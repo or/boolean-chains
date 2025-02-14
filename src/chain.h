@@ -40,6 +40,14 @@ public:
     function_lookup[f] = index;
   }
 
+  void remove_last() {
+    if (!expressions.empty()) {
+      ChainExpression expr = expressions.back();
+      expressions.pop_back();
+      function_lookup.erase(expr.function);
+    }
+  }
+
   std::string get_name(const ChainExpression &chain_expr) const {
     return "x" + std::to_string(chain_expr.index + 1);
   }
@@ -98,5 +106,6 @@ public:
     for (const auto &chain_expr : expressions) {
       std::cout << "  " << get_expression_as_str(chain_expr) << '\n';
     }
+    std::cout << std::flush;
   }
 };
