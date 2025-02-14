@@ -5,7 +5,7 @@
 using std::min;
 using std::vector;
 
-const size_t SIZE = 30;
+const size_t SIZE = 24;
 
 class BitSet {
 private:

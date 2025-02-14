@@ -1,4 +1,4 @@
-const SIZE: usize = 30;
+const SIZE: usize = 24;
 
 #[derive(Clone, Debug, Default)]
 pub struct BitSet {
