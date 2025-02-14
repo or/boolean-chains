@@ -57,6 +57,86 @@ fn pick_best_expression(
     // first_expressions[range[0]]
 }
 
+fn find_optimal_chain(chain: &mut Chain, current_best_length: &mut usize) {
+    let mut num_fulfilled_target_functions: usize = 0;
+    for &f in &chain.targets {
+        if chain.function_lookup.contains_key(&f) {
+            num_fulfilled_target_functions += 1;
+        }
+    }
+
+    if num_fulfilled_target_functions as usize == chain.targets.len() {
+        if chain.expressions.len() < *current_best_length {
+            println!("new best chain found ({}):", chain.expressions.len());
+            chain.print();
+            *current_best_length = chain.expressions.len();
+        }
+        return;
+    }
+
+    if chain.expressions.len() + chain.targets.len() - num_fulfilled_target_functions
+        >= *current_best_length
+    {
+        return;
+    }
+
+    let result = find_upper_bounds_and_footprints(&chain);
+    let frequencies = count_first_expressions_in_footprints(&result, &chain);
+    let mut range: Vec<usize> = (0..result.first_expressions.len()).collect();
+    range.sort_by_key(|&x| {
+        [
+            chain
+                .targets
+                .iter()
+                .map(|&y| {
+                    if result.footprints[usize::from(y)].get(x as u32) {
+                        result.upper_bounds[usize::from(y)]
+                    } else {
+                        1000
+                    }
+                })
+                .min()
+                .unwrap() as i32,
+            -(frequencies[x] as i32),
+            -(x as i32),
+        ]
+    });
+
+    let current_length = chain.expressions.len();
+    let mut added_new_expression = false;
+    for &expr in &result.first_expressions {
+        let f = expr.evaluate();
+        if chain.target_lookup.contains(&f) && !chain.function_lookup.contains_key(&f) {
+            chain.add(expr);
+            added_new_expression = true;
+        }
+    }
+
+    if added_new_expression {
+        find_optimal_chain(chain, current_best_length);
+        while chain.expressions.len() > current_length {
+            chain.remove_last();
+        }
+    } else {
+        let max = if chain.expressions.len() < 12 {
+            5
+        } else if chain.expressions.len() < 18 {
+            3
+        } else {
+            2
+        };
+        for i in 0..max {
+            if chain.expressions.len() <= 19 {
+                println!("{}: {} / {}", chain.expressions.len(), i, max);
+            }
+
+            chain.add(result.first_expressions[range[i]]);
+            find_optimal_chain(chain, current_best_length);
+            chain.remove_last();
+        }
+    }
+}
+
 fn main() {
     let seed = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -100,22 +180,22 @@ fn main() {
     //chain.add(Expression::Constant(chain.targets[6]));
 
     // printed best
-    // chain.add(Expression::Xor(
-    //     chain.expressions[1].function,
-    //     chain.expressions[2].function,
-    // ));
-    // chain.add(Expression::NotBut(
-    //     chain.expressions[0].function,
-    //     chain.expressions[3].function,
-    // ));
-    // chain.add(Expression::ButNot(
-    //     chain.expressions[2].function,
-    //     chain.expressions[5].function,
-    // ));
-    // chain.add(Expression::Xor(
-    //     chain.expressions[0].function,
-    //     chain.expressions[1].function,
-    // ));
+    chain.add(Expression::Xor(
+        chain.expressions[1].function,
+        chain.expressions[2].function,
+    ));
+    chain.add(Expression::NotBut(
+        chain.expressions[0].function,
+        chain.expressions[3].function,
+    ));
+    chain.add(Expression::ButNot(
+        chain.expressions[2].function,
+        chain.expressions[5].function,
+    ));
+    chain.add(Expression::Xor(
+        chain.expressions[0].function,
+        chain.expressions[1].function,
+    ));
     // chain.add(Expression::Xor(
     //     chain.expressions[3].function,
     //     chain.expressions[4].function,
@@ -185,75 +265,77 @@ fn main() {
     //     chain.expressions[16].function,
     // ));
 
-    loop {
-        chain.print();
-        let result = find_upper_bounds_and_footprints(&chain);
-        println!("{:?}", result.stats);
-        let frequencies = count_first_expressions_in_footprints(&result, &chain);
-        let mut range: Vec<usize> = (0..result.first_expressions.len()).collect();
-        range.sort_by_key(|&x| {
-            [
-                chain
-                    .targets
-                    .iter()
-                    .map(|&y| {
-                        if result.footprints[usize::from(y)].get(x as u32) {
-                            result.upper_bounds[usize::from(y)]
-                        } else {
-                            1000
-                        }
-                    })
-                    .min()
-                    .unwrap() as i32,
-                -(frequencies[x] as i32),
-                -(x as i32),
-            ]
-        });
+    // loop {
+    //     chain.print();
+    //     let result = find_upper_bounds_and_footprints(&chain);
+    //     println!("{:?}", result.stats);
+    //     let frequencies = count_first_expressions_in_footprints(&result, &chain);
+    //     let mut range: Vec<usize> = (0..result.first_expressions.len()).collect();
+    //     range.sort_by_key(|&x| {
+    //         [
+    //             chain
+    //                 .targets
+    //                 .iter()
+    //                 .map(|&y| {
+    //                     if result.footprints[usize::from(y)].get(x as u32) {
+    //                         result.upper_bounds[usize::from(y)]
+    //                     } else {
+    //                         1000
+    //                     }
+    //                 })
+    //                 .min()
+    //                 .unwrap() as i32,
+    //             -(frequencies[x] as i32),
+    //             -(x as i32),
+    //         ]
+    //     });
 
-        // println!("target footprints:");
-        // for &f in &chain.targets {
-        //     println!("  {f}:");
-        //     for &i in &range {
-        //         if result.footprints[usize::from(f)].get(i as u32) {
-        //             println!(
-        //                 "    {}: {} ({})",
-        //                 frequencies[i as usize], result.first_expressions[i as usize], i
-        //             );
-        //         }
-        //     }
-        // }
-        // println!("range: {:?}", range);
+    //     // println!("target footprints:");
+    //     // for &f in &chain.targets {
+    //     //     println!("  {f}:");
+    //     //     for &i in &range {
+    //     //         if result.footprints[usize::from(f)].get(i as u32) {
+    //     //             println!(
+    //     //                 "    {}: {} ({})",
+    //     //                 frequencies[i as usize], result.first_expressions[i as usize], i
+    //     //             );
+    //     //         }
+    //     //     }
+    //     // }
+    //     // println!("range: {:?}", range);
 
-        let mut added_new_expression = false;
-        // for &expr in &result.first_expressions {
-        //     let f = expr.evaluate();
-        //     if chain.target_lookup.contains(&f) && !chain.function_lookup.contains_key(&f) {
-        //         chain.add(expr);
-        //         println!("new expression selected for target: {}", expr);
-        //         added_new_expression = true;
-        //     }
-        // }
-        if !added_new_expression {
-            let expr =
-                pick_best_expression(&mut rng, &result.first_expressions, &range, &frequencies);
-            println!("new expression selected: {}", expr);
-            chain.add(expr);
-        }
+    //     let mut added_new_expression = false;
+    //     // for &expr in &result.first_expressions {
+    //     //     let f = expr.evaluate();
+    //     //     if chain.target_lookup.contains(&f) && !chain.function_lookup.contains_key(&f) {
+    //     //         chain.add(expr);
+    //     //         println!("new expression selected for target: {}", expr);
+    //     //         added_new_expression = true;
+    //     //     }
+    //     // }
+    //     if !added_new_expression {
+    //         let expr =
+    //             pick_best_expression(&mut rng, &result.first_expressions, &range, &frequencies);
+    //         println!("new expression selected: {}", expr);
+    //         chain.add(expr);
+    //     }
 
-        let mut num_fulfilled_target_functions: u32 = 0;
-        for &f in &chain.targets {
-            if chain.function_lookup.contains_key(&f) {
-                num_fulfilled_target_functions += 1;
-            }
-        }
-        println!(
-            "got {} inputs, {} targets fulfilled",
-            chain.expressions.len(),
-            num_fulfilled_target_functions
-        );
-        if num_fulfilled_target_functions as usize == chain.targets.len() {
-            break;
-        }
-    }
-    chain.print();
+    //     let mut num_fulfilled_target_functions: u32 = 0;
+    //     for &f in &chain.targets {
+    //         if chain.function_lookup.contains_key(&f) {
+    //             num_fulfilled_target_functions += 1;
+    //         }
+    //     }
+    //     println!(
+    //         "got {} inputs, {} targets fulfilled",
+    //         chain.expressions.len(),
+    //         num_fulfilled_target_functions
+    //     );
+    //     if num_fulfilled_target_functions as usize == chain.targets.len() {
+    //         break;
+    //     }
+    // }
+    // chain.print();
+    let mut current_best_length = 1000;
+    find_optimal_chain(&mut chain, &mut current_best_length);
 }

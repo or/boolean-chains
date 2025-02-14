@@ -44,6 +44,12 @@ impl Chain {
         self.function_lookup.insert(f, index);
     }
 
+    pub fn remove_last(&mut self) {
+        if let Some(expr) = self.expressions.pop() {
+            self.function_lookup.remove(&expr.function);
+        }
+    }
+
     pub fn get_name(&self, chain_expression: &ChainExpression) -> String {
         format!("x{}", chain_expression.index + 1)
     }

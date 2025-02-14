@@ -60,11 +60,11 @@ pub fn find_upper_bounds_and_footprints(chain: &Chain) -> Result {
             }
         }
     }
-    println!(
-        "num first expressions: {} (max: {})",
-        result.first_expressions.len(),
-        max_num_first_expressions
-    );
+    // println!(
+    //     "num first expressions: {} (max: {})",
+    //     result.first_expressions.len(),
+    //     max_num_first_expressions
+    // );
     // initialize c, the number of functions where U(f) = infinity
     let mut c =
         2u32.pow(2u32.pow(N) - 1) - num_removed_infinities - chain.expressions.len() as u32 - 1;
