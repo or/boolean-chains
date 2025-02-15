@@ -6,6 +6,7 @@
 #include <chrono>
 #include <iostream>
 #include <random>
+#include <unordered_set>
 #include <vector>
 
 std::vector<uint32_t>
@@ -29,7 +30,8 @@ count_first_expressions_in_footprints(const Result &algorithm_result,
 }
 
 void find_optimal_chain(Chain &chain, size_t &current_best_length,
-                        vector<uint32_t> &choices) {
+                        vector<uint32_t> &choices,
+                        std::unordered_set<std::string> &used_expressions) {
   size_t num_fulfilled_target_functions = 0;
   for (const auto &f : chain.targets) {
     if (chain.function_lookup.count(f)) {
@@ -88,9 +90,16 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
     max = 1;
   }
 
+  auto new_used_expressions = std::unordered_set<std::string>(used_expressions);
   for (int i = 0; i < max; ++i) {
+    auto &next_expr = result.first_expressions[range[i]];
+    auto key = next_expr.to_string() + next_expr.evaluate().to_string();
+    if (new_used_expressions.count(key)) {
+      continue;
+    }
+    new_used_expressions.insert(key);
     choices.push_back(i);
-    chain.add(result.first_expressions[range[i]]);
+    chain.add(next_expr);
     if (chain.expressions.size() <= 14) {
       for (size_t j = 0; j < choices.size(); ++j) {
         std::cout << choices[j];
@@ -106,7 +115,8 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
                 << std::flush;
     }
 
-    find_optimal_chain(chain, current_best_length, choices);
+    find_optimal_chain(chain, current_best_length, choices,
+                       new_used_expressions);
     choices.pop_back();
     chain.remove_last();
   }
@@ -138,6 +148,7 @@ int main() {
 
   size_t current_best_length = 1000;
   vector<uint32_t> choices;
-  find_optimal_chain(chain, current_best_length, choices);
+  std::unordered_set<std::string> used_expressions;
+  find_optimal_chain(chain, current_best_length, choices, used_expressions);
   return 0;
 }
