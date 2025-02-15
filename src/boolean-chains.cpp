@@ -28,30 +28,6 @@ count_first_expressions_in_footprints(const Result &algorithm_result,
   return result;
 }
 
-Expression
-pick_best_expression(std::mt19937_64 &rng,
-                     const std::vector<Expression> &first_expressions,
-                     const std::vector<size_t> &range,
-                     const std::vector<uint32_t> &frequencies) {
-
-  return first_expressions[range[0]];
-
-  // Example for selecting randomly with weighted probabilities
-  // uint32_t total_frequency = std::accumulate(frequencies.begin(),
-  // frequencies.end(), 0,
-  //     [](uint32_t sum, uint32_t x) { return sum + x * x; });
-  // std::uniform_int_distribution<uint32_t> dist(0, total_frequency - 1);
-  // uint32_t value = dist(rng);
-  // for (size_t index : range) {
-  //     uint32_t weight = frequencies[index] * frequencies[index];
-  //     if (value < weight) {
-  //         return first_expressions[index];
-  //     }
-  //     value -= weight;
-  // }
-  // throw std::runtime_error("Unexpected case in weighted selection");
-}
-
 void find_optimal_chain(Chain &chain, size_t &current_best_length,
                         vector<uint32_t> &choices) {
   size_t num_fulfilled_target_functions = 0;
@@ -71,10 +47,6 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
     } else if (chain.expressions.size() <= 25) {
       chain.print();
     }
-    // if (chain.expressions.size() == 25) {
-    //   std::cout << "New chain found:\n";
-    //   std::exit(1);
-    // }
     return;
   }
 
@@ -89,13 +61,6 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
 
   std::vector<size_t> range(result.first_expressions.size());
   std::iota(range.begin(), range.end(), 0);
-
-  // std::sort(range.begin(), range.end(), [&frequencies](size_t a, size_t b) {
-  //   return std::make_pair(-static_cast<int>(frequencies[a]),
-  //                         -static_cast<int>(a)) <
-  //          std::make_pair(-static_cast<int>(frequencies[b]),
-  //                         -static_cast<int>(b));
-  // });
 
   std::sort(range.begin(), range.end(), [&](size_t x, size_t y) {
     auto get_priority = [&](size_t index) {
@@ -113,22 +78,6 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
   });
 
   size_t current_length = chain.expressions.size();
-  // bool added_new_expression = false;
-
-  // for (const auto &expr : result.first_expressions) {
-  //   auto f = expr.evaluate();
-  //   if (chain.target_lookup.count(f) && !chain.function_lookup.count(f)) {
-  //     chain.add(expr);
-  //     added_new_expression = true;
-  //   }
-  // }
-
-  // if (added_new_expression) {
-  //   find_optimal_chain(chain, current_best_length);
-  //   while (chain.expressions.size() > current_length) {
-  //     chain.remove_last();
-  //   }
-  // }
 
   int max;
   if (chain.expressions.size() < 9) {
@@ -187,53 +136,6 @@ int main() {
     chain.add(Expression(f));
   }
 
-  // while (true) {
-  //   chain.print();
-
-  //   auto result2 = find_upper_bounds_and_footprints(chain);
-
-  //   auto frequencies = count_first_expressions_in_footprints(result2, chain);
-
-  //   std::vector<size_t> range(result2.first_expressions.size());
-  //   std::iota(range.begin(), range.end(), 0);
-
-  //   std::sort(range.begin(), range.end(), [&frequencies](size_t a, size_t b)
-  //   {
-  //     return std::make_pair(-static_cast<int>(frequencies[a]),
-  //                           -static_cast<int>(a)) <
-  //            std::make_pair(-static_cast<int>(frequencies[b]),
-  //                           -static_cast<int>(b));
-  //   });
-
-  //   // for (size_t i : range) {
-  //   //     std::cout << result2.first_expressions[i].to_string() << " " <<
-  //   //     frequencies[i] << " (" << i << ")" << std::endl;
-  //   // }
-
-  //   Expression expr = pick_best_expression(rng, result2.first_expressions,
-  //                                          range, frequencies);
-  //   std::cout << "new expression selected: " << expr.to_string() <<
-  //   std::endl;
-
-  //   chain.add(expr);
-
-  //   uint32_t num_fulfilled_target_functions = 0;
-  //   for (const auto &f : chain.targets) {
-  //     if (chain.function_lookup.count(f)) {
-  //       num_fulfilled_target_functions++;
-  //     }
-  //   }
-
-  //   std::cout << "got " << chain.expressions.size() << " inputs, "
-  //             << num_fulfilled_target_functions << " targets fulfilled"
-  //             << std::endl;
-
-  //   if (num_fulfilled_target_functions == chain.targets.size()) {
-  //     break;
-  //   }
-  // }
-
-  // chain.print();
   size_t current_best_length = 1000;
   vector<uint32_t> choices;
   find_optimal_chain(chain, current_best_length, choices);
