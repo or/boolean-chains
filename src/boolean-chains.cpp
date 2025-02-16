@@ -130,11 +130,10 @@ int main() {
       Function(0b0011111011111111),
   });
 
-  for (uint32_t k = 1; k <= N; k++) {
-    uint32_t slice = (1u << (1u << (N - k))) + 1;
-    Function f = Function(Function::TAUTOLOGY / slice);
-    chain.add(Expression(f));
-  }
+  chain.add(Expression(Function(0b0000000011111111)));
+  chain.add(Expression(Function(0b0000111100001111)));
+  chain.add(Expression(Function(0b0011001100110011)));
+  chain.add(Expression(Function(0b0101010101010101)));
 
   size_t current_best_length = 1000;
   vector<uint32_t> choices;
