@@ -3,6 +3,7 @@
 #include "expression.h"
 #include "function.h"
 #include <algorithm>
+#include <cstdint>
 #include <iostream>
 #include <numeric>
 #include <vector>
@@ -27,8 +28,22 @@ count_first_expressions_in_footprints(const Result &algorithm_result,
   return result;
 }
 
+bool choices_vector_equals_start_indices(vector<uint32_t> &choices,
+                                         vector<uint32_t> &start_indices) {
+  if (choices.size() > start_indices.size()) {
+    return false;
+  }
+  for (int i = 0; i < choices.size(); i++) {
+    if (choices[i] != start_indices[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void find_optimal_chain(Chain &chain, size_t &current_best_length,
-                        vector<uint32_t> &choices) {
+                        vector<uint32_t> &choices,
+                        vector<uint32_t> &start_indices) {
   size_t num_fulfilled_target_functions = 0;
   for (const auto &f : chain.targets) {
     if (chain.function_lookup.count(f)) {
@@ -77,6 +92,7 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
   });
 
   size_t current_length = chain.expressions.size();
+  size_t start_index_offset = choices.size();
 
   int max;
   if (chain.expressions.size() < 9) {
@@ -88,6 +104,11 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
   }
 
   for (int i = 0; i < max; ++i) {
+    if (choices_vector_equals_start_indices(choices, start_indices) &&
+        start_index_offset < start_indices.size() &&
+        i < start_indices[start_index_offset]) {
+      continue;
+    }
     choices.push_back(i);
     chain.add(result.first_expressions[range[i]]);
     if (chain.expressions.size() <= 14) {
@@ -105,13 +126,13 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
                 << std::flush;
     }
 
-    find_optimal_chain(chain, current_best_length, choices);
+    find_optimal_chain(chain, current_best_length, choices, start_indices);
     choices.pop_back();
     chain.remove_last();
   }
 }
 
-int main() {
+int main(int argc, char *argv[]) {
   Chain chain({
       Function(~0b1011011111100011),
       Function(~0b1111100111100100),
@@ -122,6 +143,12 @@ int main() {
       Function(0b0011111011111111),
   });
 
+  // parse a vector of integers passed as arguments
+  vector<uint32_t> start_indices;
+  for (int i = 1; i < argc; i++) {
+    start_indices.push_back(atoi(argv[i]));
+  }
+
   chain.add(Expression(Function(0b0000000011111111)));
   chain.add(Expression(Function(0b0000111100001111)));
   chain.add(Expression(Function(0b0011001100110011)));
@@ -129,6 +156,6 @@ int main() {
 
   size_t current_best_length = 1000;
   vector<uint32_t> choices;
-  find_optimal_chain(chain, current_best_length, choices);
+  find_optimal_chain(chain, current_best_length, choices, start_indices);
   return 0;
 }
