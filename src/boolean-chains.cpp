@@ -3,9 +3,8 @@
 #include "expression.h"
 #include "function.h"
 #include <algorithm>
-#include <chrono>
 #include <iostream>
-#include <random>
+#include <numeric>
 #include <vector>
 
 std::vector<uint32_t>
@@ -113,13 +112,6 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
 }
 
 int main() {
-  using namespace std::chrono;
-
-  uint64_t seed =
-      duration_cast<nanoseconds>(system_clock::now().time_since_epoch())
-          .count();
-  std::mt19937_64 rng(seed);
-
   Chain chain({
       Function(~0b1011011111100011),
       Function(~0b1111100111100100),
