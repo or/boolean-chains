@@ -7,12 +7,13 @@
 #include <iostream>
 #include <numeric>
 #include <vector>
+using namespace std;
 
-std::vector<uint32_t>
+vector<uint32_t>
 count_first_expressions_in_footprints(const Result &algorithm_result,
                                       const Chain &chain) {
 
-  std::vector<uint32_t> result(algorithm_result.first_expressions.size(), 0);
+  vector<uint32_t> result(algorithm_result.first_expressions.size(), 0);
 
   for (const auto &f : chain.targets) {
     if (chain.function_lookup.find(f) != chain.function_lookup.end()) {
@@ -53,9 +54,8 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
 
   if (num_fulfilled_target_functions == chain.targets.size()) {
     if (chain.expressions.size() < current_best_length) {
-      std::cout << "New best chain found (" << chain.expressions.size()
-                << "):\n"
-                << std::flush;
+      cout << "New best chain found (" << chain.expressions.size() << "):\n"
+           << flush;
       chain.print();
       current_best_length = chain.expressions.size();
     } else if (chain.expressions.size() <= 25) {
@@ -70,23 +70,27 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
     return;
   }
 
+  if (chain.expressions.size() > 26) {
+    return;
+  }
+
   auto result = find_upper_bounds_and_footprints(chain);
   auto frequencies = count_first_expressions_in_footprints(result, chain);
 
-  std::vector<size_t> range(result.first_expressions.size());
-  std::iota(range.begin(), range.end(), 0);
+  vector<size_t> range(result.first_expressions.size());
+  iota(range.begin(), range.end(), 0);
 
-  std::sort(range.begin(), range.end(), [&](size_t x, size_t y) {
+  sort(range.begin(), range.end(), [&](size_t x, size_t y) {
     auto get_priority = [&](size_t index) {
       int min_value = 1000;
       for (const auto &y : chain.targets) {
         if (result.footprints[y.to_size_t()].get(index)) {
-          min_value = std::min(
-              min_value, static_cast<int>(result.upper_bounds[y.to_size_t()]));
+          min_value = min(min_value,
+                          static_cast<int>(result.upper_bounds[y.to_size_t()]));
         }
       }
-      return std::make_tuple(min_value, -static_cast<int>(frequencies[index]),
-                             -static_cast<int>(index));
+      return make_tuple(min_value, -static_cast<int>(frequencies[index]),
+                        -static_cast<int>(index));
     };
     return get_priority(x) < get_priority(y);
   });
@@ -103,27 +107,31 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
     max = 1;
   }
 
+  if (max > range.size()) {
+    max = range.size();
+  }
+
   for (int i = 0; i < max; ++i) {
     if (choices_vector_equals_start_indices(choices, start_indices) &&
         start_index_offset < start_indices.size() &&
         i < start_indices[start_index_offset]) {
       continue;
     }
+
     choices.push_back(i);
     chain.add(result.first_expressions[range[i]]);
     if (chain.expressions.size() <= 14) {
       for (size_t j = 0; j < choices.size(); ++j) {
-        std::cout << choices[j];
+        cout << choices[j];
         if (j + 4 == 8) {
-          std::cout << " |5| ";
+          cout << " |5| ";
         } else if (j + 4 == 13) {
-          std::cout << " |3| ";
+          cout << " |3| ";
         } else if (j != choices.size() - 1) {
-          std::cout << ", ";
+          cout << ", ";
         }
       }
-      std::cout << " [best: " << current_best_length << "]" << std::endl
-                << std::flush;
+      cout << " [best: " << current_best_length << "]" << endl << flush;
     }
 
     find_optimal_chain(chain, current_best_length, choices, start_indices);
