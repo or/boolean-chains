@@ -42,6 +42,19 @@ bool choices_vector_equals_start_indices(vector<uint32_t> &choices,
   return true;
 }
 
+auto get_priority(Chain &chain, Result &result, vector<uint32_t> &frequencies,
+                  size_t index) {
+  int min_value = 1000;
+  for (const auto &y : chain.targets) {
+    if (result.footprints[y.to_size_t()].get(index)) {
+      min_value =
+          min(min_value, static_cast<int>(result.upper_bounds[y.to_size_t()]));
+    }
+  }
+  return make_tuple(min_value, -static_cast<int>(frequencies[index]),
+                    -static_cast<int>(index));
+};
+
 void find_optimal_chain(Chain &chain, size_t &current_best_length,
                         vector<uint32_t> &choices,
                         vector<uint32_t> &start_indices) {
@@ -81,18 +94,8 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
   iota(range.begin(), range.end(), 0);
 
   sort(range.begin(), range.end(), [&](size_t x, size_t y) {
-    auto get_priority = [&](size_t index) {
-      int min_value = 1000;
-      for (const auto &y : chain.targets) {
-        if (result.footprints[y.to_size_t()].get(index)) {
-          min_value = min(min_value,
-                          static_cast<int>(result.upper_bounds[y.to_size_t()]));
-        }
-      }
-      return make_tuple(min_value, -static_cast<int>(frequencies[index]),
-                        -static_cast<int>(index));
-    };
-    return get_priority(x) < get_priority(y);
+    return get_priority(chain, result, frequencies, x) <
+           get_priority(chain, result, frequencies, y);
   });
 
   size_t current_length = chain.expressions.size();
@@ -116,6 +119,17 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
         start_index_offset < start_indices.size() &&
         i < start_indices[start_index_offset]) {
       continue;
+    }
+
+    cout << "top " << max << " expressions:" << endl;
+    for (int j = 0; j < 20; j++) {
+      auto expr = result.first_expressions[range[j]];
+      auto chain_expr = ChainExpression(chain.expressions.size(), expr);
+      auto priority = get_priority(chain, result, frequencies, range[j]);
+      cout << "  " << (i == j ? "* " : "  ")
+           << chain.get_expression_as_str(chain_expr) << " ";
+      cout << "[" << get<0>(priority) << " " << get<1>(priority) << " "
+           << get<2>(priority) << "]" << endl;
     }
 
     choices.push_back(i);
