@@ -33,6 +33,11 @@ public:
       : targets(target_functions),
         target_lookup(target_functions.begin(), target_functions.end()) {}
 
+  void add_target(const Function &f) {
+    targets.push_back(f);
+    target_lookup.insert(f);
+  }
+
   void add(const Expression &expr) {
     size_t index = expressions.size();
     Function f = expr.evaluate();
