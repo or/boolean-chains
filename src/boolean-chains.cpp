@@ -57,7 +57,8 @@ auto get_priority(Chain &chain, Result &result, vector<uint32_t> &frequencies,
 
 void find_optimal_chain(Chain &chain, size_t &current_best_length,
                         vector<uint32_t> &choices,
-                        vector<uint32_t> &start_indices) {
+                        vector<uint32_t> &start_indices,
+                        unordered_set<Expression> &seen) {
   size_t num_fulfilled_target_functions = 0;
   for (const auto &f : chain.targets) {
     if (chain.function_lookup.count(f)) {
@@ -79,11 +80,11 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
 
   if (chain.expressions.size() + chain.targets.size() -
           num_fulfilled_target_functions >
-      current_best_length) {
+      15) {
     return;
   }
 
-  if (chain.expressions.size() > 16) {
+  if (chain.expressions.size() > 15) {
     return;
   }
 
@@ -101,28 +102,11 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
   size_t current_length = chain.expressions.size();
   size_t start_index_offset = choices.size();
 
-  int max;
-  if (chain.expressions.size() < 9) {
-    max = 10;
-  } else if (chain.expressions.size() < 13) {
-    max = 5;
-  } else {
-    max = 1;
-  }
-
-  if (max > range.size()) {
-    max = range.size();
-  }
-
-  for (int i = 0; i < max; ++i) {
+  unordered_set<Expression> new_seen(seen);
+  for (int i = 0; i < range.size(); ++i) {
     if (choices_vector_equals_start_indices(choices, start_indices) &&
         start_index_offset < start_indices.size() &&
         i < start_indices[start_index_offset]) {
-      continue;
-    }
-
-    auto priority = get_priority(chain, result, frequencies, range[i]);
-    if (get<0>(priority) == 1000) {
       continue;
     }
 
@@ -137,23 +121,26 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
     //        << get<2>(priority) << "]" << endl;
     // }
 
+    auto &new_expr = result.first_expressions[range[i]];
+    if (seen.find(new_expr) != seen.end()) {
+      continue;
+    }
+    new_seen.insert(new_expr);
+
     choices.push_back(i);
-    chain.add(result.first_expressions[range[i]]);
-    if (chain.expressions.size() <= 8) {
+    chain.add(new_expr);
+    if (chain.expressions.size() <= 6) {
       for (size_t j = 0; j < choices.size(); ++j) {
         cout << choices[j];
-        if (j + 4 == 8) {
-          cout << " |10| ";
-        } else if (j + 4 == 12) {
-          cout << " |5| ";
-        } else if (j != choices.size() - 1) {
+        if (j != choices.size() - 1) {
           cout << ", ";
         }
       }
       cout << " [best: " << current_best_length << "]" << endl << flush;
     }
 
-    find_optimal_chain(chain, current_best_length, choices, start_indices);
+    find_optimal_chain(chain, current_best_length, choices, start_indices,
+                       new_seen);
     choices.pop_back();
     chain.remove_last();
   }
@@ -184,6 +171,7 @@ int main(int argc, char *argv[]) {
 
   size_t current_best_length = 1000;
   vector<uint32_t> choices;
-  find_optimal_chain(chain, current_best_length, choices, start_indices);
+  unordered_set<Expression> seen;
+  find_optimal_chain(chain, current_best_length, choices, start_indices, seen);
   return 0;
 }
