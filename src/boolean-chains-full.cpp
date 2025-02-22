@@ -2,12 +2,12 @@
 #include "chain.h"
 #include "expression.h"
 #include "function.h"
-#include <algorithm>
 #include <cstdint>
 #include <iostream>
-#include <numeric>
 #include <vector>
 using namespace std;
+
+const uint32_t N = 16;
 
 bool choices_vector_equals_start_indices(vector<uint32_t> &choices,
                                          vector<uint32_t> &start_indices) {
@@ -22,10 +22,10 @@ bool choices_vector_equals_start_indices(vector<uint32_t> &choices,
   return true;
 }
 
-void find_optimal_chain(Chain &chain, size_t &current_best_length,
+void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
                         vector<uint32_t> &choices,
                         vector<uint32_t> &start_indices,
-                        unordered_set<Expression> &seen) {
+                        unordered_set<Expression<N>> &seen) {
   size_t num_fulfilled_target_functions = 0;
   for (const auto &f : chain.targets) {
     if (chain.function_lookup.count(f)) {
@@ -55,22 +55,22 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
     return;
   }
 
-  vector<Expression> new_expressions;
-  unordered_set<Function> tmp_seen;
+  vector<Expression<N>> new_expressions;
+  unordered_set<Function<N>> tmp_seen;
 
   for (size_t j = 0; j < chain.expressions.size(); j++) {
     for (size_t k = j + 1; k < chain.expressions.size(); k++) {
-      Function g = chain.expressions[j].function;
-      Function h = chain.expressions[k].function;
+      Function<N> g = chain.expressions[j].function;
+      Function<N> h = chain.expressions[k].function;
 
       for (const auto &expr : {
-               Expression(Expression::Type::And, g, h),
-               Expression(Expression::Type::NotBut, g, h),
-               Expression(Expression::Type::ButNot, g, h),
-               Expression(Expression::Type::Or, g, h),
-               Expression(Expression::Type::Xor, g, h),
+               Expression<N>(Expression<N>::Type::And, g, h),
+               Expression<N>(Expression<N>::Type::NotBut, g, h),
+               Expression<N>(Expression<N>::Type::ButNot, g, h),
+               Expression<N>(Expression<N>::Type::Or, g, h),
+               Expression<N>(Expression<N>::Type::Xor, g, h),
            }) {
-        Function f = expr.evaluate();
+        Function<N> f = expr.evaluate();
 
         if (chain.function_lookup.find(f) != chain.function_lookup.end()) {
           continue;
@@ -88,7 +88,7 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
   size_t current_length = chain.expressions.size();
   size_t start_index_offset = choices.size();
 
-  unordered_set<Expression> new_seen(seen);
+  unordered_set<Expression<N>> new_seen(seen);
   for (int i = 0; i < new_expressions.size(); ++i) {
     if (choices_vector_equals_start_indices(choices, start_indices) &&
         start_index_offset < start_indices.size() &&
@@ -133,14 +133,14 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
 }
 
 int main(int argc, char *argv[]) {
-  Chain chain({
-      Function(~0b1011011111100011),
-      Function(~0b1111100111100100),
-      Function(~0b1101111111110100),
-      Function(~0b1011011011011110),
-      Function(~0b1010001010111111),
-      Function(~0b1000111111110011),
-      Function(0b0011111011111111),
+  Chain<N> chain({
+      Function<N>(~0b1011011111100011),
+      Function<N>(~0b1111100111100100),
+      Function<N>(~0b1101111111110100),
+      Function<N>(~0b1011011011011110),
+      Function<N>(~0b1010001010111111),
+      Function<N>(~0b1000111111110011),
+      Function<N>(0b0011111011111111),
   });
 
   // parse a vector of integers passed as arguments
@@ -149,14 +149,14 @@ int main(int argc, char *argv[]) {
     start_indices.push_back(atoi(argv[i]));
   }
 
-  chain.add(Expression(Function(0b0000000011111111)));
-  chain.add(Expression(Function(0b0000111100001111)));
-  chain.add(Expression(Function(0b0011001100110011)));
-  chain.add(Expression(Function(0b0101010101010101)));
+  chain.add(Expression<N>(Function<N>(0b0000000011111111)));
+  chain.add(Expression<N>(Function<N>(0b0000111100001111)));
+  chain.add(Expression<N>(Function<N>(0b0011001100110011)));
+  chain.add(Expression<N>(Function<N>(0b0101010101010101)));
 
   size_t current_best_length = 1000;
   vector<uint32_t> choices;
-  unordered_set<Expression> seen;
+  unordered_set<Expression<N>> seen;
   find_optimal_chain(chain, current_best_length, choices, start_indices, seen);
   return 0;
 }

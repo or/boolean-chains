@@ -4,13 +4,11 @@
 #include <cstdint>
 #include <string>
 
-const uint32_t N = 4;
-
-class Function {
+template <uint32_t N> class Function {
 public:
   uint32_t value;
 
-  static const uint32_t TAUTOLOGY = (1 << (1 << N)) - 1;
+  static const uint32_t TAUTOLOGY = (1 << N) - 1;
 
   explicit Function(uint32_t val) : value(val & TAUTOLOGY) {}
 
@@ -32,14 +30,14 @@ public:
 
   size_t to_size_t() const { return static_cast<size_t>(value); }
 
-  std::string to_string() const { return std::bitset<16>(value).to_string(); }
+  std::string to_string() const { return std::bitset<N>(value).to_string(); }
 
   bool operator==(const Function &other) const { return value == other.value; }
 };
 
 namespace std {
-template <> struct hash<Function> {
-  size_t operator()(const Function &f) const {
+template <uint32_t N> struct hash<Function<N>> {
+  size_t operator()(const Function<N> &f) const {
     return std::hash<uint32_t>{}(f.value);
   }
 };
