@@ -39,7 +39,7 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
            << flush;
       chain.print();
       current_best_length = chain.expressions.size();
-    } else if (chain.expressions.size() < 16) {
+    } else if (chain.expressions.size() < 18) {
       chain.print();
     }
     return;
@@ -47,11 +47,11 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
 
   if (chain.expressions.size() + chain.targets.size() -
           num_fulfilled_target_functions >
-      15) {
+      18) {
     return;
   }
 
-  if (chain.expressions.size() > 15) {
+  if (chain.expressions.size() > 18) {
     return;
   }
 
@@ -115,7 +115,7 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
 
     choices.push_back(i);
     chain.add(new_expr);
-    if (chain.expressions.size() <= 6) {
+    if (chain.expressions.size() <= 7) {
       for (size_t j = 0; j < choices.size(); ++j) {
         cout << choices[j];
         if (j != choices.size() - 1) {
@@ -133,15 +133,14 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
 }
 
 int main(int argc, char *argv[]) {
-  uint32_t MASK = 0b1111111111000000;
   Chain chain({
-      Function(~0b1011011111100011 & MASK),
-      Function(~0b1111100111100100 & MASK),
-      Function(~0b1101111111110100 & MASK),
-      Function(~0b1011011011011110 & MASK),
-      Function(~0b1010001010111111 & MASK),
-      Function(~0b1000111111110011 & MASK),
-      Function(0b0011111011111111 & MASK),
+      Function(~0b1011011111100011),
+      Function(~0b1111100111100100),
+      Function(~0b1101111111110100),
+      Function(~0b1011011011011110),
+      Function(~0b1010001010111111),
+      Function(~0b1000111111110011),
+      Function(0b0011111011111111),
   });
 
   // parse a vector of integers passed as arguments
@@ -150,10 +149,10 @@ int main(int argc, char *argv[]) {
     start_indices.push_back(atoi(argv[i]));
   }
 
-  chain.add(Expression(Function(0b0000000011111111 & MASK)));
-  chain.add(Expression(Function(0b0000111100001111 & MASK)));
-  chain.add(Expression(Function(0b0011001100110011 & MASK)));
-  chain.add(Expression(Function(0b0101010101010101 & MASK)));
+  chain.add(Expression(Function(0b0000000011111111)));
+  chain.add(Expression(Function(0b0000111100001111)));
+  chain.add(Expression(Function(0b0011001100110011)));
+  chain.add(Expression(Function(0b0101010101010101)));
 
   size_t current_best_length = 1000;
   vector<uint32_t> choices;
