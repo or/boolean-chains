@@ -1,7 +1,10 @@
-all: target/boolean-chains target/boolean-chains-full
+all: target/boolean-chains target/boolean-chains-full target/boolean-chains-full-10
 
 target/boolean-chains: src/boolean-chains.cpp src/*.h Makefile
 	clang++ -o target/boolean-chains src/boolean-chains.cpp -std=c++20 -stdlib=libc++ -O3 -march=native -flto -ffast-math -fomit-frame-pointer -funroll-loops 2>&1
 
 target/boolean-chains-full: src/boolean-chains-full.cpp src/*.h Makefile
 	clang++ -o target/boolean-chains-full src/boolean-chains-full.cpp -std=c++20 -stdlib=libc++ -O3 -march=native -flto -ffast-math -fomit-frame-pointer -funroll-loops 2>&1
+
+target/boolean-chains-full-10: src/boolean-chains-full-10.cpp src/*.h Makefile
+	clang++ -o target/boolean-chains-full-10 src/boolean-chains-full-10.cpp -std=c++20 -stdlib=libc++ -O3 -march=native -flto -ffast-math -fomit-frame-pointer -funroll-loops 2>&1
