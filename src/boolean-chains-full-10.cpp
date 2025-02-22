@@ -25,7 +25,7 @@ bool choices_vector_equals_start_indices(vector<uint32_t> &choices,
 void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
                         vector<uint32_t> &choices,
                         vector<uint32_t> &start_indices,
-                        unordered_set<Expression<N>> &seen,
+                        unordered_set<Function<N>> &seen,
                         size_t num_fulfilled_target_functions) {
   if (num_fulfilled_target_functions == chain.targets.size()) {
     if (chain.expressions.size() < current_best_length) {
@@ -65,6 +65,9 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
                Expression<N>(Expression<N>::Type::Xor, g, h),
            }) {
         Function<N> f = expr.evaluate();
+        if (seen.find(f) != seen.end()) {
+          continue;
+        }
 
         if (chain.function_lookup.find(f) != chain.function_lookup.end()) {
           continue;
@@ -73,6 +76,7 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
         if (tmp_seen.find(f) != tmp_seen.end()) {
           continue;
         }
+
         tmp_seen.insert(f);
         new_expressions.push_back(expr);
       }
@@ -82,7 +86,7 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
   size_t current_length = chain.expressions.size();
   size_t start_index_offset = choices.size();
 
-  unordered_set<Expression<N>> new_seen(seen);
+  unordered_set<Function<N>> new_seen(seen);
   for (int i = 0; i < new_expressions.size(); ++i) {
     if (choices_vector_equals_start_indices(choices, start_indices) &&
         start_index_offset < start_indices.size() &&
@@ -91,10 +95,7 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
     }
 
     auto &new_expr = new_expressions[i];
-    if (seen.find(new_expr) != seen.end()) {
-      continue;
-    }
-    new_seen.insert(new_expr);
+    new_seen.insert(new_expr.evaluate());
 
     choices.push_back(i);
     chain.add(new_expr);
@@ -144,7 +145,7 @@ int main(int argc, char *argv[]) {
 
   size_t current_best_length = 1000;
   vector<uint32_t> choices;
-  unordered_set<Expression<N>> seen;
+  unordered_set<Function<N>> seen;
   find_optimal_chain(chain, current_best_length, choices, start_indices, seen,
                      0);
   return 0;
