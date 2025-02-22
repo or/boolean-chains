@@ -71,7 +71,7 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
            << flush;
       chain.print();
       current_best_length = chain.expressions.size();
-    } else if (chain.expressions.size() <= 25) {
+    } else if (chain.expressions.size() < 16) {
       chain.print();
     }
     return;
@@ -83,7 +83,7 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
     return;
   }
 
-  if (chain.expressions.size() > 26) {
+  if (chain.expressions.size() > 16) {
     return;
   }
 
@@ -103,9 +103,9 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
 
   int max;
   if (chain.expressions.size() < 9) {
+    max = 10;
+  } else if (chain.expressions.size() < 13) {
     max = 5;
-  } else if (chain.expressions.size() < 14) {
-    max = 3;
   } else {
     max = 1;
   }
@@ -121,26 +121,31 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
       continue;
     }
 
-    cout << "top " << max << " expressions:" << endl;
-    for (int j = 0; j < 20; j++) {
-      auto expr = result.first_expressions[range[j]];
-      auto chain_expr = ChainExpression(chain.expressions.size(), expr);
-      auto priority = get_priority(chain, result, frequencies, range[j]);
-      cout << "  " << (i == j ? "* " : "  ")
-           << chain.get_expression_as_str(chain_expr) << " ";
-      cout << "[" << get<0>(priority) << " " << get<1>(priority) << " "
-           << get<2>(priority) << "]" << endl;
+    auto priority = get_priority(chain, result, frequencies, range[i]);
+    if (get<0>(priority) == 1000) {
+      continue;
     }
+
+    // cout << "top " << max << " expressions:" << endl;
+    // for (int j = 0; j < range.size() && j < 20; j++) {
+    //   auto expr = result.first_expressions[range[j]];
+    //   auto chain_expr = ChainExpression(chain.expressions.size(), expr);
+    //   auto priority = get_priority(chain, result, frequencies, range[j]);
+    //   cout << "  " << (i == j ? "* " : "  ")
+    //        << chain.get_expression_as_str(chain_expr) << " ";
+    //   cout << "[" << get<0>(priority) << " " << get<1>(priority) << " "
+    //        << get<2>(priority) << "]" << endl;
+    // }
 
     choices.push_back(i);
     chain.add(result.first_expressions[range[i]]);
-    if (chain.expressions.size() <= 14) {
+    if (chain.expressions.size() <= 8) {
       for (size_t j = 0; j < choices.size(); ++j) {
         cout << choices[j];
         if (j + 4 == 8) {
+          cout << " |10| ";
+        } else if (j + 4 == 12) {
           cout << " |5| ";
-        } else if (j + 4 == 13) {
-          cout << " |3| ";
         } else if (j != choices.size() - 1) {
           cout << ", ";
         }
@@ -155,14 +160,15 @@ void find_optimal_chain(Chain &chain, size_t &current_best_length,
 }
 
 int main(int argc, char *argv[]) {
+  uint32_t MASK = 0b1111111111000000;
   Chain chain({
-      Function(~0b1011011111100011),
-      Function(~0b1111100111100100),
-      Function(~0b1101111111110100),
-      Function(~0b1011011011011110),
-      Function(~0b1010001010111111),
-      Function(~0b1000111111110011),
-      Function(0b0011111011111111),
+      Function(~0b1011011111100011 & MASK),
+      Function(~0b1111100111100100 & MASK),
+      Function(~0b1101111111110100 & MASK),
+      Function(~0b1011011011011110 & MASK),
+      Function(~0b1010001010111111 & MASK),
+      Function(~0b1000111111110011 & MASK),
+      Function(0b0011111011111111 & MASK),
   });
 
   // parse a vector of integers passed as arguments
@@ -171,10 +177,10 @@ int main(int argc, char *argv[]) {
     start_indices.push_back(atoi(argv[i]));
   }
 
-  chain.add(Expression(Function(0b0000000011111111)));
-  chain.add(Expression(Function(0b0000111100001111)));
-  chain.add(Expression(Function(0b0011001100110011)));
-  chain.add(Expression(Function(0b0101010101010101)));
+  chain.add(Expression(Function(0b0000000011111111 & MASK)));
+  chain.add(Expression(Function(0b0000111100001111 & MASK)));
+  chain.add(Expression(Function(0b0011001100110011 & MASK)));
+  chain.add(Expression(Function(0b0101010101010101 & MASK)));
 
   size_t current_best_length = 1000;
   vector<uint32_t> choices;

@@ -10,7 +10,7 @@ class Function {
 public:
   uint32_t value;
 
-  static const uint32_t TAUTOLOGY = (1 << (1 << N)) - 1;
+  static const uint32_t TAUTOLOGY = 0b1111111111000000;
 
   explicit Function(uint32_t val) : value(val & TAUTOLOGY) {}
 

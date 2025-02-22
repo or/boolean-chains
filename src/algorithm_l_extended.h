@@ -32,7 +32,7 @@ struct Result {
 };
 
 Result find_upper_bounds_and_footprints(const Chain &chain) {
-  size_t num_functions = 1 << ((1 << N) - 1);
+  size_t num_functions = (1 << ((1 << N) - 1));
   size_t max_num_first_expressions =
       chain.expressions.size() * (chain.expressions.size() - 1) * 5 / 2;
 
@@ -62,6 +62,8 @@ Result find_upper_bounds_and_footprints(const Chain &chain) {
            }) {
         Function f = expr.evaluate();
 
+        // std::cout << "expr: " << expr.to_string() << " f: " << f.to_string()
+        //           << std::endl;
         if (chain.function_lookup.find(f) != chain.function_lookup.end()) {
           continue;
         }
@@ -82,8 +84,8 @@ Result find_upper_bounds_and_footprints(const Chain &chain) {
   // std::cout << "num first expressions: " << result.first_expressions.size()
   //           << " (max: " << max_num_first_expressions << ")\n";
 
-  uint32_t c =
-      num_functions - num_removed_infinities - chain.expressions.size() - 1;
+  uint32_t c = num_functions / (1 << 6) - num_removed_infinities -
+               chain.expressions.size() - 1;
 
   // U3. Loop over r = 2, 3, ... while c > 0
   for (uint32_t r = 2; c > 0; ++r) {
