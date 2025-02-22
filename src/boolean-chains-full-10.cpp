@@ -26,7 +26,9 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
                         vector<uint32_t> &choices,
                         vector<uint32_t> &start_indices,
                         unordered_set<Function<N>> &seen,
-                        size_t num_fulfilled_target_functions) {
+                        size_t num_fulfilled_target_functions,
+                        uint32_t &total_chains) {
+  total_chains++;
   if (num_fulfilled_target_functions == chain.targets.size()) {
     if (chain.expressions.size() < current_best_length) {
       cout << "New best chain found (" << chain.expressions.size() << "):\n"
@@ -76,7 +78,6 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
         if (tmp_seen.find(f) != tmp_seen.end()) {
           continue;
         }
-
         tmp_seen.insert(f);
         new_expressions.push_back(expr);
       }
@@ -115,7 +116,7 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
       new_num_fulfilled++;
     }
     find_optimal_chain(chain, current_best_length, choices, start_indices,
-                       new_seen, new_num_fulfilled);
+                       new_seen, new_num_fulfilled, total_chains);
     choices.pop_back();
     chain.remove_last();
   }
@@ -146,7 +147,10 @@ int main(int argc, char *argv[]) {
   size_t current_best_length = 1000;
   vector<uint32_t> choices;
   unordered_set<Function<N>> seen;
+  uint32_t total_chains = 0;
   find_optimal_chain(chain, current_best_length, choices, start_indices, seen,
-                     0);
+                     0, total_chains);
+
+  cout << "total chains: " << total_chains << endl;
   return 0;
 }
