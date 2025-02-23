@@ -93,7 +93,7 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
                         uint64_t &total_chains, size_t max_length,
                         bool &progress_check_done) {
   total_chains++;
-  if (total_chains % 100000000 == 0) {
+  if ((total_chains & 0xfffffff) == 0) {
     for (size_t j = 0; j < choices_size; ++j) {
       cout << choices[j];
       if (j != choices_size - 1) {
