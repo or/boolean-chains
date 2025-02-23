@@ -1,6 +1,7 @@
 #pragma once
 
 #include "function.h"
+#include <cstdint>
 #include <iostream>
 #include <string>
 #include <variant>

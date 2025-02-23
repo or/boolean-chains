@@ -2,6 +2,7 @@
 
 #include "expression.h"
 #include "function.h"
+#include <cstdint>
 #include <iostream>
 #include <string>
 #include <unordered_map>
