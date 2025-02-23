@@ -69,10 +69,6 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
           continue;
         }
 
-        if (chain.function_lookup.find(f) != chain.function_lookup.end()) {
-          continue;
-        }
-
         if (tmp_seen.find(f) != tmp_seen.end()) {
           continue;
         }

@@ -40,6 +40,10 @@ int main(int argc, char *argv[]) {
   uint64_t total_chains = 0;
   time_t last_print = time(NULL);
   BitSet<S> seen;
+  seen.insert(0);
+  for (int i = 0; i < chain.expressions.size(); i++) {
+    seen.insert(chain.expressions[i].function.to_uint32_t());
+  }
   bool progress_check_done = false;
   find_optimal_chain(chain, current_best_length, choices, start_indices, seen,
                      0, total_chains, last_print, MAX_LENGTH,
