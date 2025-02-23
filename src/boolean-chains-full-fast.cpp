@@ -124,20 +124,20 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
   uint32_t tmp_seen[SIZE] = {0};
 
   for (size_t j = 0; j < chain_size; j++) {
-    for (size_t k = j + 1; k < chain_size; k++) {
-      const uint32_t &g = chain[j];
-      const uint32_t &h = chain[k];
+    const uint32_t g = chain[j];
+    const uint32_t not_g = ~g;
 
-      add_new_expression(new_expressions, new_expressions_size, g & h, seen,
-                         tmp_seen);
-      add_new_expression(new_expressions, new_expressions_size, (~g) & h, seen,
-                         tmp_seen);
-      add_new_expression(new_expressions, new_expressions_size, g & (~h), seen,
-                         tmp_seen);
-      add_new_expression(new_expressions, new_expressions_size, g | h, seen,
-                         tmp_seen);
-      add_new_expression(new_expressions, new_expressions_size, g ^ h, seen,
-                         tmp_seen);
+    for (size_t k = j + 1; k < chain_size; k++) {
+      const uint32_t h = chain[k];
+      const uint32_t not_h = ~h;
+
+      const uint32_t expressions[] = {g & h, not_g & h, g & not_h, g | h,
+                                      g ^ h};
+
+      for (uint32_t expr : expressions) {
+        add_new_expression(new_expressions, new_expressions_size, expr, seen,
+                           tmp_seen);
+      }
     }
   }
 
