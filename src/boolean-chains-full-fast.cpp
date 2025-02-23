@@ -1,6 +1,7 @@
 #include <bitset>
 #include <cstdint>
 #include <iostream>
+#include <vector>
 using namespace std;
 
 #define SMART 1
