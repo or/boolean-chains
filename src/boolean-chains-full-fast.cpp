@@ -104,6 +104,10 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
     // exit(1);
   }
 
+  if (chain_size + NUM_TARGETS - num_fulfilled_target_functions > max_length) {
+    return;
+  }
+
   if (num_fulfilled_target_functions == NUM_TARGETS) {
     if (chain_size < current_best_length) {
       cout << "New best chain found (" << chain_size << "):" << endl;
@@ -112,10 +116,6 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
     } else if (chain_size == current_best_length) {
       print_chain(chain, chain_size);
     }
-    return;
-  }
-
-  if (chain_size + NUM_TARGETS - num_fulfilled_target_functions > max_length) {
     return;
   }
 
