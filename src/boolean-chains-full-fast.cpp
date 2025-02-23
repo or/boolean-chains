@@ -146,6 +146,8 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
   uint32_t clean_up[1000];
   size_t clean_up_size = 0;
 #endif
+  size_t next_chain_size = chain_size + 1;
+  size_t next_choices_size = choices_size + 1;
   for (int i = 0; i < new_expressions_size; i++) {
     const auto &ft = new_expressions[i];
 #if SMART
@@ -167,9 +169,7 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
     }
 
     choices[choices_size] = i;
-    choices_size++;
     chain[chain_size] = ft;
-    chain_size++;
 
     size_t new_num_fulfilled = num_fulfilled_target_functions;
     if (bit_set_get(TARGET_LOOKUP, ft)) {
@@ -178,14 +178,13 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
 #if SMART != 1
     bit_set_insert(seen, ft);
 #endif
-    find_optimal_chain(chain, chain_size, current_best_length, choices,
-                       choices_size, start_indices, seen, new_num_fulfilled,
-                       total_chains, max_length, progress_check_done);
+    find_optimal_chain(chain, next_chain_size, current_best_length, choices,
+                       next_choices_size, start_indices, seen,
+                       new_num_fulfilled, total_chains, max_length,
+                       progress_check_done);
 #if SMART != 1
     bit_set_remove(seen, ft);
 #endif
-    choices_size--;
-    chain_size--;
   }
 
 #if SMART
