@@ -1,6 +1,5 @@
 #include <bitset>
 #include <cstdint>
-#include <ctime>
 #include <iostream>
 using namespace std;
 
@@ -89,9 +88,20 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
                         size_t &current_best_length, uint32_t *choices,
                         size_t &choices_size, vector<uint32_t> &start_indices,
                         uint32_t *seen, size_t num_fulfilled_target_functions,
-                        uint64_t &total_chains, time_t &last_print,
-                        size_t max_length, bool &progress_check_done) {
+                        uint64_t &total_chains, size_t max_length,
+                        bool &progress_check_done) {
   total_chains++;
+  if (total_chains % 100000000 == 0) {
+    for (size_t j = 0; j < choices_size; ++j) {
+      cout << choices[j];
+      if (j != choices_size - 1) {
+        cout << ", ";
+      }
+    }
+    cout << " [best: " << current_best_length << "] " << total_chains << endl;
+    // exit(1);
+  }
+
   if (num_fulfilled_target_functions == NUM_TARGETS) {
     if (chain_size < current_best_length) {
       cout << "New best chain found (" << chain_size << "):" << endl;
@@ -158,17 +168,6 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
     choices_size++;
     chain[chain_size] = ft;
     chain_size++;
-    if (time(NULL) >= last_print + 10) {
-      for (size_t j = 0; j < choices_size; ++j) {
-        cout << choices[j];
-        if (j != choices_size - 1) {
-          cout << ", ";
-        }
-      }
-      cout << " [best: " << current_best_length << "] " << total_chains << endl;
-      last_print = time(NULL);
-      // exit(1);
-    }
 
     size_t new_num_fulfilled = num_fulfilled_target_functions;
     if (ft == TARGET_1 || ft == TARGET_2 || ft == TARGET_3 || ft == TARGET_4 ||
@@ -180,8 +179,7 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
 #endif
     find_optimal_chain(chain, chain_size, current_best_length, choices,
                        choices_size, start_indices, seen, new_num_fulfilled,
-                       total_chains, last_print, max_length,
-                       progress_check_done);
+                       total_chains, max_length, progress_check_done);
 #if SMART != 1
     bit_set_remove(seen, ft);
 #endif
@@ -228,11 +226,10 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < chain_size; i++) {
     bit_set_insert(seen, chain[i]);
   }
-  time_t last_print = time(NULL);
   bool progress_check_done = false;
   find_optimal_chain(chain, chain_size, current_best_length, choices,
                      choices_size, start_indices, seen, 0, total_chains,
-                     last_print, MAX_LENGTH, progress_check_done);
+                     MAX_LENGTH, progress_check_done);
 
   cout << "total chains: " << total_chains << endl;
   return 0;
