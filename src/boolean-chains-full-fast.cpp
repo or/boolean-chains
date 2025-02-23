@@ -171,17 +171,15 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
     choices[choices_size] = i;
     chain[chain_size] = ft;
 
-    size_t new_num_fulfilled = num_fulfilled_target_functions;
-    if (bit_set_get(TARGET_LOOKUP, ft)) {
-      new_num_fulfilled++;
-    }
 #if SMART != 1
     bit_set_insert(seen, ft);
 #endif
     find_optimal_chain(chain, next_chain_size, current_best_length, choices,
                        next_choices_size, start_indices, seen,
-                       new_num_fulfilled, total_chains, max_length,
-                       progress_check_done);
+                       bit_set_get(TARGET_LOOKUP, ft)
+                           ? num_fulfilled_target_functions + 1
+                           : num_fulfilled_target_functions,
+                       total_chains, max_length, progress_check_done);
 #if SMART != 1
     bit_set_remove(seen, ft);
 #endif
