@@ -28,6 +28,8 @@ const uint32_t TARGETS[] = {
 };
 const uint32_t NUM_TARGETS = sizeof(TARGETS) / sizeof(uint32_t);
 
+uint32_t TARGET_LOOKUP[SIZE] = {0};
+
 inline uint32_t bit_set_get(const uint32_t *bit_set, uint32_t bit) {
   const uint32_t index = bit >> 5;
   const uint32_t bit_index = bit & 0b11111;
@@ -170,8 +172,7 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
     chain_size++;
 
     size_t new_num_fulfilled = num_fulfilled_target_functions;
-    if (ft == TARGET_1 || ft == TARGET_2 || ft == TARGET_3 || ft == TARGET_4 ||
-        ft == TARGET_5 || ft == TARGET_6 || ft == TARGET_7) {
+    if (bit_set_get(TARGET_LOOKUP, ft)) {
       new_num_fulfilled++;
     }
 #if SMART != 1
@@ -204,6 +205,7 @@ int main(int argc, char *argv[]) {
   cout << NUM_TARGETS << " targets:" << endl;
   for (int i = 0; i < NUM_TARGETS; i++) {
     cout << "  " << bitset<N>(TARGETS[i]).to_string() << endl;
+    bit_set_insert(TARGET_LOOKUP, TARGETS[i]);
   }
 
   uint32_t chain[25];
