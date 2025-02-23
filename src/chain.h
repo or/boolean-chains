@@ -8,10 +8,7 @@
 #include <unordered_set>
 #include <vector>
 
-using std::string;
-using std::unordered_map;
-using std::unordered_set;
-using std::vector;
+using namespace std;
 
 template <uint32_t N> struct ChainExpression {
   size_t index;
@@ -53,20 +50,19 @@ public:
     }
   }
 
-  std::string get_name(const ChainExpression<N> &chain_expr) const {
-    return "x" + std::to_string(chain_expr.index + 1);
+  string get_name(const ChainExpression<N> &chain_expr) const {
+    return "x" + to_string(chain_expr.index + 1);
   }
 
-  std::string get_name_for_function(const Function<N> &f) const {
+  string get_name_for_function(const Function<N> &f) const {
     auto it = function_lookup.find(f);
     return (it != function_lookup.end()) ? get_name(expressions[it->second])
                                          : "unknown";
   }
 
-  std::string
-  get_expression_as_str(const ChainExpression<N> &chain_expr) const {
-    std::string name = get_name(chain_expr);
-    std::string is_target =
+  string get_expression_as_str(const ChainExpression<N> &chain_expr) const {
+    string name = get_name(chain_expr);
+    string is_target =
         target_lookup.count(chain_expr.function) ? " [target]" : "";
 
     switch (chain_expr.expression.get_type()) {
@@ -108,10 +104,10 @@ public:
   }
 
   void print() const {
-    std::cout << "chain (" << expressions.size() << "):\n";
+    cout << "chain (" << expressions.size() << "):\n";
     for (const auto &chain_expr : expressions) {
-      std::cout << "  " << get_expression_as_str(chain_expr) << '\n';
+      cout << "  " << get_expression_as_str(chain_expr) << '\n';
     }
-    std::cout << std::flush;
+    cout << flush;
   }
 };

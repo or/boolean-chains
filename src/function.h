@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <string>
 
+using namespace std;
+
 template <uint32_t N> class Function {
 public:
   uint32_t value;
@@ -30,7 +32,7 @@ public:
 
   size_t to_size_t() const { return static_cast<size_t>(value); }
 
-  std::string to_string() const { return std::bitset<N>(value).to_string(); }
+  string to_string() const { return bitset<N>(value).to_string(); }
 
   bool operator==(const Function &other) const { return value == other.value; }
 };
@@ -38,7 +40,7 @@ public:
 namespace std {
 template <uint32_t N> struct hash<Function<N>> {
   size_t operator()(const Function<N> &f) const {
-    return std::hash<uint32_t>{}(f.value);
+    return hash<uint32_t>{}(f.value);
   }
 };
 } // namespace std

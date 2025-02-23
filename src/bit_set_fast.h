@@ -2,8 +2,7 @@
 
 #include <vector>
 
-using std::min;
-using std::vector;
+using namespace std;
 
 const size_t SIZE = 24;
 
@@ -12,9 +11,9 @@ private:
   uint32_t bit_set[SIZE];
 
 public:
-  BitSet() { std::memset(bit_set, 0, sizeof(bit_set)); }
+  BitSet() { memset(bit_set, 0, sizeof(bit_set)); }
   BitSet(const BitSet &other) {
-    std::memcpy(bit_set, other.bit_set, sizeof(bit_set));
+    memcpy(bit_set, other.bit_set, sizeof(bit_set));
   }
 
   bool is_disjoint(const BitSet &other) const {

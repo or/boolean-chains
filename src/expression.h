@@ -5,6 +5,8 @@
 #include <string>
 #include <variant>
 
+using namespace std;
+
 template <uint32_t N> class Expression {
 public:
   enum Type { Constant, And, Or, Xor, ButNot, NotBut };
@@ -43,7 +45,7 @@ public:
 
   const Function<N> &get_operand2() const { return f2; }
 
-  std::string to_string() const {
+  string to_string() const {
     switch (type) {
     case Type::Constant:
       return f1.to_string();
@@ -70,9 +72,9 @@ namespace std {
 template <uint32_t N> struct hash<Expression<N>> {
   size_t operator()(const Expression<N> &expr) const {
     size_t hash_value = 0;
-    hash_value ^= std::hash<int>{}(static_cast<int>(expr.get_type()));
-    hash_value ^= std::hash<Function<N>>{}(expr.get_operand1()) << 1;
-    hash_value ^= std::hash<Function<N>>{}(expr.get_operand2()) << 2;
+    hash_value ^= hash<int>{}(static_cast<int>(expr.get_type()));
+    hash_value ^= hash<Function<N>>{}(expr.get_operand1()) << 1;
+    hash_value ^= hash<Function<N>>{}(expr.get_operand2()) << 2;
     return hash_value;
   }
 };

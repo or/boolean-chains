@@ -12,9 +12,9 @@
 #include <unordered_set>
 #include <vector>
 
-using std::vector;
+using namespace std;
 
-const uint32_t INFINITY_U32 = std::numeric_limits<uint32_t>::max();
+const uint32_t INFINITY_U32 = numeric_limits<uint32_t>::max();
 
 template <uint32_t N> struct Result {
   vector<uint32_t> upper_bounds;
@@ -80,7 +80,7 @@ Result<N> find_upper_bounds_and_footprints(const Chain<N> &chain) {
     }
   }
 
-  // std::cout << "num first expressions: " << result.first_expressions.size()
+  // cout << "num first expressions: " << result.first_expressions.size()
   //           << " (max: " << max_num_first_expressions << ")\n";
 
   uint32_t c =
@@ -133,7 +133,7 @@ Result<N> find_upper_bounds_and_footprints(const Chain<N> &chain) {
             } else if (result.upper_bounds[f.to_size_t()] > u) {
               uint32_t prev_u = result.upper_bounds[f.to_size_t()];
               auto &prev_list = result.lists[prev_u];
-              std::erase(prev_list, f);
+              erase(prev_list, f);
               result.stats[prev_u]--;
               result.lists[u].push_back(f);
               result.stats[u]++;

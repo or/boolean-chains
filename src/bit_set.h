@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <unordered_set>
 
-using std::unordered_set;
+using namespace std;
 
 class BitSet {
 private:
@@ -31,7 +31,7 @@ public:
   }
 
   void intersect(const BitSet &other) {
-    std::erase_if(bit_set, [&other](uint32_t x) {
+    erase_if(bit_set, [&other](uint32_t x) {
       return other.bit_set.find(x) == other.bit_set.end();
     });
   }
