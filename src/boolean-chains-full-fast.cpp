@@ -6,6 +6,8 @@
 #include <unordered_set>
 using namespace std;
 
+#define SMART 1
+
 const uint32_t N = 16;
 const uint32_t S = ((1 << (N - 1)) + 31) / 32;
 const uint32_t MAX_LENGTH = 25;
@@ -114,13 +116,17 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
 
   size_t current_length = chain_size;
   size_t start_index_offset = choices.size();
+#if SMART
   uint32_t clean_up[1000];
   size_t clean_up_size = 0;
+#endif
   for (int i = 0; i < new_expressions_size; ++i) {
     auto &ft = new_expressions[i];
+#if SMART
     seen.insert(ft);
     clean_up[clean_up_size] = ft;
     clean_up_size++;
+#endif
 
     if (!progress_check_done) {
       if (choices_vector_equals_start_indices(choices, start_indices) &&
@@ -151,16 +157,24 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
         ft == TARGET_5 || ft == TARGET_6 || ft == TARGET_7) {
       new_num_fulfilled++;
     }
+#if SMART != 1
+    bit_set_insert(seen, ft);
+#endif
     find_optimal_chain(chain, chain_size, current_best_length, choices,
                        start_indices, seen, new_num_fulfilled, total_chains,
                        last_print, max_length, progress_check_done);
+#if SMART != 1
+    bit_set_remove(seen, ft);
+#endif
     choices.pop_back();
     chain_size--;
   }
 
+#if SMART
   for (int i = 0; i < clean_up_size; ++i) {
     seen.remove(clean_up[i]);
   }
+#endif
 }
 
 int main(int argc, char *argv[]) {
