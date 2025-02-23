@@ -28,7 +28,7 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
                         vector<uint32_t> &start_indices, BitSet<S> &seen,
                         size_t num_fulfilled_target_functions,
                         uint32_t &total_chains, time_t &last_print,
-                        size_t max_length) {
+                        size_t max_length, bool &progress_check_done) {
   total_chains++;
   if (num_fulfilled_target_functions == chain.targets.size()) {
     if (chain.expressions.size() < current_best_length) {
@@ -94,10 +94,13 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
     clean_up[clean_up_size] = ft;
     clean_up_size++;
 
-    if (choices_vector_equals_start_indices(choices, start_indices) &&
-        start_index_offset < start_indices.size() &&
-        i < start_indices[start_index_offset]) {
-      continue;
+    if (!progress_check_done) {
+      if (choices_vector_equals_start_indices(choices, start_indices) &&
+          start_index_offset < start_indices.size() &&
+          i < start_indices[start_index_offset]) {
+        continue;
+      }
+      progress_check_done = true;
     }
 
     choices.push_back(i);
@@ -120,7 +123,8 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
       new_num_fulfilled++;
     }
     find_optimal_chain(chain, current_best_length, choices, start_indices, seen,
-                       new_num_fulfilled, total_chains, last_print, max_length);
+                       new_num_fulfilled, total_chains, last_print, max_length,
+                       progress_check_done);
     choices.pop_back();
     chain.remove_last();
   }

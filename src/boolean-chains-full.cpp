@@ -40,8 +40,10 @@ int main(int argc, char *argv[]) {
   uint32_t total_chains = 0;
   time_t last_print = time(NULL);
   BitSet<S> seen;
+  bool progress_check_done = false;
   find_optimal_chain(chain, current_best_length, choices, start_indices, seen,
-                     0, total_chains, last_print, MAX_LENGTH);
+                     0, total_chains, last_print, MAX_LENGTH,
+                     progress_check_done);
 
   cout << "total chains: " << total_chains << endl;
   return 0;
