@@ -119,7 +119,9 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
         i++;
         continue;
       }
-      progress_check_done = true;
+      if (choices.size() > start_indices.size()) {
+        progress_check_done = true;
+      }
     }
 
     choices.push_back(i);

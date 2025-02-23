@@ -96,7 +96,9 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
           i < start_indices[start_index_offset]) {
         continue;
       }
-      progress_check_done = true;
+      if (choices.size() > start_indices.size()) {
+        progress_check_done = true;
+      }
     }
 
     choices.push_back(i);
