@@ -27,7 +27,7 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
                         vector<uint32_t> &choices,
                         vector<uint32_t> &start_indices, BitSet<S> &seen,
                         size_t num_fulfilled_target_functions,
-                        uint32_t &total_chains, time_t &last_print,
+                        uint64_t &total_chains, time_t &last_print,
                         size_t max_length, bool &progress_check_done) {
   total_chains++;
   if (num_fulfilled_target_functions == chain.targets.size()) {
