@@ -30,6 +30,14 @@ constexpr uint32_t NUM_TARGETS = sizeof(TARGETS) / sizeof(uint32_t);
 
 uint32_t TARGET_LOOKUP[SIZE] = {0};
 
+vector<uint32_t> start_indices;
+uint32_t chain[25];
+size_t current_best_length = 1000;
+uint32_t choices[30];
+uint64_t total_chains = 0;
+uint32_t seen[SIZE] = {0};
+bool progress_check_done = false;
+
 inline uint32_t bit_set_get(const uint32_t *bit_set, uint32_t bit) {
   const uint32_t index = bit >> 5;
   const uint32_t bit_index = bit & 0b11111;
@@ -48,9 +56,7 @@ inline void bit_set_remove(uint32_t *bit_set, uint32_t bit) {
   bit_set[index] &= ~(1 << bit_index);
 }
 
-bool choices_vector_equals_start_indices(uint32_t *choices,
-                                         size_t &choices_size,
-                                         vector<uint32_t> &start_indices) {
+bool choices_vector_equals_start_indices(const size_t choices_size) {
   if (choices_size > start_indices.size()) {
     return false;
   }
@@ -62,7 +68,7 @@ bool choices_vector_equals_start_indices(uint32_t *choices,
   return true;
 }
 
-void print_chain(uint32_t *chain, size_t &chain_size) {
+void print_chain(const size_t chain_size) {
   cout << "chain (" << chain_size << "):" << endl;
   for (int i = 0; i < chain_size; i++) {
     cout << bitset<N>(chain[i]).to_string() << endl;
@@ -72,7 +78,7 @@ void print_chain(uint32_t *chain, size_t &chain_size) {
 
 inline void add_new_expression(uint32_t *new_expressions,
                                size_t &new_expressions_size, uint32_t value,
-                               const uint32_t *seen, uint32_t *tmp_seen) {
+                               uint32_t *tmp_seen) {
   if (bit_set_get(seen, value)) {
     return;
   }
@@ -86,12 +92,8 @@ inline void add_new_expression(uint32_t *new_expressions,
   new_expressions_size++;
 }
 
-void find_optimal_chain(uint32_t *chain, size_t &chain_size,
-                        size_t &current_best_length, uint32_t *choices,
-                        size_t &choices_size, vector<uint32_t> &start_indices,
-                        uint32_t *seen, size_t num_fulfilled_target_functions,
-                        uint64_t &total_chains, size_t max_length,
-                        bool &progress_check_done) {
+void find_optimal_chain(const size_t chain_size, const size_t choices_size,
+                        const size_t num_fulfilled_target_functions) {
   total_chains++;
   if ((total_chains & 0xfffffff) == 0) {
     for (size_t j = 0; j < choices_size; ++j) {
@@ -104,17 +106,17 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
     // exit(1);
   }
 
-  if (chain_size + NUM_TARGETS - num_fulfilled_target_functions > max_length) {
+  if (chain_size + NUM_TARGETS - num_fulfilled_target_functions > MAX_LENGTH) {
     return;
   }
 
   if (num_fulfilled_target_functions == NUM_TARGETS) {
     if (chain_size < current_best_length) {
       cout << "New best chain found (" << chain_size << "):" << endl;
-      print_chain(chain, chain_size);
+      print_chain(chain_size);
       current_best_length = chain_size;
     } else if (chain_size == current_best_length) {
-      print_chain(chain, chain_size);
+      print_chain(chain_size);
     }
     return;
   }
@@ -135,7 +137,7 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
                                       g ^ h};
 
       for (uint32_t expr : expressions) {
-        add_new_expression(new_expressions, new_expressions_size, expr, seen,
+        add_new_expression(new_expressions, new_expressions_size, expr,
                            tmp_seen);
       }
     }
@@ -157,8 +159,7 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
 #endif
 
     if (!progress_check_done) {
-      if (choices_vector_equals_start_indices(choices, choices_size,
-                                              start_indices) &&
+      if (choices_vector_equals_start_indices(choices_size) &&
           choices_size < start_indices.size() &&
           i < start_indices[choices_size]) {
         continue;
@@ -174,12 +175,10 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
 #if SMART != 1
     bit_set_insert(seen, ft);
 #endif
-    find_optimal_chain(chain, next_chain_size, current_best_length, choices,
-                       next_choices_size, start_indices, seen,
+    find_optimal_chain(next_chain_size, next_choices_size,
                        bit_set_get(TARGET_LOOKUP, ft)
                            ? num_fulfilled_target_functions + 1
-                           : num_fulfilled_target_functions,
-                       total_chains, max_length, progress_check_done);
+                           : num_fulfilled_target_functions);
 #if SMART != 1
     bit_set_remove(seen, ft);
 #endif
@@ -193,8 +192,6 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
 }
 
 int main(int argc, char *argv[]) {
-  // parse a vector of integers passed as arguments
-  vector<uint32_t> start_indices;
   for (int i = 1; i < argc; i++) {
     start_indices.push_back(atoi(argv[i]));
   }
@@ -205,30 +202,16 @@ int main(int argc, char *argv[]) {
     bit_set_insert(TARGET_LOOKUP, TARGETS[i]);
   }
 
-  uint32_t chain[25];
-  size_t chain_size = 0;
-  chain[chain_size] = 0b0000000011111111 >> (16 - N);
-  chain_size++;
-  chain[chain_size] = 0b0000111100001111 >> (16 - N);
-  chain_size++;
-  chain[chain_size] = 0b0011001100110011 >> (16 - N);
-  chain_size++;
-  chain[chain_size] = 0b0101010101010101 >> (16 - N);
-  chain_size++;
+  chain[0] = 0b0000000011111111 >> (16 - N);
+  chain[1] = 0b0000111100001111 >> (16 - N);
+  chain[2] = 0b0011001100110011 >> (16 - N);
+  chain[3] = 0b0101010101010101 >> (16 - N);
 
-  size_t current_best_length = 1000;
-  uint32_t choices[30];
-  size_t choices_size = 0;
-  uint64_t total_chains = 0;
-  uint32_t seen[SIZE] = {0};
   bit_set_insert(seen, 0);
-  for (int i = 0; i < chain_size; i++) {
+  for (int i = 0; i < 4; i++) {
     bit_set_insert(seen, chain[i]);
   }
-  bool progress_check_done = false;
-  find_optimal_chain(chain, chain_size, current_best_length, choices,
-                     choices_size, start_indices, seen, 0, total_chains,
-                     MAX_LENGTH, progress_check_done);
+  find_optimal_chain(4, 0, 0);
 
   cout << "total chains: " << total_chains << endl;
   return 0;
