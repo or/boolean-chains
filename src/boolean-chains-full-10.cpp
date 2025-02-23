@@ -1,141 +1,26 @@
 #include "bit_set_template.h"
 #include "chain.h"
 #include "expression.h"
+#include "full_search.h"
 #include "function.h"
 #include <cstdint>
+#include <ctime>
 #include <iostream>
-#include <vector>
 using namespace std;
 
 const uint32_t N = 10;
-const uint32_t S = 16;
-
-bool choices_vector_equals_start_indices(vector<uint32_t> &choices,
-                                         vector<uint32_t> &start_indices) {
-  if (choices.size() > start_indices.size()) {
-    return false;
-  }
-  for (int i = 0; i < choices.size(); i++) {
-    if (choices[i] != start_indices[i]) {
-      return false;
-    }
-  }
-  return true;
-}
-
-void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
-                        vector<uint32_t> &choices,
-                        vector<uint32_t> &start_indices, BitSet<S> &seen,
-                        size_t num_fulfilled_target_functions,
-                        uint32_t &total_chains) {
-  total_chains++;
-  if (num_fulfilled_target_functions == chain.targets.size()) {
-    if (chain.expressions.size() < current_best_length) {
-      cout << "New best chain found (" << chain.expressions.size() << "):\n"
-           << flush;
-      chain.print();
-      current_best_length = chain.expressions.size();
-    } else if (chain.expressions.size() < 16) {
-      chain.print();
-    }
-    return;
-  }
-
-  if (chain.expressions.size() + chain.targets.size() -
-          num_fulfilled_target_functions >
-      15) {
-    return;
-  }
-
-  if (chain.expressions.size() > 15) {
-    return;
-  }
-
-  vector<Expression<N>> new_expressions;
-  unordered_set<Function<N>> tmp_seen;
-
-  for (size_t j = 0; j < chain.expressions.size(); j++) {
-    for (size_t k = j + 1; k < chain.expressions.size(); k++) {
-      Function<N> g = chain.expressions[j].function;
-      Function<N> h = chain.expressions[k].function;
-
-      for (const auto &expr : {
-               Expression<N>(Expression<N>::Type::And, g, h),
-               Expression<N>(Expression<N>::Type::NotBut, g, h),
-               Expression<N>(Expression<N>::Type::ButNot, g, h),
-               Expression<N>(Expression<N>::Type::Or, g, h),
-               Expression<N>(Expression<N>::Type::Xor, g, h),
-           }) {
-        Function<N> f = expr.evaluate();
-        if (seen.get(f.to_uint32_t())) {
-          continue;
-        }
-
-        if (chain.function_lookup.find(f) != chain.function_lookup.end()) {
-          continue;
-        }
-
-        if (tmp_seen.find(f) != tmp_seen.end()) {
-          continue;
-        }
-        tmp_seen.insert(f);
-        new_expressions.push_back(expr);
-      }
-    }
-  }
-
-  size_t current_length = chain.expressions.size();
-  size_t start_index_offset = choices.size();
-  vector<uint32_t> clean_up;
-  for (int i = 0; i < new_expressions.size(); ++i) {
-    auto &new_expr = new_expressions[i];
-    uint32_t ft = new_expr.evaluate().to_uint32_t();
-    seen.insert(ft);
-    clean_up.push_back(ft);
-
-    if (choices_vector_equals_start_indices(choices, start_indices) &&
-        start_index_offset < start_indices.size() &&
-        i < start_indices[start_index_offset]) {
-      continue;
-    }
-
-    choices.push_back(i);
-    chain.add(new_expr);
-    if (chain.expressions.size() <= 5) {
-      for (size_t j = 0; j < choices.size(); ++j) {
-        cout << choices[j];
-        if (j != choices.size() - 1) {
-          cout << ", ";
-        }
-      }
-      cout << " [best: " << current_best_length << "]" << endl << flush;
-    }
-
-    size_t new_num_fulfilled = num_fulfilled_target_functions;
-    if (chain.target_lookup.find(new_expr.evaluate()) !=
-        chain.target_lookup.end()) {
-      new_num_fulfilled++;
-    }
-    find_optimal_chain(chain, current_best_length, choices, start_indices, seen,
-                       new_num_fulfilled, total_chains);
-    choices.pop_back();
-    chain.remove_last();
-  }
-
-  for (int i = 0; i < clean_up.size(); ++i) {
-    seen.remove(clean_up[i]);
-  }
-}
+const uint32_t S = ((1 << (N - 1)) + 31) / 32;
+const uint32_t MAX_LENGTH = 15;
 
 int main(int argc, char *argv[]) {
   Chain<N> chain({
-      Function<N>(~0b1011011111),
-      Function<N>(~0b1111100111),
-      Function<N>(~0b1101111111),
-      Function<N>(~0b1011011011),
-      Function<N>(~0b1010001010),
-      Function<N>(~0b1000111111),
-      Function<N>(0b0011111011),
+      Function<N>(~0b1011011111100011 >> (16 - N)),
+      Function<N>(~0b1111100111100100 >> (16 - N)),
+      Function<N>(~0b1101111111110100 >> (16 - N)),
+      Function<N>(~0b1011011011011110 >> (16 - N)),
+      Function<N>(~0b1010001010111111 >> (16 - N)),
+      Function<N>(~0b1000111111110011 >> (16 - N)),
+      Function<N>(0b0011111011111111 >> (16 - N)),
   });
 
   // parse a vector of integers passed as arguments
@@ -144,17 +29,18 @@ int main(int argc, char *argv[]) {
     start_indices.push_back(atoi(argv[i]));
   }
 
-  chain.add(Expression<N>(Function<N>(0b0000000011)));
-  chain.add(Expression<N>(Function<N>(0b0000111100)));
-  chain.add(Expression<N>(Function<N>(0b0011001100)));
-  chain.add(Expression<N>(Function<N>(0b0101010101)));
+  chain.add(Expression<N>(Function<N>(0b0000000011111111 >> (16 - N))));
+  chain.add(Expression<N>(Function<N>(0b0000111100001111 >> (16 - N))));
+  chain.add(Expression<N>(Function<N>(0b0011001100110011 >> (16 - N))));
+  chain.add(Expression<N>(Function<N>(0b0101010101010101 >> (16 - N))));
 
   size_t current_best_length = 1000;
   vector<uint32_t> choices;
   uint32_t total_chains = 0;
   BitSet<S> seen;
+  time_t last_print = time(NULL);
   find_optimal_chain(chain, current_best_length, choices, start_indices, seen,
-                     0, total_chains);
+                     0, total_chains, last_print, MAX_LENGTH);
 
   cout << "total chains: " << total_chains << endl;
   return 0;

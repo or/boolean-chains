@@ -108,7 +108,7 @@ public:
   }
 
   void print() const {
-    std::cout << "chain:\n";
+    std::cout << "chain (" << expressions.size() << "):\n";
     for (const auto &chain_expr : expressions) {
       std::cout << "  " << get_expression_as_str(chain_expr) << '\n';
     }

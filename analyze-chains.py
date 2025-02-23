@@ -3,8 +3,8 @@ import re
 import sys
 from glob import glob
 
-CHAIN_PATTERN = re.compile(r"chain:\n( *x.*\n)+", re.MULTILINE)
-FUNCTION_PATTERN = re.compile(r"[0-1]{16}")
+CHAIN_PATTERN = re.compile(r"chain.*:\n( *x.*\n)+", re.MULTILINE)
+FUNCTION_PATTERN = re.compile(r"[0-1]{10,16}")
 
 
 def parse_chain(chain):
@@ -98,4 +98,6 @@ def try_puzzle():
     solve(chain_sets, set(), set(), 0)
 
 
-try_puzzle()
+# try_puzzle()
+
+stats()
