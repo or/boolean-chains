@@ -1,4 +1,3 @@
-#include "bit_set_template.h"
 #include <bitset>
 #include <cstdint>
 #include <ctime>
@@ -9,7 +8,7 @@ using namespace std;
 #define SMART 1
 
 const uint32_t N = 16;
-const uint32_t S = ((1 << (N - 1)) + 31) / 32;
+const uint32_t SIZE = ((1 << (N - 1)) + 31) / 32;
 const uint32_t MAX_LENGTH = 25;
 const uint32_t TAUTOLOGY = (1 << N) - 1;
 const uint32_t TARGET_1 =
@@ -30,6 +29,24 @@ const uint32_t TARGETS[] = {
     TARGET_1, TARGET_2, TARGET_3, TARGET_4, TARGET_5, TARGET_6, TARGET_7,
 };
 const uint32_t NUM_TARGETS = sizeof(TARGETS) / sizeof(uint32_t);
+
+inline uint32_t bit_set_get(const uint32_t *bit_set, uint32_t bit) {
+  const uint32_t index = bit >> 5;
+  const uint32_t bit_index = bit & 0b11111;
+  return bit_set[index] & (1 << bit_index);
+}
+
+inline void bit_set_insert(uint32_t *bit_set, uint32_t bit) {
+  const uint32_t index = bit >> 5;
+  const uint32_t bit_index = bit & 0b11111;
+  bit_set[index] |= (1 << bit_index);
+}
+
+inline void bit_set_remove(uint32_t *bit_set, uint32_t bit) {
+  const uint32_t index = bit >> 5;
+  const uint32_t bit_index = bit & 0b11111;
+  bit_set[index] &= ~(1 << bit_index);
+}
 
 bool choices_vector_equals_start_indices(vector<uint32_t> &choices,
                                          vector<uint32_t> &start_indices) {
@@ -53,8 +70,8 @@ void print_chain(uint32_t *chain, size_t &chain_size) {
 }
 
 inline void add_new_expression(set<uint32_t> &new_expressions, uint32_t value,
-                               const BitSet<S> &seen) {
-  if (seen.get(value)) {
+                               const uint32_t *seen) {
+  if (bit_set_get(seen, value)) {
     return;
   }
 
@@ -63,7 +80,7 @@ inline void add_new_expression(set<uint32_t> &new_expressions, uint32_t value,
 
 void find_optimal_chain(uint32_t *chain, size_t &chain_size,
                         size_t &current_best_length, vector<uint32_t> &choices,
-                        vector<uint32_t> &start_indices, BitSet<S> &seen,
+                        vector<uint32_t> &start_indices, uint32_t *seen,
                         size_t num_fulfilled_target_functions,
                         uint64_t &total_chains, time_t &last_print,
                         size_t max_length, bool &progress_check_done) {
@@ -107,7 +124,7 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
   size_t i = 0;
   for (const uint32_t &ft : new_expressions) {
 #if SMART
-    seen.insert(ft);
+    bit_set_insert(seen, ft);
     clean_up[clean_up_size] = ft;
     clean_up_size++;
 #endif
@@ -160,7 +177,7 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
 
 #if SMART
   for (int i = 0; i < clean_up_size; ++i) {
-    seen.remove(clean_up[i]);
+    bit_set_remove(seen, clean_up[i]);
   }
 #endif
 }
@@ -192,10 +209,10 @@ int main(int argc, char *argv[]) {
   vector<uint32_t> choices;
   choices.reserve(25);
   uint64_t total_chains = 0;
-  BitSet<S> seen;
-  seen.insert(0);
+  uint32_t seen[SIZE] = {0};
+  bit_set_insert(seen, 0);
   for (int i = 0; i < chain_size; i++) {
-    seen.insert(chain[i]);
+    bit_set_insert(seen, chain[i]);
   }
   time_t last_print = time(NULL);
   bool progress_check_done = false;
