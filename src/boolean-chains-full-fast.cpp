@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <ctime>
 #include <iostream>
-#include <unordered_set>
+#include <set>
 using namespace std;
 
 #define SMART 1
@@ -52,22 +52,13 @@ void print_chain(uint32_t *chain, size_t &chain_size) {
   cout << endl;
 }
 
-inline void add_new_expression(uint32_t *new_expressions,
-                               size_t &new_expressions_size, uint32_t value,
-                               const BitSet<S> &seen,
-                               unordered_set<uint32_t> &tmp_seen) {
+inline void add_new_expression(set<uint32_t> &new_expressions, uint32_t value,
+                               const BitSet<S> &seen) {
   if (seen.get(value)) {
     return;
   }
 
-  if (tmp_seen.find(value) != tmp_seen.end()) {
-    return;
-  }
-
-  tmp_seen.insert(value);
-
-  new_expressions[new_expressions_size] = value;
-  new_expressions_size++;
+  new_expressions.insert(value);
 }
 
 void find_optimal_chain(uint32_t *chain, size_t &chain_size,
@@ -92,25 +83,18 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
     return;
   }
 
-  uint32_t new_expressions[1000];
-  size_t new_expressions_size = 0;
-  unordered_set<uint32_t> tmp_seen;
+  set<uint32_t> new_expressions;
 
   for (size_t j = 0; j < chain_size; j++) {
     for (size_t k = j + 1; k < chain_size; k++) {
       const uint32_t &g = chain[j];
       const uint32_t &h = chain[k];
 
-      add_new_expression(new_expressions, new_expressions_size, g & h, seen,
-                         tmp_seen);
-      add_new_expression(new_expressions, new_expressions_size, (~g) & h, seen,
-                         tmp_seen);
-      add_new_expression(new_expressions, new_expressions_size, g & (~h), seen,
-                         tmp_seen);
-      add_new_expression(new_expressions, new_expressions_size, g | h, seen,
-                         tmp_seen);
-      add_new_expression(new_expressions, new_expressions_size, g ^ h, seen,
-                         tmp_seen);
+      add_new_expression(new_expressions, g & h, seen);
+      add_new_expression(new_expressions, (~g) & h, seen);
+      add_new_expression(new_expressions, g & (~h), seen);
+      add_new_expression(new_expressions, g | h, seen);
+      add_new_expression(new_expressions, g ^ h, seen);
     }
   }
 
@@ -120,8 +104,8 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
   uint32_t clean_up[1000];
   size_t clean_up_size = 0;
 #endif
-  for (int i = 0; i < new_expressions_size; ++i) {
-    auto &ft = new_expressions[i];
+  size_t i = 0;
+  for (const uint32_t &ft : new_expressions) {
 #if SMART
     seen.insert(ft);
     clean_up[clean_up_size] = ft;
@@ -132,6 +116,7 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
       if (choices_vector_equals_start_indices(choices, start_indices) &&
           start_index_offset < start_indices.size() &&
           i < start_indices[start_index_offset]) {
+        i++;
         continue;
       }
       progress_check_done = true;
@@ -168,6 +153,7 @@ void find_optimal_chain(uint32_t *chain, size_t &chain_size,
 #endif
     choices.pop_back();
     chain_size--;
+    i++;
   }
 
 #if SMART
