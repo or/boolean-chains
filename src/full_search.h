@@ -48,7 +48,8 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
     return;
   }
 
-  vector<Expression<N>> new_expressions;
+  Expression<N> new_expressions[1000];
+  size_t new_expressions_size = 0;
   unordered_set<Function<N>> tmp_seen;
 
   for (size_t j = 0; j < chain.expressions.size(); j++) {
@@ -76,19 +77,22 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
           continue;
         }
         tmp_seen.insert(f);
-        new_expressions.push_back(expr);
+        new_expressions[new_expressions_size] = expr;
+        new_expressions_size++;
       }
     }
   }
 
   size_t current_length = chain.expressions.size();
   size_t start_index_offset = choices.size();
-  vector<uint32_t> clean_up;
-  for (int i = 0; i < new_expressions.size(); ++i) {
+  uint32_t clean_up[1000];
+  size_t clean_up_size = 0;
+  for (int i = 0; i < new_expressions_size; ++i) {
     auto &new_expr = new_expressions[i];
     uint32_t ft = new_expr.evaluate().to_uint32_t();
     seen.insert(ft);
-    clean_up.push_back(ft);
+    clean_up[clean_up_size] = ft;
+    clean_up_size++;
 
     if (choices_vector_equals_start_indices(choices, start_indices) &&
         start_index_offset < start_indices.size() &&
@@ -121,7 +125,7 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
     chain.remove_last();
   }
 
-  for (int i = 0; i < clean_up.size(); ++i) {
+  for (int i = 0; i < clean_up_size; ++i) {
     seen.remove(clean_up[i]);
   }
 }

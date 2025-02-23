@@ -14,6 +14,7 @@ private:
   Function<N> f1, f2;
 
 public:
+  Expression() : type(Type::Constant), f1(0), f2(0) {}
   explicit Expression(Function<N> f) : type(Type::Constant), f1(f), f2(0) {}
   Expression(Type op, Function<N> lhs, Function<N> rhs)
       : type(op), f1(lhs), f2(rhs) {}

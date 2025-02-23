@@ -36,6 +36,7 @@ int main(int argc, char *argv[]) {
 
   size_t current_best_length = 1000;
   vector<uint32_t> choices;
+  choices.reserve(25);
   uint32_t total_chains = 0;
   BitSet<S> seen;
   time_t last_print = time(NULL);
