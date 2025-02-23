@@ -1,4 +1,4 @@
-#include "algorithm_l_extended.h"
+#include "bit_set_template.h"
 #include "chain.h"
 #include "expression.h"
 #include "function.h"
@@ -8,6 +8,7 @@
 using namespace std;
 
 const uint32_t N = 10;
+const uint32_t S = 16;
 
 bool choices_vector_equals_start_indices(vector<uint32_t> &choices,
                                          vector<uint32_t> &start_indices) {
@@ -24,8 +25,7 @@ bool choices_vector_equals_start_indices(vector<uint32_t> &choices,
 
 void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
                         vector<uint32_t> &choices,
-                        vector<uint32_t> &start_indices,
-                        unordered_set<Function<N>> &seen,
+                        vector<uint32_t> &start_indices, BitSet<S> &seen,
                         size_t num_fulfilled_target_functions,
                         uint32_t &total_chains) {
   total_chains++;
@@ -67,7 +67,7 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
                Expression<N>(Expression<N>::Type::Xor, g, h),
            }) {
         Function<N> f = expr.evaluate();
-        if (seen.find(f) != seen.end()) {
+        if (seen.get(f.to_uint32_t())) {
           continue;
         }
 
@@ -86,17 +86,18 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
 
   size_t current_length = chain.expressions.size();
   size_t start_index_offset = choices.size();
-
-  unordered_set<Function<N>> new_seen(seen);
+  vector<uint32_t> clean_up;
   for (int i = 0; i < new_expressions.size(); ++i) {
+    auto &new_expr = new_expressions[i];
+    uint32_t ft = new_expr.evaluate().to_uint32_t();
+    seen.insert(ft);
+    clean_up.push_back(ft);
+
     if (choices_vector_equals_start_indices(choices, start_indices) &&
         start_index_offset < start_indices.size() &&
         i < start_indices[start_index_offset]) {
       continue;
     }
-
-    auto &new_expr = new_expressions[i];
-    new_seen.insert(new_expr.evaluate());
 
     choices.push_back(i);
     chain.add(new_expr);
@@ -115,10 +116,14 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
         chain.target_lookup.end()) {
       new_num_fulfilled++;
     }
-    find_optimal_chain(chain, current_best_length, choices, start_indices,
-                       new_seen, new_num_fulfilled, total_chains);
+    find_optimal_chain(chain, current_best_length, choices, start_indices, seen,
+                       new_num_fulfilled, total_chains);
     choices.pop_back();
     chain.remove_last();
+  }
+
+  for (int i = 0; i < clean_up.size(); ++i) {
+    seen.remove(clean_up[i]);
   }
 }
 
@@ -146,8 +151,8 @@ int main(int argc, char *argv[]) {
 
   size_t current_best_length = 1000;
   vector<uint32_t> choices;
-  unordered_set<Function<N>> seen;
   uint32_t total_chains = 0;
+  BitSet<S> seen;
   find_optimal_chain(chain, current_best_length, choices, start_indices, seen,
                      0, total_chains);
 
