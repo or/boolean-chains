@@ -13,19 +13,27 @@ using namespace std;
 #warning "Warning: SMART=0 doesn't work anymore with the new progress skipping"
 #endif
 
-constexpr uint32_t N = 16;
+constexpr uint32_t N = 10;
 constexpr uint32_t SIZE = ((1 << (N - 1)) + 31) / 32;
-constexpr uint32_t MAX_LENGTH = 16;
+constexpr uint32_t MAX_LENGTH = 15;
 constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
 constexpr uint32_t TARGET_1 =
-    (((uint32_t)0b0001011110011010) >> (16 - N)) & TAUTOLOGY;
+    ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY;
 constexpr uint32_t TARGET_2 =
-    (((uint32_t)0b0110001111101000) >> (16 - N)) & TAUTOLOGY;
+    ((~(uint32_t)0b1111100111100100) >> (16 - N)) & TAUTOLOGY;
 constexpr uint32_t TARGET_3 =
-    (((uint32_t)0b0101101100100110) >> (16 - N)) & TAUTOLOGY;
+    ((~(uint32_t)0b1101111111110100) >> (16 - N)) & TAUTOLOGY;
 constexpr uint32_t TARGET_4 =
-    (((uint32_t)0b0011111000101001) >> (16 - N)) & TAUTOLOGY;
-constexpr uint32_t TARGETS[] = {TARGET_1, TARGET_2, TARGET_3, TARGET_4};
+    ((~(uint32_t)0b1011011011011110) >> (16 - N)) & TAUTOLOGY;
+constexpr uint32_t TARGET_5 =
+    ((~(uint32_t)0b1010001010111111) >> (16 - N)) & TAUTOLOGY;
+constexpr uint32_t TARGET_6 =
+    ((~(uint32_t)0b1000111111110011) >> (16 - N)) & TAUTOLOGY;
+constexpr uint32_t TARGET_7 =
+    (((uint32_t)0b0011111011111111) >> (16 - N)) & TAUTOLOGY;
+constexpr uint32_t TARGETS[] = {
+    TARGET_1, TARGET_2, TARGET_3, TARGET_4, TARGET_5, TARGET_6, TARGET_7,
+};
 constexpr uint32_t NUM_TARGETS = sizeof(TARGETS) / sizeof(uint32_t);
 
 uint32_t TARGET_LOOKUP[SIZE] = {0};
