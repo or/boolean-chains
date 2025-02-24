@@ -1,10 +1,13 @@
 #include <bitset>
+#include <csignal>
 #include <cstdint>
+#include <cstdlib>
 #include <iostream>
 #include <vector>
 using namespace std;
 
 #define SMART 1
+#define CAPTURE_STATS 1
 
 #if SMART != 1
 #warning "Warning: SMART=0 doesn't work anymore with the new progress skipping"
@@ -42,6 +45,13 @@ uint32_t choices[30];
 uint64_t total_chains = 0;
 uint32_t seen[SIZE] = {0};
 bool progress_check_done = false;
+
+#if CAPTURE_STATS
+uint64_t stats_total_num_new_expressions[25] = {0};
+uint32_t stats_min_num_new_expressions[25] = {0};
+uint32_t stats_max_num_new_expressions[25] = {0};
+uint64_t stats_num_data_points[25] = {0};
+#endif
 
 inline uint32_t bit_set_get(const uint32_t *bit_set, uint32_t bit) {
   const uint32_t index = bit >> 5;
@@ -183,6 +193,20 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
       progress_check_done = true;
     }
   }
+#if CAPTURE_STATS
+  if (progress_check_done) {
+    stats_total_num_new_expressions[chain_size] += new_expressions_size;
+    if (stats_num_data_points[chain_size] == 0 ||
+        new_expressions_size < stats_min_num_new_expressions[chain_size]) {
+      stats_min_num_new_expressions[chain_size] = new_expressions_size;
+    }
+    if (stats_num_data_points[chain_size] == 0 ||
+        new_expressions_size > stats_max_num_new_expressions[chain_size]) {
+      stats_max_num_new_expressions[chain_size] = new_expressions_size;
+    }
+    stats_num_data_points[chain_size]++;
+  }
+#endif
 
   for (int i = start_i; i < new_expressions_size; i++) {
     const auto &ft = new_expressions[i];
@@ -214,7 +238,32 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
 #endif
 }
 
+void on_exit() {
+  cout << "total chains: " << total_chains << endl;
+
+#if CAPTURE_STATS
+  cout << "new expressions at chain length:" << endl;
+  cout << "                   n                       sum              avg     "
+          "         "
+          "min              max"
+       << endl;
+  for (int i = 4; i < MAX_LENGTH; i++) {
+    printf("%2d: %16llu %25llu %16llu %16u %16u\n", i, stats_num_data_points[i],
+           stats_total_num_new_expressions[i],
+           stats_total_num_new_expressions[i] / stats_num_data_points[i],
+           stats_min_num_new_expressions[i], stats_max_num_new_expressions[i]);
+  }
+  cout << flush;
+#endif
+}
+
+void signal_handler(int signal) { exit(signal); }
+
 int main(int argc, char *argv[]) {
+  atexit(on_exit);
+  signal(SIGINT, signal_handler);
+  signal(SIGTERM, signal_handler);
+
   for (int i = 1; i < argc; i++) {
     start_indices.push_back(atoi(argv[i]));
   }
@@ -236,6 +285,5 @@ int main(int argc, char *argv[]) {
   }
   find_optimal_chain(4, 0, 0);
 
-  cout << "total chains: " << total_chains << endl;
   return 0;
 }
