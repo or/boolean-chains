@@ -162,6 +162,11 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
       if (choices_vector_equals_start_indices(choices_size) &&
           choices_size < start_indices.size() &&
           i < start_indices[choices_size]) {
+        cout << "skipping ";
+        for (size_t j = 0; j < choices_size; ++j) {
+          cout << choices[j] << ", ";
+        }
+        cout << i << endl;
         continue;
       }
       if (choices_size >= start_indices.size()) {
