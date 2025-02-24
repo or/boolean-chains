@@ -9,17 +9,21 @@
 #include <vector>
 using namespace std;
 
-bool choices_vector_equals_start_indices(vector<uint32_t> &choices,
-                                         vector<uint32_t> &start_indices) {
-  if (choices.size() > start_indices.size()) {
-    return false;
-  }
-  for (int i = 0; i < choices.size(); i++) {
-    if (choices[i] != start_indices[i]) {
-      return false;
+int compare_choices_with_start_indices(vector<uint32_t> &choices,
+                                       vector<uint32_t> &start_indices) {
+  int max_i = choices.size() <= start_indices.size() ? choices.size()
+                                                     : start_indices.size();
+  for (int i = 0; i < max_i; i++) {
+    if (choices[i] < start_indices[i]) {
+      return -1;
+    } else if (choices[i] > start_indices[i]) {
+      return 1;
     }
   }
-  return true;
+  if (choices.size() > start_indices.size()) {
+    return 1;
+  }
+  return 0;
 }
 
 template <uint32_t N, uint32_t S>
@@ -83,23 +87,39 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
   size_t start_index_offset = choices.size();
   uint32_t clean_up[1000];
   size_t clean_up_size = 0;
-  for (int i = 0; i < new_expressions_size; ++i) {
+
+  int start_i = 0;
+  if (!progress_check_done) {
+    choices.push_back(0);
+    int result = compare_choices_with_start_indices(choices, start_indices);
+    choices.pop_back();
+    if (result < 0 && choices.size() < start_indices.size()) {
+      start_i = start_indices[choices.size()];
+      cout << "skipping to ";
+      for (size_t j = 0; j < choices.size(); ++j) {
+        cout << choices[j] << ", ";
+      }
+      cout << start_i << endl;
+
+      for (int i = 0; i < start_i; i++) {
+        auto &new_expr = new_expressions[i];
+        uint32_t ft = new_expr.evaluate().to_uint32_t();
+        seen.insert(ft);
+        clean_up[clean_up_size] = ft;
+        clean_up_size++;
+      }
+    }
+    if (result > 0) {
+      progress_check_done = true;
+    }
+  }
+
+  for (int i = start_i; i < new_expressions_size; ++i) {
     auto &new_expr = new_expressions[i];
     uint32_t ft = new_expr.evaluate().to_uint32_t();
     seen.insert(ft);
     clean_up[clean_up_size] = ft;
     clean_up_size++;
-
-    if (!progress_check_done) {
-      if (choices_vector_equals_start_indices(choices, start_indices) &&
-          start_index_offset < start_indices.size() &&
-          i < start_indices[start_index_offset]) {
-        continue;
-      }
-      if (choices.size() > start_indices.size()) {
-        progress_check_done = true;
-      }
-    }
 
     choices.push_back(i);
     chain.add(new_expr);

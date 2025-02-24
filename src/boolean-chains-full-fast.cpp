@@ -6,6 +6,10 @@ using namespace std;
 
 #define SMART 1
 
+#if SMART != 1
+#warning "Warning: SMART=0 doesn't work anymore with the new progress skipping"
+#endif
+
 constexpr uint32_t N = 10;
 constexpr uint32_t SIZE = ((1 << (N - 1)) + 31) / 32;
 constexpr uint32_t MAX_LENGTH = 15;
@@ -57,16 +61,20 @@ inline void bit_set_remove(uint32_t *bit_set, uint32_t bit) {
   bit_set[index] &= ~(1 << bit_index);
 }
 
-bool choices_vector_equals_start_indices(const size_t choices_size) {
-  if (choices_size > start_indices.size()) {
-    return false;
-  }
-  for (int i = 0; i < choices_size; i++) {
-    if (choices[i] != start_indices[i]) {
-      return false;
+int compare_choices_with_start_indices(const size_t choices_size) {
+  int max_i = choices_size <= start_indices.size() ? choices_size
+                                                   : start_indices.size();
+  for (int i = 0; i < max_i; i++) {
+    if (choices[i] < start_indices[i]) {
+      return -1;
+    } else if (choices[i] > start_indices[i]) {
+      return 1;
     }
   }
-  return true;
+  if (choices_size > start_indices.size()) {
+    return 1;
+  }
+  return 0;
 }
 
 void print_chain(const size_t chain_size) {
@@ -150,29 +158,39 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
 #endif
   size_t next_chain_size = chain_size + 1;
   size_t next_choices_size = choices_size + 1;
-  for (int i = 0; i < new_expressions_size; i++) {
+  int start_i = 0;
+  if (!progress_check_done) {
+    choices[choices_size] = 0;
+    int result = compare_choices_with_start_indices(next_choices_size);
+    if (result < 0 && choices_size < start_indices.size()) {
+      start_i = start_indices[choices_size];
+      cout << "skipping to ";
+      for (size_t j = 0; j < choices_size; ++j) {
+        cout << choices[j] << ", ";
+      }
+      cout << start_i << endl;
+
+#if SMART
+      for (int i = 0; i < start_i; i++) {
+        const auto &ft = new_expressions[i];
+        bit_set_insert(seen, ft);
+        clean_up[clean_up_size] = ft;
+        clean_up_size++;
+      }
+#endif
+    }
+    if (result > 0) {
+      progress_check_done = true;
+    }
+  }
+
+  for (int i = start_i; i < new_expressions_size; i++) {
     const auto &ft = new_expressions[i];
 #if SMART
     bit_set_insert(seen, ft);
     clean_up[clean_up_size] = ft;
     clean_up_size++;
 #endif
-
-    if (!progress_check_done) {
-      if (choices_vector_equals_start_indices(choices_size) &&
-          choices_size < start_indices.size() &&
-          i < start_indices[choices_size]) {
-        cout << "skipping ";
-        for (size_t j = 0; j < choices_size; ++j) {
-          cout << choices[j] << ", ";
-        }
-        cout << i << endl;
-        continue;
-      }
-      if (choices_size >= start_indices.size()) {
-        progress_check_done = true;
-      }
-    }
 
     choices[choices_size] = i;
     chain[chain_size] = ft;
