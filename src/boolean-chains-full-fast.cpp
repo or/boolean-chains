@@ -289,6 +289,8 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, signal_handler);
   signal(SIGTERM, signal_handler);
 
+  cout << "N = " << N << ", MAX_LENGTH: " << MAX_LENGTH << ", SMART: " << SMART
+       << ", CAPTURE_STATS: " << CAPTURE_STATS << endl;
   for (int i = 1; i < argc; i++) {
     start_indices.push_back(atoi(argv[i]));
   }
