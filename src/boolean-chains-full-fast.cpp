@@ -90,7 +90,32 @@ int compare_choices_with_start_indices(const size_t choices_size) {
 void print_chain(const size_t chain_size) {
   cout << "chain (" << chain_size << "):" << endl;
   for (int i = 0; i < chain_size; i++) {
-    cout << bitset<N>(chain[i]).to_string() << endl;
+    cout << "x" << i + 1;
+    for (int j = 0; j < i; j++) {
+      for (int k = j + 1; k < i; k++) {
+        char op = 0;
+        if (chain[i] == (chain[j] & chain[k])) {
+          op = '&';
+        } else if (chain[i] == (chain[j] | chain[k])) {
+          op = '|';
+        } else if (chain[i] == (chain[j] ^ chain[k])) {
+          op = '^';
+        } else if (chain[i] == ((~chain[j]) & chain[k])) {
+          op = '<';
+        } else if (chain[i] == (chain[j] & (~chain[k]))) {
+          op = '>';
+        } else {
+          continue;
+        }
+
+        cout << " = " << "x" << j + 1 << " " << op << " x" << k + 1;
+      }
+    }
+    cout << " = " << bitset<N>(chain[i]).to_string();
+    if (bit_set_get(TARGET_LOOKUP, chain[i])) {
+      cout << " [target]";
+    }
+    cout << endl;
   }
   cout << endl;
 }
