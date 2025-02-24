@@ -144,7 +144,6 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
     }
   }
 
-  size_t start_index_offset = choices_size;
 #if SMART
   uint32_t clean_up[1000];
   size_t clean_up_size = 0;
