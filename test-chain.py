@@ -7,26 +7,17 @@ def negate(bits):
     return "".join("1" if b == "0" else "0" for b in bits)
 
 
-TARGETS = {
-    negate("1011011111100011"): "a",
-    negate("1111100111100100"): "b",
-    negate("1101111111110100"): "c",
-    negate("1011011011011110"): "d",
-    negate("1010001010111111"): "e",
-    negate("1000111111110011"): "f",
-    "0011111011111111": "g",
-}
-TARGETS_10 = {
-    negate("1011011111"): "a",
-    negate("1111100111"): "b",
-    negate("1101111111"): "c",
-    negate("1011011011"): "d",
-    negate("1010001010"): "e",
-    negate("1000111111"): "f",
-    "0011111011": "g",
-}
+TARGETS = [
+    [negate("1011011111100011"), "a"],
+    [negate("1111100111100100"), "b"],
+    [negate("1101111111110100"), "c"],
+    [negate("1011011011011110"), "d"],
+    [negate("1010001010111111"), "e"],
+    [negate("1000111111110011"), "f"],
+    ["0011111011111111", "g"],
+]
 
-for target, name in TARGETS.items():
+for target, name in TARGETS:
     print(f"{name}: {target}")
 
 # matches lines like x10 = x6 | x8 = 0011111011111111, parsing out the variable names and bits
@@ -76,12 +67,11 @@ def evaluate_chain(chain, inputs):
         elif operator == ">":
             inputs[name] = 1 if input1 > input2 else 0
 
-        print(bits)
-        if bits in TARGETS:
-            result[TARGETS[bits]] = inputs[name]
-
-        elif bits in TARGETS_10:
-            result[TARGETS_10[bits]] = inputs[name]
+        # print(bits)
+        for [target_bits, target] in TARGETS:
+            if target_bits.startswith(bits):
+                result[target] = inputs[name]
+                break
 
     # print(result)
     return result
