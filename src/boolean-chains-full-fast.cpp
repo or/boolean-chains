@@ -6,7 +6,13 @@
 #include <vector>
 using namespace std;
 
+#ifndef CAPTURE_STATS
 #define CAPTURE_STATS 1
+#endif
+
+#ifndef PLAN_MODE
+#define PLAN_MODE 0
+#endif
 
 constexpr uint32_t N = 10;
 constexpr uint32_t SIZE = ((1 << (N - 1)) + 31) / 32;
@@ -47,6 +53,11 @@ uint64_t stats_total_num_expressions[25] = {0};
 uint32_t stats_min_num_expressions[25] = {0};
 uint32_t stats_max_num_expressions[25] = {0};
 uint64_t stats_num_data_points[25] = {0};
+#endif
+
+#if PLAN_MODE
+size_t plan_depth = 1;
+size_t start_chain_length = 0;
 #endif
 
 inline uint32_t bit_set_get(const uint32_t *bit_set, uint32_t bit) {
@@ -130,6 +141,19 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
                         const size_t num_fulfilled_target_functions,
                         const size_t expressions_size,
                         const size_t expressions_index) {
+#if PLAN_MODE
+  if (chain_size - start_chain_length >= plan_depth) {
+    for (size_t j = 0; j < choices_size; ++j) {
+      cout << choices[j];
+      if (j != choices_size - 1) {
+        cout << " ";
+      }
+    }
+    cout << endl;
+    return;
+  }
+#endif
+
   total_chains++;
   if ((total_chains & 0xfffffff) == 0) {
     for (size_t j = 0; j < choices_size; ++j) {
@@ -246,6 +270,11 @@ void on_exit() {
 void signal_handler(int signal) { exit(signal); }
 
 int main(int argc, char *argv[]) {
+#if PLAN_MODE
+  if (argc > 1) {
+    plan_depth = atoi(argv[1]);
+  }
+#else
   atexit(on_exit);
   signal(SIGINT, signal_handler);
   signal(SIGTERM, signal_handler);
@@ -255,10 +284,15 @@ int main(int argc, char *argv[]) {
   for (int i = 1; i < argc; i++) {
     start_indices.push_back(atoi(argv[i]));
   }
+#endif
 
+#if PLAN_MODE != 1
   cout << NUM_TARGETS << " targets:" << endl;
+#endif
   for (int i = 0; i < NUM_TARGETS; i++) {
+#if PLAN_MODE != 1
     cout << "  " << bitset<N>(TARGETS[i]).to_string() << endl;
+#endif
     bit_set_insert(TARGET_LOOKUP, TARGETS[i]);
   }
 
@@ -289,6 +323,10 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+
+#if PLAN_MODE
+  start_chain_length = chain_size;
+#endif
 
   find_optimal_chain(chain_size, 0, 0, expressions_size, 0);
 
