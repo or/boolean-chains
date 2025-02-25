@@ -6,12 +6,7 @@
 #include <vector>
 using namespace std;
 
-#define SMART 1
 #define CAPTURE_STATS 1
-
-#if SMART != 1
-#warning "Warning: SMART=0 doesn't work anymore with the new progress skipping"
-#endif
 
 constexpr uint32_t N = 10;
 constexpr uint32_t SIZE = ((1 << (N - 1)) + 31) / 32;
@@ -187,10 +182,8 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
     }
   }
 
-#if SMART
   uint32_t clean_up[1000];
   size_t clean_up_size = 0;
-#endif
   size_t next_chain_size = chain_size + 1;
   size_t next_choices_size = choices_size + 1;
   int start_i = 0;
@@ -205,14 +198,12 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
       }
       cout << start_i << endl;
 
-#if SMART
       for (int i = 0; i < start_i; i++) {
         const auto &ft = new_expressions[i];
         bit_set_insert(seen, ft);
         clean_up[clean_up_size] = ft;
         clean_up_size++;
       }
-#endif
     }
     if (result > 0) {
       progress_check_done = true;
@@ -235,32 +226,22 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
 
   for (int i = start_i; i < new_expressions_size; i++) {
     const auto &ft = new_expressions[i];
-#if SMART
     bit_set_insert(seen, ft);
     clean_up[clean_up_size] = ft;
     clean_up_size++;
-#endif
 
     choices[choices_size] = i;
     chain[chain_size] = ft;
 
-#if SMART != 1
-    bit_set_insert(seen, ft);
-#endif
     find_optimal_chain(next_chain_size, next_choices_size,
                        bit_set_get(TARGET_LOOKUP, ft)
                            ? num_fulfilled_target_functions + 1
                            : num_fulfilled_target_functions);
-#if SMART != 1
-    bit_set_remove(seen, ft);
-#endif
   }
 
-#if SMART
   for (int i = 0; i < clean_up_size; ++i) {
     bit_set_remove(seen, clean_up[i]);
   }
-#endif
 }
 
 void on_exit() {
@@ -289,7 +270,7 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, signal_handler);
   signal(SIGTERM, signal_handler);
 
-  cout << "N = " << N << ", MAX_LENGTH: " << MAX_LENGTH << ", SMART: " << SMART
+  cout << "N = " << N << ", MAX_LENGTH: " << MAX_LENGTH
        << ", CAPTURE_STATS: " << CAPTURE_STATS << endl;
   for (int i = 1; i < argc; i++) {
     start_indices.push_back(atoi(argv[i]));
