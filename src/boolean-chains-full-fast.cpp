@@ -39,12 +39,15 @@ size_t current_best_length = 1000;
 uint32_t choices[30];
 uint64_t total_chains = 0;
 uint32_t seen[SIZE] = {0};
+uint32_t seen_expressions[SIZE];
+uint32_t seen_expressions_changed[SIZE];
 bool progress_check_done = false;
+uint32_t expressions[1000];
 
 #if CAPTURE_STATS
-uint64_t stats_total_num_new_expressions[25] = {0};
-uint32_t stats_min_num_new_expressions[25] = {0};
-uint32_t stats_max_num_new_expressions[25] = {0};
+uint64_t stats_total_num_expressions[25] = {0};
+uint32_t stats_min_num_expressions[25] = {0};
+uint32_t stats_max_num_expressions[25] = {0};
 uint64_t stats_num_data_points[25] = {0};
 #endif
 
@@ -115,24 +118,21 @@ void print_chain(const size_t chain_size) {
   cout << endl;
 }
 
-inline void add_new_expression(uint32_t *new_expressions,
-                               size_t &new_expressions_size, uint32_t value,
-                               uint32_t *tmp_seen) {
-  if (bit_set_get(seen, value)) {
+inline void add_new_expression(size_t &expressions_size, uint32_t value) {
+  if (bit_set_get(seen_expressions, value)) {
     return;
   }
+  bit_set_insert(seen_expressions, value);
+  bit_set_insert(seen_expressions_changed, value);
 
-  if (bit_set_get(tmp_seen, value)) {
-    return;
-  }
-  bit_set_insert(tmp_seen, value);
-
-  new_expressions[new_expressions_size] = value;
-  new_expressions_size++;
+  expressions[expressions_size] = value;
+  expressions_size++;
 }
 
 void find_optimal_chain(const size_t chain_size, const size_t choices_size,
-                        const size_t num_fulfilled_target_functions) {
+                        const size_t num_fulfilled_target_functions,
+                        const size_t expressions_size,
+                        const size_t expressions_index) {
   total_chains++;
   if ((total_chains & 0xfffffff) == 0) {
     for (size_t j = 0; j < choices_size; ++j) {
@@ -160,25 +160,17 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
     return;
   }
 
-  uint32_t new_expressions[1000];
-  size_t new_expressions_size = 0;
-  uint32_t tmp_seen[SIZE] = {0};
-
-  for (size_t j = 0; j < chain_size; j++) {
+  size_t new_expressions_size = expressions_size;
+  const uint32_t h = chain[chain_size - 1];
+  const uint32_t not_h = ~h;
+  for (size_t j = 0; j < chain_size - 1; j++) {
     const uint32_t g = chain[j];
     const uint32_t not_g = ~g;
 
-    for (size_t k = j + 1; k < chain_size; k++) {
-      const uint32_t h = chain[k];
-      const uint32_t not_h = ~h;
+    const uint32_t expressions[] = {g & h, not_g & h, g & not_h, g | h, g ^ h};
 
-      const uint32_t expressions[] = {g & h, not_g & h, g & not_h, g | h,
-                                      g ^ h};
-
-      for (uint32_t expr : expressions) {
-        add_new_expression(new_expressions, new_expressions_size, expr,
-                           tmp_seen);
-      }
+    for (uint32_t expr : expressions) {
+      add_new_expression(new_expressions_size, expr);
     }
   }
 
@@ -186,7 +178,7 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
   size_t clean_up_size = 0;
   size_t next_chain_size = chain_size + 1;
   size_t next_choices_size = choices_size + 1;
-  int start_i = 0;
+  int start_i = expressions_index;
   if (!progress_check_done) {
     choices[choices_size] = 0;
     int result = compare_choices_with_start_indices(next_choices_size);
@@ -199,7 +191,7 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
       cout << start_i << endl;
 
       for (int i = 0; i < start_i; i++) {
-        const auto &ft = new_expressions[i];
+        const auto &ft = expressions[i];
         bit_set_insert(seen, ft);
         clean_up[clean_up_size] = ft;
         clean_up_size++;
@@ -209,23 +201,26 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
       progress_check_done = true;
     }
   }
+
 #if CAPTURE_STATS
   if (progress_check_done) {
-    stats_total_num_new_expressions[chain_size] += new_expressions_size;
+    const auto new_expressions = new_expressions_size - expressions_size;
+    stats_total_num_expressions[chain_size] += new_expressions;
     if (stats_num_data_points[chain_size] == 0 ||
-        new_expressions_size < stats_min_num_new_expressions[chain_size]) {
-      stats_min_num_new_expressions[chain_size] = new_expressions_size;
+        new_expressions < stats_min_num_expressions[chain_size]) {
+      stats_min_num_expressions[chain_size] = new_expressions;
     }
     if (stats_num_data_points[chain_size] == 0 ||
-        new_expressions_size > stats_max_num_new_expressions[chain_size]) {
-      stats_max_num_new_expressions[chain_size] = new_expressions_size;
+        new_expressions > stats_max_num_expressions[chain_size]) {
+      stats_max_num_expressions[chain_size] = new_expressions;
     }
     stats_num_data_points[chain_size]++;
   }
 #endif
 
   for (int i = start_i; i < new_expressions_size; i++) {
-    const auto &ft = new_expressions[i];
+    const auto &ft = expressions[i];
+
     bit_set_insert(seen, ft);
     clean_up[clean_up_size] = ft;
     clean_up_size++;
@@ -236,11 +231,20 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
     find_optimal_chain(next_chain_size, next_choices_size,
                        bit_set_get(TARGET_LOOKUP, ft)
                            ? num_fulfilled_target_functions + 1
-                           : num_fulfilled_target_functions);
+                           : num_fulfilled_target_functions,
+                       new_expressions_size, i + 1);
   }
 
   for (int i = 0; i < clean_up_size; ++i) {
     bit_set_remove(seen, clean_up[i]);
+  }
+
+  for (int i = expressions_size; i < new_expressions_size; i++) {
+    const auto &ft = expressions[i];
+    if (bit_set_get(seen_expressions_changed, ft)) {
+      bit_set_remove(seen_expressions, ft);
+      bit_set_remove(seen_expressions_changed, ft);
+    }
   }
 }
 
@@ -254,10 +258,10 @@ void on_exit() {
           "min              max"
        << endl;
   for (int i = 4; i < MAX_LENGTH; i++) {
-    printf("%2d: %16llu %25llu %16llu %16u %16u\n", i, stats_num_data_points[i],
-           stats_total_num_new_expressions[i],
-           stats_total_num_new_expressions[i] / stats_num_data_points[i],
-           stats_min_num_new_expressions[i], stats_max_num_new_expressions[i]);
+    printf("%2d: %16llu %25llu %16llu %16d %16u\n", i, stats_num_data_points[i],
+           stats_total_num_expressions[i],
+           stats_total_num_expressions[i] / stats_num_data_points[i],
+           stats_min_num_expressions[i], stats_max_num_expressions[i]);
   }
   cout << flush;
 #endif
@@ -286,12 +290,33 @@ int main(int argc, char *argv[]) {
   chain[1] = 0b0000111100001111 >> (16 - N);
   chain[2] = 0b0011001100110011 >> (16 - N);
   chain[3] = 0b0101010101010101 >> (16 - N);
+  size_t chain_size = 4;
 
   bit_set_insert(seen, 0);
-  for (int i = 0; i < 4; i++) {
+  bit_set_insert(seen_expressions, 0);
+  for (int i = 0; i < chain_size; i++) {
     bit_set_insert(seen, chain[i]);
+    bit_set_insert(seen_expressions, chain[i]);
   }
-  find_optimal_chain(4, 0, 0);
+
+  size_t expressions_size = 0;
+  for (size_t k = 1; k < chain_size - 1; k++) {
+    const uint32_t h = chain[k];
+    const uint32_t not_h = ~h;
+    for (size_t j = 0; j < k; j++) {
+      const uint32_t g = chain[j];
+      const uint32_t not_g = ~g;
+
+      const uint32_t expressions[] = {g & h, not_g & h, g & not_h, g | h,
+                                      g ^ h};
+
+      for (uint32_t expr : expressions) {
+        add_new_expression(expressions_size, expr);
+      }
+    }
+  }
+
+  find_optimal_chain(chain_size, 0, 0, expressions_size, 0);
 
   return 0;
 }
