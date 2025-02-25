@@ -38,9 +38,7 @@ uint32_t chain[25];
 size_t current_best_length = 1000;
 uint32_t choices[30];
 uint64_t total_chains = 0;
-uint32_t seen[SIZE] = {0};
-uint32_t seen_expressions[SIZE];
-uint32_t seen_expressions_changed[SIZE];
+uint32_t seen[SIZE];
 bool progress_check_done = false;
 uint32_t expressions[1000];
 
@@ -119,11 +117,10 @@ void print_chain(const size_t chain_size) {
 }
 
 inline void add_new_expression(size_t &expressions_size, uint32_t value) {
-  if (bit_set_get(seen_expressions, value)) {
+  if (bit_set_get(seen, value)) {
     return;
   }
-  bit_set_insert(seen_expressions, value);
-  bit_set_insert(seen_expressions_changed, value);
+  bit_set_insert(seen, value);
 
   expressions[expressions_size] = value;
   expressions_size++;
@@ -174,8 +171,6 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
     }
   }
 
-  uint32_t clean_up[1000];
-  size_t clean_up_size = 0;
   size_t next_chain_size = chain_size + 1;
   size_t next_choices_size = choices_size + 1;
   int start_i = expressions_index;
@@ -189,13 +184,6 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
         cout << choices[j] << ", ";
       }
       cout << start_i << endl;
-
-      for (int i = 0; i < start_i; i++) {
-        const auto &ft = expressions[i];
-        bit_set_insert(seen, ft);
-        clean_up[clean_up_size] = ft;
-        clean_up_size++;
-      }
     }
     if (result > 0) {
       progress_check_done = true;
@@ -221,10 +209,6 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
   for (int i = start_i; i < new_expressions_size; i++) {
     const auto &ft = expressions[i];
 
-    bit_set_insert(seen, ft);
-    clean_up[clean_up_size] = ft;
-    clean_up_size++;
-
     choices[choices_size] = i;
     chain[chain_size] = ft;
 
@@ -235,16 +219,8 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
                        new_expressions_size, i + 1);
   }
 
-  for (int i = 0; i < clean_up_size; ++i) {
-    bit_set_remove(seen, clean_up[i]);
-  }
-
   for (int i = expressions_size; i < new_expressions_size; i++) {
-    const auto &ft = expressions[i];
-    if (bit_set_get(seen_expressions_changed, ft)) {
-      bit_set_remove(seen_expressions, ft);
-      bit_set_remove(seen_expressions_changed, ft);
-    }
+    bit_set_remove(seen, expressions[i]);
   }
 }
 
@@ -293,10 +269,8 @@ int main(int argc, char *argv[]) {
   size_t chain_size = 4;
 
   bit_set_insert(seen, 0);
-  bit_set_insert(seen_expressions, 0);
   for (int i = 0; i < chain_size; i++) {
     bit_set_insert(seen, chain[i]);
-    bit_set_insert(seen_expressions, chain[i]);
   }
 
   size_t expressions_size = 0;
