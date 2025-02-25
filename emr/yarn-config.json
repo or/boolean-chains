@@ -1,0 +1,9 @@
+[
+  {
+    "Classification": "yarn-site",
+    "Properties": {
+      "yarn.nodemanager.resource.cpu-vcores": "2",
+      "yarn.scheduler.maximum-allocation-vcores": "2"
+    }
+  }
+]
