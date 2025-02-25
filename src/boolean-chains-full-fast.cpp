@@ -2,6 +2,7 @@
 #include <csignal>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -40,6 +41,7 @@ constexpr uint32_t NUM_TARGETS = sizeof(TARGETS) / sizeof(uint32_t);
 uint32_t TARGET_LOOKUP[SIZE] = {0};
 
 vector<uint32_t> start_indices;
+size_t start_indices_size;
 uint32_t chain[25];
 size_t current_best_length = 1000;
 uint32_t choices[30];
@@ -47,6 +49,8 @@ uint64_t total_chains = 0;
 uint32_t seen[SIZE];
 bool progress_check_done = false;
 uint32_t expressions[1000];
+bool chunk_mode = false;
+size_t start_chain_length = 0;
 
 #if CAPTURE_STATS
 uint64_t stats_total_num_expressions[25] = {0};
@@ -57,7 +61,6 @@ uint64_t stats_num_data_points[25] = {0};
 
 #if PLAN_MODE
 size_t plan_depth = 1;
-size_t start_chain_length = 0;
 #endif
 
 inline uint32_t bit_set_get(const uint32_t *bit_set, uint32_t bit) {
@@ -79,8 +82,8 @@ inline void bit_set_remove(uint32_t *bit_set, uint32_t bit) {
 }
 
 int compare_choices_with_start_indices(const size_t choices_size) {
-  int max_i = choices_size <= start_indices.size() ? choices_size
-                                                   : start_indices.size();
+  int max_i =
+      choices_size <= start_indices_size ? choices_size : start_indices_size;
   for (int i = 0; i < max_i; i++) {
     if (choices[i] < start_indices[i]) {
       return -1;
@@ -88,7 +91,7 @@ int compare_choices_with_start_indices(const size_t choices_size) {
       return 1;
     }
   }
-  if (choices_size > start_indices.size()) {
+  if (choices_size > start_indices_size) {
     return 1;
   }
   return 0;
@@ -143,11 +146,9 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
                         const size_t expressions_index) {
 #if PLAN_MODE
   if (chain_size - start_chain_length >= plan_depth) {
+    cout << "-c";
     for (size_t j = 0; j < choices_size; ++j) {
-      cout << choices[j];
-      if (j != choices_size - 1) {
-        cout << " ";
-      }
+      cout << " " << choices[j];
     }
     cout << endl;
     return;
@@ -201,7 +202,7 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
   if (!progress_check_done) {
     choices[choices_size] = 0;
     int result = compare_choices_with_start_indices(next_choices_size);
-    if (result < 0 && choices_size < start_indices.size()) {
+    if (result < 0 && choices_size < start_indices_size) {
       start_i = start_indices[choices_size];
       cout << "skipping to ";
       for (size_t j = 0; j < choices_size; ++j) {
@@ -243,6 +244,11 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
                        new_expressions_size, i + 1);
   }
 
+  if (chunk_mode && chain_size == start_indices_size + start_chain_length) {
+    cout << "completed chunk" << endl;
+    exit(0);
+  }
+
   for (int i = expressions_size; i < new_expressions_size; i++) {
     bit_set_remove(seen, expressions[i]);
   }
@@ -281,9 +287,21 @@ int main(int argc, char *argv[]) {
 
   cout << "N = " << N << ", MAX_LENGTH: " << MAX_LENGTH
        << ", CAPTURE_STATS: " << CAPTURE_STATS << endl;
-  for (int i = 1; i < argc; i++) {
+
+  int start_i = 1;
+  // -c for chunk mode, only complete one slice of the depth given by the
+  // progress vector
+  if (argc > 1 && strcmp(argv[1], "-c") == 0) {
+    start_i++;
+    chunk_mode = true;
+  }
+
+  // read the progress vector, e.g 5 2 9, commas will be ignored: 5, 2, 9
+  for (int i = start_i; i < argc; i++) {
     start_indices.push_back(atoi(argv[i]));
   }
+  start_indices_size = start_indices.size();
+
 #endif
 
 #if PLAN_MODE != 1
@@ -324,10 +342,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-#if PLAN_MODE
   start_chain_length = chain_size;
-#endif
-
   find_optimal_chain(chain_size, 0, 0, expressions_size, 0);
 
   return 0;
