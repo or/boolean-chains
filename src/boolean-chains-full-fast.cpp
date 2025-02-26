@@ -131,7 +131,7 @@ void print_chain(const size_t chain_size) {
 }
 
 void find_optimal_chain(const size_t chain_size,
-                        const size_t num_fulfilled_target_functions,
+                        const size_t num_unfulfilled_target_functions,
                         const size_t expressions_size,
                         const size_t expressions_index) {
 #if PLAN_MODE
@@ -157,11 +157,11 @@ void find_optimal_chain(const size_t chain_size,
     // exit(1);
   }
 
-  if (chain_size + NUM_TARGETS - num_fulfilled_target_functions > MAX_LENGTH) {
+  if (chain_size + num_unfulfilled_target_functions > MAX_LENGTH) {
     return;
   }
 
-  if (num_fulfilled_target_functions == NUM_TARGETS) {
+  if (!num_unfulfilled_target_functions) {
     if (chain_size < current_best_length) {
       cout << "New best chain found (" << chain_size << "):" << endl;
       print_chain(chain_size);
@@ -262,8 +262,8 @@ void find_optimal_chain(const size_t chain_size,
 
     find_optimal_chain(next_chain_size,
                        bit_set_get(TARGET_LOOKUP, ft)
-                           ? num_fulfilled_target_functions + 1
-                           : num_fulfilled_target_functions,
+                           ? num_unfulfilled_target_functions - 1
+                           : num_unfulfilled_target_functions,
                        new_expressions_size, i + 1);
   }
 
@@ -404,7 +404,7 @@ int main(int argc, char *argv[]) {
   }
 
   start_chain_length = chain_size;
-  find_optimal_chain(chain_size, 0, expressions_size, 0);
+  find_optimal_chain(chain_size, NUM_TARGETS, expressions_size, 0);
 
   return 0;
 }
