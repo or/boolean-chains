@@ -235,6 +235,10 @@ void find_optimal_chain(const size_t chain_size,
     }
     if (result > 0) {
       progress_check_done = true;
+      // subtract the chains visited while restoring the progress; can't simply
+      // set it to 0, because by this time we already visited a bunch of chains
+      // from the next level
+      total_chains -= start_indices_size - start_chain_length + 1;
     }
   }
 
