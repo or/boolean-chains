@@ -180,11 +180,6 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
     const uint32_t not_g = ~g;
 
     const uint32_t ft1 = g & h;
-    const uint32_t ft2 = g | h;
-    const uint32_t ft3 = g ^ h;
-    const uint32_t ft4 = not_g & h;
-    const uint32_t ft5 = g & not_h;
-
     if (!bit_set_get(seen, ft1)) {
       bit_set_insert(seen, ft1);
 
@@ -192,6 +187,7 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
       new_expressions_size++;
     }
 
+    const uint32_t ft2 = g | h;
     if (!bit_set_get(seen, ft2)) {
       bit_set_insert(seen, ft2);
 
@@ -199,6 +195,7 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
       new_expressions_size++;
     }
 
+    const uint32_t ft3 = g ^ h;
     if (!bit_set_get(seen, ft3)) {
       bit_set_insert(seen, ft3);
 
@@ -206,6 +203,7 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
       new_expressions_size++;
     }
 
+    const uint32_t ft4 = not_g & h;
     if (!bit_set_get(seen, ft4)) {
       bit_set_insert(seen, ft4);
 
@@ -213,6 +211,7 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
       new_expressions_size++;
     }
 
+    const uint32_t ft5 = g & not_h;
     if (!bit_set_get(seen, ft5)) {
       bit_set_insert(seen, ft5);
 
@@ -359,11 +358,6 @@ int main(int argc, char *argv[]) {
       const uint32_t not_g = ~g;
 
       const uint32_t ft1 = g & h;
-      const uint32_t ft2 = g | h;
-      const uint32_t ft3 = g ^ h;
-      const uint32_t ft4 = not_g & h;
-      const uint32_t ft5 = g & not_h;
-
       if (!bit_set_get(seen, ft1)) {
         bit_set_insert(seen, ft1);
 
@@ -371,6 +365,7 @@ int main(int argc, char *argv[]) {
         expressions_size++;
       }
 
+      const uint32_t ft2 = g | h;
       if (!bit_set_get(seen, ft2)) {
         bit_set_insert(seen, ft2);
 
@@ -378,6 +373,7 @@ int main(int argc, char *argv[]) {
         expressions_size++;
       }
 
+      const uint32_t ft3 = g ^ h;
       if (!bit_set_get(seen, ft3)) {
         bit_set_insert(seen, ft3);
 
@@ -385,6 +381,7 @@ int main(int argc, char *argv[]) {
         expressions_size++;
       }
 
+      const uint32_t ft4 = not_g & h;
       if (!bit_set_get(seen, ft4)) {
         bit_set_insert(seen, ft4);
 
@@ -392,6 +389,7 @@ int main(int argc, char *argv[]) {
         expressions_size++;
       }
 
+      const uint32_t ft5 = g & not_h;
       if (!bit_set_get(seen, ft5)) {
         bit_set_insert(seen, ft5);
 
