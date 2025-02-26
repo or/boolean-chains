@@ -63,32 +63,44 @@ uint64_t stats_num_data_points[25] = {0};
 size_t plan_depth = 1;
 #endif
 
-inline uint32_t bit_set_get(const uint32_t *bit_set, uint32_t bit) {
+inline uint32_t target_lookup_get(uint32_t bit) {
   const uint32_t index = bit >> 5;
   const uint32_t bit_index = bit & 0b11111;
-  return (bit_set[index] >> bit_index) & 1;
+  return (TARGET_LOOKUP[index] >> bit_index) & 1;
 }
 
-inline void bit_set_insert(uint32_t *bit_set, uint32_t bit) {
+inline void target_lookup_insert(uint32_t bit) {
   const uint32_t index = bit >> 5;
   const uint32_t bit_index = bit & 0b11111;
-  bit_set[index] |= (1 << bit_index);
+  TARGET_LOOKUP[index] |= (1 << bit_index);
 }
 
-inline bool bit_set_insert_if_not_present(uint32_t *bit_set, uint32_t bit) {
+inline uint32_t seen_get(uint32_t bit) {
   const uint32_t index = bit >> 5;
   const uint32_t bit_index = bit & 0b11111;
-  if ((bit_set[index] >> bit_index) & 1) {
+  return (seen[index] >> bit_index) & 1;
+}
+
+inline void seen_insert(uint32_t bit) {
+  const uint32_t index = bit >> 5;
+  const uint32_t bit_index = bit & 0b11111;
+  seen[index] |= (1 << bit_index);
+}
+
+inline bool seen_insert_if_not_present(uint32_t bit) {
+  const uint32_t index = bit >> 5;
+  const uint32_t bit_index = bit & 0b11111;
+  if ((seen[index] >> bit_index) & 1) {
     return false;
   }
-  bit_set[index] |= (1 << bit_index);
+  seen[index] |= (1 << bit_index);
   return true;
 }
 
-inline void bit_set_remove(uint32_t *bit_set, uint32_t bit) {
+inline void seen_remove(uint32_t bit) {
   const uint32_t index = bit >> 5;
   const uint32_t bit_index = bit & 0b11111;
-  bit_set[index] &= ~(1 << bit_index);
+  seen[index] &= ~(1 << bit_index);
 }
 
 int compare_choices_with_start_indices(const size_t chain_size) {
@@ -132,7 +144,7 @@ void print_chain(const size_t chain_size) {
       }
     }
     cout << " = " << bitset<N>(chain[i]).to_string();
-    if (bit_set_get(TARGET_LOOKUP, chain[i])) {
+    if (target_lookup_get(chain[i])) {
       cout << " [target]";
     }
     cout << endl;
@@ -190,32 +202,32 @@ void find_optimal_chain(const size_t chain_size,
     const uint32_t not_g = ~g;
 
     const uint32_t ft1 = g & h;
-    if (bit_set_insert_if_not_present(seen, ft1)) {
+    if (seen_insert_if_not_present(ft1)) {
 
       expressions[new_expressions_size] = ft1;
       new_expressions_size++;
     }
 
     const uint32_t ft2 = g & not_h;
-    if (bit_set_insert_if_not_present(seen, ft2)) {
+    if (seen_insert_if_not_present(ft2)) {
       expressions[new_expressions_size] = ft2;
       new_expressions_size++;
     }
 
     const uint32_t ft3 = g ^ h;
-    if (bit_set_insert_if_not_present(seen, ft3)) {
+    if (seen_insert_if_not_present(ft3)) {
       expressions[new_expressions_size] = ft3;
       new_expressions_size++;
     }
 
     const uint32_t ft4 = g | h;
-    if (bit_set_insert_if_not_present(seen, ft4)) {
+    if (seen_insert_if_not_present(ft4)) {
       expressions[new_expressions_size] = ft4;
       new_expressions_size++;
     }
 
     const uint32_t ft5 = not_g & h;
-    if (bit_set_insert_if_not_present(seen, ft5)) {
+    if (seen_insert_if_not_present(ft5)) {
       expressions[new_expressions_size] = ft5;
       new_expressions_size++;
     }
@@ -267,7 +279,7 @@ void find_optimal_chain(const size_t chain_size,
 
     find_optimal_chain(next_chain_size,
                        num_unfulfilled_target_functions -
-                           bit_set_get(TARGET_LOOKUP, next_chain),
+                           target_lookup_get(next_chain),
                        new_expressions_size, i + 1);
   }
 
@@ -277,7 +289,7 @@ void find_optimal_chain(const size_t chain_size,
   }
 
   for (int i = expressions_size; i < new_expressions_size; i++) {
-    bit_set_remove(seen, expressions[i]);
+    seen_remove(expressions[i]);
   }
 }
 
@@ -332,7 +344,7 @@ int main(int argc, char *argv[]) {
 #if PLAN_MODE != 1
     cout << "  " << bitset<N>(TARGETS[i]).to_string() << endl;
 #endif
-    bit_set_insert(TARGET_LOOKUP, TARGETS[i]);
+    target_lookup_insert(TARGETS[i]);
   }
 
   chain[0] = 0b0000000011111111 >> (16 - N);
@@ -351,9 +363,9 @@ int main(int argc, char *argv[]) {
     start_indices.push_back(atoi(argv[i]));
   }
   start_indices_size = start_indices.size();
-  bit_set_insert(seen, 0);
+  seen_insert(0);
   for (int i = 0; i < chain_size; i++) {
-    bit_set_insert(seen, chain[i]);
+    seen_insert(chain[i]);
   }
 #endif
 
@@ -366,31 +378,31 @@ int main(int argc, char *argv[]) {
       const uint32_t not_g = ~g;
 
       const uint32_t ft1 = g & h;
-      if (bit_set_insert_if_not_present(seen, ft1)) {
+      if (seen_insert_if_not_present(ft1)) {
         expressions[expressions_size] = ft1;
         expressions_size++;
       }
 
       const uint32_t ft2 = g & not_h;
-      if (bit_set_insert_if_not_present(seen, ft2)) {
+      if (seen_insert_if_not_present(ft2)) {
         expressions[expressions_size] = ft2;
         expressions_size++;
       }
 
       const uint32_t ft3 = g ^ h;
-      if (bit_set_insert_if_not_present(seen, ft3)) {
+      if (seen_insert_if_not_present(ft3)) {
         expressions[expressions_size] = ft3;
         expressions_size++;
       }
 
       const uint32_t ft4 = g | h;
-      if (bit_set_insert_if_not_present(seen, ft4)) {
+      if (seen_insert_if_not_present(ft4)) {
         expressions[expressions_size] = ft4;
         expressions_size++;
       }
 
       const uint32_t ft5 = not_g & h;
-      if (bit_set_insert_if_not_present(seen, ft5)) {
+      if (seen_insert_if_not_present(ft5)) {
         expressions[expressions_size] = ft5;
         expressions_size++;
       }
