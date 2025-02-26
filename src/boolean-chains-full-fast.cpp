@@ -130,16 +130,6 @@ void print_chain(const size_t chain_size) {
   cout << endl;
 }
 
-inline void add_new_expression(size_t &expressions_size, uint32_t value) {
-  if (bit_set_get(seen, value)) {
-    return;
-  }
-  bit_set_insert(seen, value);
-
-  expressions[expressions_size] = value;
-  expressions_size++;
-}
-
 void find_optimal_chain(const size_t chain_size, const size_t choices_size,
                         const size_t num_fulfilled_target_functions,
                         const size_t expressions_size,
@@ -189,10 +179,45 @@ void find_optimal_chain(const size_t chain_size, const size_t choices_size,
     const uint32_t g = chain[j];
     const uint32_t not_g = ~g;
 
-    const uint32_t expressions[] = {g & h, not_g & h, g & not_h, g | h, g ^ h};
+    const uint32_t ft1 = g & h;
+    const uint32_t ft2 = g | h;
+    const uint32_t ft3 = g ^ h;
+    const uint32_t ft4 = not_g & h;
+    const uint32_t ft5 = g & not_h;
 
-    for (uint32_t expr : expressions) {
-      add_new_expression(new_expressions_size, expr);
+    if (!bit_set_get(seen, ft1)) {
+      bit_set_insert(seen, ft1);
+
+      expressions[new_expressions_size] = ft1;
+      new_expressions_size++;
+    }
+
+    if (!bit_set_get(seen, ft2)) {
+      bit_set_insert(seen, ft2);
+
+      expressions[new_expressions_size] = ft2;
+      new_expressions_size++;
+    }
+
+    if (!bit_set_get(seen, ft3)) {
+      bit_set_insert(seen, ft3);
+
+      expressions[new_expressions_size] = ft3;
+      new_expressions_size++;
+    }
+
+    if (!bit_set_get(seen, ft4)) {
+      bit_set_insert(seen, ft4);
+
+      expressions[new_expressions_size] = ft4;
+      new_expressions_size++;
+    }
+
+    if (!bit_set_get(seen, ft5)) {
+      bit_set_insert(seen, ft5);
+
+      expressions[new_expressions_size] = ft5;
+      new_expressions_size++;
     }
   }
 
@@ -333,11 +358,45 @@ int main(int argc, char *argv[]) {
       const uint32_t g = chain[j];
       const uint32_t not_g = ~g;
 
-      const uint32_t expressions[] = {g & h, not_g & h, g & not_h, g | h,
-                                      g ^ h};
+      const uint32_t ft1 = g & h;
+      const uint32_t ft2 = g | h;
+      const uint32_t ft3 = g ^ h;
+      const uint32_t ft4 = not_g & h;
+      const uint32_t ft5 = g & not_h;
 
-      for (uint32_t expr : expressions) {
-        add_new_expression(expressions_size, expr);
+      if (!bit_set_get(seen, ft1)) {
+        bit_set_insert(seen, ft1);
+
+        expressions[expressions_size] = ft1;
+        expressions_size++;
+      }
+
+      if (!bit_set_get(seen, ft2)) {
+        bit_set_insert(seen, ft2);
+
+        expressions[expressions_size] = ft2;
+        expressions_size++;
+      }
+
+      if (!bit_set_get(seen, ft3)) {
+        bit_set_insert(seen, ft3);
+
+        expressions[expressions_size] = ft3;
+        expressions_size++;
+      }
+
+      if (!bit_set_get(seen, ft4)) {
+        bit_set_insert(seen, ft4);
+
+        expressions[expressions_size] = ft4;
+        expressions_size++;
+      }
+
+      if (!bit_set_get(seen, ft5)) {
+        bit_set_insert(seen, ft5);
+
+        expressions[expressions_size] = ft5;
+        expressions_size++;
       }
     }
   }
