@@ -66,7 +66,7 @@ size_t plan_depth = 1;
 inline uint32_t bit_set_get(const uint32_t *bit_set, uint32_t bit) {
   const uint32_t index = bit >> 5;
   const uint32_t bit_index = bit & 0b11111;
-  return bit_set[index] & (1 << bit_index);
+  return (bit_set[index] >> bit_index) & 1;
 }
 
 inline void bit_set_insert(uint32_t *bit_set, uint32_t bit) {
@@ -261,9 +261,8 @@ void find_optimal_chain(const size_t chain_size,
     chain[chain_size] = ft;
 
     find_optimal_chain(next_chain_size,
-                       bit_set_get(TARGET_LOOKUP, ft)
-                           ? num_unfulfilled_target_functions - 1
-                           : num_unfulfilled_target_functions,
+                       num_unfulfilled_target_functions -
+                           bit_set_get(TARGET_LOOKUP, ft),
                        new_expressions_size, i + 1);
   }
 
