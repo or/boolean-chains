@@ -75,6 +75,16 @@ inline void bit_set_insert(uint32_t *bit_set, uint32_t bit) {
   bit_set[index] |= (1 << bit_index);
 }
 
+inline bool bit_set_insert_if_not_present(uint32_t *bit_set, uint32_t bit) {
+  const uint32_t index = bit >> 5;
+  const uint32_t bit_index = bit & 0b11111;
+  if ((bit_set[index] >> bit_index) & 1) {
+    return false;
+  }
+  bit_set[index] |= (1 << bit_index);
+  return true;
+}
+
 inline void bit_set_remove(uint32_t *bit_set, uint32_t bit) {
   const uint32_t index = bit >> 5;
   const uint32_t bit_index = bit & 0b11111;
@@ -180,41 +190,32 @@ void find_optimal_chain(const size_t chain_size,
     const uint32_t not_g = ~g;
 
     const uint32_t ft1 = g & h;
-    if (!bit_set_get(seen, ft1)) {
-      bit_set_insert(seen, ft1);
+    if (bit_set_insert_if_not_present(seen, ft1)) {
 
       expressions[new_expressions_size] = ft1;
       new_expressions_size++;
     }
 
     const uint32_t ft2 = g & not_h;
-    if (!bit_set_get(seen, ft2)) {
-      bit_set_insert(seen, ft2);
-
+    if (bit_set_insert_if_not_present(seen, ft2)) {
       expressions[new_expressions_size] = ft2;
       new_expressions_size++;
     }
 
     const uint32_t ft3 = g ^ h;
-    if (!bit_set_get(seen, ft3)) {
-      bit_set_insert(seen, ft3);
-
+    if (bit_set_insert_if_not_present(seen, ft3)) {
       expressions[new_expressions_size] = ft3;
       new_expressions_size++;
     }
 
     const uint32_t ft4 = g | h;
-    if (!bit_set_get(seen, ft4)) {
-      bit_set_insert(seen, ft4);
-
+    if (bit_set_insert_if_not_present(seen, ft4)) {
       expressions[new_expressions_size] = ft4;
       new_expressions_size++;
     }
 
     const uint32_t ft5 = not_g & h;
-    if (!bit_set_get(seen, ft5)) {
-      bit_set_insert(seen, ft5);
-
+    if (bit_set_insert_if_not_present(seen, ft5)) {
       expressions[new_expressions_size] = ft5;
       new_expressions_size++;
     }
@@ -365,41 +366,31 @@ int main(int argc, char *argv[]) {
       const uint32_t not_g = ~g;
 
       const uint32_t ft1 = g & h;
-      if (!bit_set_get(seen, ft1)) {
-        bit_set_insert(seen, ft1);
-
+      if (bit_set_insert_if_not_present(seen, ft1)) {
         expressions[expressions_size] = ft1;
         expressions_size++;
       }
 
       const uint32_t ft2 = g & not_h;
-      if (!bit_set_get(seen, ft2)) {
-        bit_set_insert(seen, ft2);
-
+      if (bit_set_insert_if_not_present(seen, ft2)) {
         expressions[expressions_size] = ft2;
         expressions_size++;
       }
 
       const uint32_t ft3 = g ^ h;
-      if (!bit_set_get(seen, ft3)) {
-        bit_set_insert(seen, ft3);
-
+      if (bit_set_insert_if_not_present(seen, ft3)) {
         expressions[expressions_size] = ft3;
         expressions_size++;
       }
 
       const uint32_t ft4 = g | h;
-      if (!bit_set_get(seen, ft4)) {
-        bit_set_insert(seen, ft4);
-
+      if (bit_set_insert_if_not_present(seen, ft4)) {
         expressions[expressions_size] = ft4;
         expressions_size++;
       }
 
       const uint32_t ft5 = not_g & h;
-      if (!bit_set_get(seen, ft5)) {
-        bit_set_insert(seen, ft5);
-
+      if (bit_set_insert_if_not_present(seen, ft5)) {
         expressions[expressions_size] = ft5;
         expressions_size++;
       }
