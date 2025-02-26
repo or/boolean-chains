@@ -103,6 +103,18 @@ inline void seen_remove(uint32_t bit) {
   seen[index] &= ~(1 << bit_index);
 }
 
+#define ADD_EXPRESSION(expressions_size, value)                                \
+  {                                                                            \
+    const uint32_t index = value >> 5;                                         \
+    const uint32_t bit_index = value & 0b11111;                                \
+    const uint32_t shifted = 1 << bit_index;                                   \
+    if (!(seen[index] & shifted)) {                                            \
+      seen[index] |= shifted;                                                  \
+      expressions[expressions_size] = value;                                   \
+      expressions_size++;                                                      \
+    }                                                                          \
+  }
+
 int compare_choices_with_start_indices(const size_t chain_size) {
   int max_i =
       chain_size <= start_indices_size ? chain_size : start_indices_size;
@@ -202,35 +214,19 @@ void find_optimal_chain(const size_t chain_size,
     const uint32_t not_g = ~g;
 
     const uint32_t ft1 = g & h;
-    if (seen_insert_if_not_present(ft1)) {
-
-      expressions[new_expressions_size] = ft1;
-      new_expressions_size++;
-    }
+    ADD_EXPRESSION(new_expressions_size, ft1)
 
     const uint32_t ft2 = g & not_h;
-    if (seen_insert_if_not_present(ft2)) {
-      expressions[new_expressions_size] = ft2;
-      new_expressions_size++;
-    }
+    ADD_EXPRESSION(new_expressions_size, ft2)
 
     const uint32_t ft3 = g ^ h;
-    if (seen_insert_if_not_present(ft3)) {
-      expressions[new_expressions_size] = ft3;
-      new_expressions_size++;
-    }
+    ADD_EXPRESSION(new_expressions_size, ft3)
 
     const uint32_t ft4 = g | h;
-    if (seen_insert_if_not_present(ft4)) {
-      expressions[new_expressions_size] = ft4;
-      new_expressions_size++;
-    }
+    ADD_EXPRESSION(new_expressions_size, ft4)
 
     const uint32_t ft5 = not_g & h;
-    if (seen_insert_if_not_present(ft5)) {
-      expressions[new_expressions_size] = ft5;
-      new_expressions_size++;
-    }
+    ADD_EXPRESSION(new_expressions_size, ft5)
   }
 
   size_t next_chain_size = chain_size + 1;
@@ -378,34 +374,19 @@ int main(int argc, char *argv[]) {
       const uint32_t not_g = ~g;
 
       const uint32_t ft1 = g & h;
-      if (seen_insert_if_not_present(ft1)) {
-        expressions[expressions_size] = ft1;
-        expressions_size++;
-      }
+      ADD_EXPRESSION(expressions_size, ft1)
 
       const uint32_t ft2 = g & not_h;
-      if (seen_insert_if_not_present(ft2)) {
-        expressions[expressions_size] = ft2;
-        expressions_size++;
-      }
+      ADD_EXPRESSION(expressions_size, ft2)
 
       const uint32_t ft3 = g ^ h;
-      if (seen_insert_if_not_present(ft3)) {
-        expressions[expressions_size] = ft3;
-        expressions_size++;
-      }
+      ADD_EXPRESSION(expressions_size, ft3)
 
       const uint32_t ft4 = g | h;
-      if (seen_insert_if_not_present(ft4)) {
-        expressions[expressions_size] = ft4;
-        expressions_size++;
-      }
+      ADD_EXPRESSION(expressions_size, ft4)
 
       const uint32_t ft5 = not_g & h;
-      if (seen_insert_if_not_present(ft5)) {
-        expressions[expressions_size] = ft5;
-        expressions_size++;
-      }
+      ADD_EXPRESSION(expressions_size, ft5)
     }
   }
 
