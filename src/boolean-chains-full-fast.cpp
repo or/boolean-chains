@@ -1,4 +1,5 @@
 #include <bitset>
+#include <cinttypes>
 #include <csignal>
 #include <cstdint>
 #include <cstdlib>
@@ -299,8 +300,9 @@ void on_exit() {
           "min              max"
        << endl;
   for (int i = start_chain_length; i < MAX_LENGTH; i++) {
-    printf("%2d: %16llu %25llu %16llu %16d %16u\n", i, stats_num_data_points[i],
-           stats_total_num_expressions[i],
+    printf("%2d: %16" PRIu64 " %25" PRIu64 " %16" PRIu64 " %16" PRId32
+           " %16" PRIu32 "\n",
+           i, stats_num_data_points[i], stats_total_num_expressions[i],
            stats_total_num_expressions[i] / stats_num_data_points[i],
            stats_min_num_expressions[i], stats_max_num_expressions[i]);
   }
