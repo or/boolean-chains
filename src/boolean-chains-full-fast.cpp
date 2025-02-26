@@ -303,7 +303,9 @@ void on_exit() {
     printf("%2d: %16" PRIu64 " %25" PRIu64 " %16" PRIu64 " %16" PRId32
            " %16" PRIu32 "\n",
            i, stats_num_data_points[i], stats_total_num_expressions[i],
-           stats_total_num_expressions[i] / stats_num_data_points[i],
+           stats_num_data_points[i] == 0
+               ? 0
+               : stats_total_num_expressions[i] / stats_num_data_points[i],
            stats_min_num_expressions[i], stats_max_num_expressions[i]);
   }
   cout << flush;
