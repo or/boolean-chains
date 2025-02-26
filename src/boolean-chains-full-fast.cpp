@@ -258,15 +258,15 @@ void find_optimal_chain(const size_t chain_size,
   }
 #endif
 
-  for (int i = start_i; i < new_expressions_size; i++) {
-    const auto &ft = expressions[i];
-
-    choices[chain_size] = i;
-    chain[chain_size] = ft;
+  auto &next_choice = choices[chain_size];
+  auto &next_chain = chain[chain_size];
+  next_choice = start_i;
+  for (int i = start_i; i < new_expressions_size; i++, next_choice++) {
+    next_chain = expressions[i];
 
     find_optimal_chain(next_chain_size,
                        num_unfulfilled_target_functions -
-                           bit_set_get(TARGET_LOOKUP, ft),
+                           bit_set_get(TARGET_LOOKUP, next_chain),
                        new_expressions_size, i + 1);
   }
 
