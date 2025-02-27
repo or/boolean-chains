@@ -3,14 +3,25 @@ import boto3
 import time
 import subprocess
 import botocore.exceptions
+import sys
 
 AWS_PROFILE = "or"
-JOB_QUEUE = "boolean-chains-queue"
-JOB_DEFINITION = "boolean-chains-job-definition"
-S3_BINARY_PATH = "s3://computing-results/binaries/boolean-chains-full-fast"
-S3_OUTPUT_PATH = "s3://computing-results/boolean-chains/12-18"
-
 boto3.setup_default_session(profile_name=AWS_PROFILE, region_name="us-east-1")
+
+which = sys.argv[1] if len(sys.argv) > 1 else None
+if which == "ec2":
+    JOB_DEFINITION = "boolean-chains-job-definition-ec2"
+elif which == "fargate":
+    JOB_DEFINITION = "boolean-chains-job-definition"
+else:
+    print("first argument must be 'ec2' or 'fargate'")
+    sys.exit(1)
+
+JOB_QUEUE = sys.argv[2]
+JOB_ID = sys.argv[3]
+
+S3_OUTPUT_PATH = f"s3://computing-results/boolean-chains/{JOB_ID}"
+
 batch_client = boto3.client("batch")
 
 
@@ -40,10 +51,8 @@ def submit_batch_job(job_name, command_args):
         "command": [
             "/bin/bash",
             "-c",
-            f"aws s3 cp {S3_BINARY_PATH} /tmp/binary; "
-            f"chmod +x /tmp/binary; "
             "date;"
-            f"date; (time /tmp/binary {command_args}) 2>&1 | tee /tmp/{output_filename}; "
+            f"(time /boolean-chains-full-fast {command_args}) 2>&1 | tee /tmp/{output_filename};"
             f"aws s3 cp /tmp/{output_filename} {S3_OUTPUT_PATH}/{output_filename}",
         ]
     }
@@ -65,7 +74,8 @@ process = subprocess.Popen(
 )
 for args in process.stdout:
     args = args.strip()
-    job_name = f"Process_{args.replace(' ', '_')}"
+    clean_args = args.replace(" ", "_")
+    job_name = f"{JOB_ID}_{clean_args}"
 
     print(f"Submitting job: {job_name}")
     submit_batch_job(job_name, args)
