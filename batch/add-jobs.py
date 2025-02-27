@@ -46,14 +46,16 @@ def with_retry(func, max_retries=7):
 def submit_batch_job(job_name, command_args):
     clean_command_args = command_args.replace(" ", "_")
     output_filename = f"output_{clean_command_args}.txt"
+    s3_filename = f"{S3_OUTPUT_PATH}/{output_filename}"
 
     container_overrides = {
         "command": [
             "/bin/bash",
             "-c",
+            f"aws s3 ls '{s3_filename}' && echo 'output already found, bailing out' && exit 0;"
             "date;"
-            f"(time /boolean-chains-full-fast {command_args}) 2>&1 | tee /tmp/{output_filename};"
-            f"aws s3 cp /tmp/{output_filename} {S3_OUTPUT_PATH}/{output_filename}",
+            f"(time /boolean-chains-full-fast {command_args}) 2>&1 | tee '/tmp/{output_filename}';"
+            f"aws s3 cp '/tmp/{output_filename}' '{s3_filename}'",
         ]
     }
 
