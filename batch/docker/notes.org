@@ -3,7 +3,7 @@
 #+begin_src shell
 aws --profile or --region us-east-1 ecr create-repository --repository-name boolean-chains
 aws --profile or ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $AWS_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com
-docker build --platform=linux/amd64 -t boolean-chains .
+docker build --platform=linux/amd64 -t boolean-chains -f batch/docker/Dockerfile .
 docker tag boolean-chains:latest $AWS_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/boolean-chains:latest
 docker push $AWS_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/boolean-chains:latest
 #+end_src
