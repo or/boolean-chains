@@ -1,0 +1,20 @@
+* Notes
+** Docker
+#+begin_src shell
+aws --profile or --region us-east-1 ecr create-repository --repository-name boolean-chains
+aws --profile or ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $AWS_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com
+docker build --platform=linux/amd64 -t boolean-chains .
+docker tag boolean-chains:latest $AWS_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/boolean-chains:latest
+docker push $AWS_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/boolean-chains:latest
+#+end_src
+- the architecture was wrong without ~--platform=linux/amd64~
+  #+begin_quote
+docker inspect --format='{{.Architecture}}' boolean-chains
+arm64
+  #+end_quote
+- the EC2 cluster didn't pick up work, the ECS service failed to come up
+  #+begin_quote
+  sudo docker logs ecs-agent
+  aws --profile or iam attach-role-policy --role-name ec2-role --policy-arn \
+     arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+  #+end_quote
