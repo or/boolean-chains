@@ -237,13 +237,11 @@ void find_optimal_chain(const size_t chain_size,
   }
 #endif
 
-  auto &next_choice = choices[chain_size];
-  auto &next_chain = chain[chain_size];
-  next_choice = start_i;
-  for (int i = start_i; i < new_expressions_size; i++, next_choice++) {
-    next_chain = expressions[i];
+  choices[chain_size] = start_i;
+  for (int i = start_i; i < new_expressions_size; i++, choices[chain_size]++) {
+    chain[chain_size] = expressions[i];
     const uint32_t next_num_unfulfilled_targets =
-        num_unfulfilled_target_functions - target_lookup_get(next_chain);
+        num_unfulfilled_target_functions - target_lookup_get(chain[chain_size]);
 
     total_chains++;
     if ((total_chains & 0xfffffff) == 0) {
