@@ -237,9 +237,8 @@ void find_optimal_chain(const size_t chain_size,
   }
 #endif
 
-  choices[chain_size] = start_i;
-  for (size_t i = start_i; i < new_expressions_size;
-       i++, choices[chain_size]++) {
+  for (size_t i = start_i; i < new_expressions_size; i++) {
+    choices[chain_size] = i;
     chain[chain_size] = expressions[i];
     const uint32_t next_num_unfulfilled_targets =
         num_unfulfilled_target_functions - target_lookup_get(chain[chain_size]);
