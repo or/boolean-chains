@@ -16,6 +16,21 @@ using namespace std;
 #define PLAN_MODE 0
 #endif
 
+#if CAPTURE_STATS
+#define CAPTURE_STATS_CALL                                                     \
+  const auto new_expressions = new_expressions_size - expressions_size;        \
+  stats_total_num_expressions[chain_size] += new_expressions;                  \
+  if (stats_num_data_points[chain_size] == 0 ||                                \
+      new_expressions < stats_min_num_expressions[chain_size]) {               \
+    stats_min_num_expressions[chain_size] = new_expressions;                   \
+  }                                                                            \
+  if (stats_num_data_points[chain_size] == 0 ||                                \
+      new_expressions > stats_max_num_expressions[chain_size]) {               \
+    stats_max_num_expressions[chain_size] = new_expressions;                   \
+  }                                                                            \
+  stats_num_data_points[chain_size]++;
+#endif
+
 constexpr uint32_t N = 13;
 constexpr uint32_t SIZE = ((1 << (N - 1)) + 31) / 32;
 constexpr uint32_t MAX_LENGTH = 19;
@@ -218,24 +233,11 @@ void find_optimal_chain(const size_t chain_size,
     }
     if (result > 0) {
       progress_check_done = true;
+      CAPTURE_STATS_CALL
     }
+  } else {
+    CAPTURE_STATS_CALL
   }
-
-#if CAPTURE_STATS
-  if (progress_check_done) {
-    const auto new_expressions = new_expressions_size - expressions_size;
-    stats_total_num_expressions[chain_size] += new_expressions;
-    if (stats_num_data_points[chain_size] == 0 ||
-        new_expressions < stats_min_num_expressions[chain_size]) {
-      stats_min_num_expressions[chain_size] = new_expressions;
-    }
-    if (stats_num_data_points[chain_size] == 0 ||
-        new_expressions > stats_max_num_expressions[chain_size]) {
-      stats_max_num_expressions[chain_size] = new_expressions;
-    }
-    stats_num_data_points[chain_size]++;
-  }
-#endif
 
   for (size_t i = start_i; i < new_expressions_size; i++) {
     choices[chain_size] = i;
