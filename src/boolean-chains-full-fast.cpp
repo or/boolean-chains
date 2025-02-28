@@ -117,9 +117,9 @@ inline void seen_remove(uint32_t bit) {
   }
 
 int compare_choices_with_start_indices(const size_t chain_size) {
-  int max_i =
+  size_t max_i =
       chain_size <= start_indices_size ? chain_size : start_indices_size;
-  for (int i = start_chain_length; i < max_i; i++) {
+  for (size_t i = start_chain_length; i < max_i; i++) {
     if (choices[i] < start_indices[i]) {
       return -1;
     } else if (choices[i] > start_indices[i]) {
@@ -134,10 +134,10 @@ int compare_choices_with_start_indices(const size_t chain_size) {
 
 void print_chain(const size_t chain_size) {
   cout << "chain (" << chain_size << "):" << endl;
-  for (int i = 0; i < chain_size; i++) {
+  for (size_t i = 0; i < chain_size; i++) {
     cout << "x" << i + 1;
-    for (int j = 0; j < i; j++) {
-      for (int k = j + 1; k < i; k++) {
+    for (size_t j = 0; j < i; j++) {
+      for (size_t k = j + 1; k < i; k++) {
         char op = 0;
         if (chain[i] == (chain[j] & chain[k])) {
           op = '&';
@@ -203,8 +203,8 @@ void find_optimal_chain(const size_t chain_size,
     ADD_EXPRESSION(new_expressions_size, ft5)
   }
 
-  size_t next_chain_size = chain_size + 1;
-  int start_i = expressions_index;
+  const size_t next_chain_size = chain_size + 1;
+  size_t start_i = expressions_index;
   if (!progress_check_done) {
     choices[chain_size] = 0;
     int result = compare_choices_with_start_indices(next_chain_size);
@@ -238,7 +238,8 @@ void find_optimal_chain(const size_t chain_size,
 #endif
 
   choices[chain_size] = start_i;
-  for (int i = start_i; i < new_expressions_size; i++, choices[chain_size]++) {
+  for (size_t i = start_i; i < new_expressions_size;
+       i++, choices[chain_size]++) {
     chain[chain_size] = expressions[i];
     const uint32_t next_num_unfulfilled_targets =
         num_unfulfilled_target_functions - target_lookup_get(chain[chain_size]);
@@ -279,7 +280,7 @@ void find_optimal_chain(const size_t chain_size,
     exit(0);
   }
 
-  for (int i = expressions_size; i < new_expressions_size; i++) {
+  for (size_t i = expressions_size; i < new_expressions_size; i++) {
     seen_remove(expressions[i]);
   }
 }
@@ -321,7 +322,7 @@ int main(int argc, char *argv[]) {
   cout << "N = " << N << ", MAX_LENGTH: " << MAX_LENGTH
        << ", CAPTURE_STATS: " << CAPTURE_STATS << endl;
 
-  int start_i = 1;
+  size_t start_i = 1;
   // -c for chunk mode, only complete one slice of the depth given by the
   // progress vector
   if (argc > 1 && strcmp(argv[1], "-c") == 0) {
@@ -334,7 +335,7 @@ int main(int argc, char *argv[]) {
 #if PLAN_MODE != 1
   cout << NUM_TARGETS << " targets:" << endl;
 #endif
-  for (int i = 0; i < NUM_TARGETS; i++) {
+  for (size_t i = 0; i < NUM_TARGETS; i++) {
 #if PLAN_MODE != 1
     cout << "  " << bitset<N>(TARGETS[i]).to_string() << endl;
 #endif
@@ -347,18 +348,18 @@ int main(int argc, char *argv[]) {
   chain[3] = 0b0101010101010101 >> (16 - N);
   size_t chain_size = 4;
 
-  for (int i = 0; i < chain_size; i++) {
+  for (size_t i = 0; i < chain_size; i++) {
     start_indices.push_back(0);
   }
 
 #if PLAN_MODE != 1
   // read the progress vector, e.g 5 2 9, commas will be ignored: 5, 2, 9
-  for (int i = start_i; i < argc; i++) {
+  for (size_t i = start_i; i < argc; i++) {
     start_indices.push_back(atoi(argv[i]));
   }
   start_indices_size = start_indices.size();
   seen_insert(0);
-  for (int i = 0; i < chain_size; i++) {
+  for (size_t i = 0; i < chain_size; i++) {
     seen_insert(chain[i]);
   }
 #endif
