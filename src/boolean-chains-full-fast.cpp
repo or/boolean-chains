@@ -66,7 +66,7 @@ uint32_t seen[SIZE];
 bool progress_check_done = false;
 uint32_t expressions[1000];
 bool chunk_mode = false;
-size_t start_chain_length = 0;
+constexpr uint32_t start_chain_length = 4;
 
 #if CAPTURE_STATS
 uint64_t stats_total_num_expressions[25] = {0};
@@ -348,7 +348,7 @@ int main(int argc, char *argv[]) {
   chain[1] = 0b0000111100001111 >> (16 - N);
   chain[2] = 0b0011001100110011 >> (16 - N);
   chain[3] = 0b0101010101010101 >> (16 - N);
-  size_t chain_size = 4;
+  constexpr size_t chain_size = 4;
 
   for (size_t i = 0; i < chain_size; i++) {
     start_indices.push_back(0);
@@ -391,7 +391,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  start_chain_length = chain_size;
   find_optimal_chain(chain_size, NUM_TARGETS, expressions_size, 0);
 
   return 0;
