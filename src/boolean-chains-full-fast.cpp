@@ -31,9 +31,9 @@ using namespace std;
   stats_num_data_points[chain_size]++;
 #endif
 
-constexpr uint32_t N = 13;
+constexpr uint32_t N = 11;
 constexpr uint32_t SIZE = ((1 << (N - 1)) + 31) / 32;
-constexpr uint32_t MAX_LENGTH = 19;
+constexpr uint32_t MAX_LENGTH = 17;
 constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
 constexpr uint32_t TARGET_1 =
     ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY;
@@ -148,6 +148,7 @@ int compare_choices_with_start_indices(const size_t chain_size) {
 }
 
 void print_chain(const size_t chain_size) {
+  return;
   cout << "chain (" << chain_size << "):" << endl;
   for (size_t i = 0; i < chain_size; i++) {
     cout << "x" << i + 1;
@@ -246,7 +247,7 @@ void find_optimal_chain(const size_t chain_size,
         num_unfulfilled_target_functions - target_lookup_get(chain[chain_size]);
 
     total_chains++;
-    if ((total_chains & 0xfffffff) == 0) {
+    if ((total_chains & 0xffffffff) == 0) {
       for (size_t j = start_chain_length; j < next_chain_size; ++j) {
         cout << choices[j];
         if (j != next_chain_size - 1) {
@@ -254,7 +255,7 @@ void find_optimal_chain(const size_t chain_size,
         }
       }
       cout << " [best: " << current_best_length << "] " << total_chains << endl;
-      // exit(0);
+      exit(0);
     }
 
     if (next_chain_size + next_num_unfulfilled_targets > MAX_LENGTH) {
