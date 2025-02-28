@@ -41,11 +41,11 @@ constexpr uint32_t NUM_TARGETS = sizeof(TARGETS) / sizeof(uint32_t);
 
 uint32_t TARGET_LOOKUP[SIZE] = {0};
 
-vector<uint32_t> start_indices;
+vector<uint16_t> start_indices;
 size_t start_indices_size;
 uint32_t chain[25];
 size_t current_best_length = 1000;
-uint32_t choices[30];
+uint16_t choices[30];
 uint64_t total_chains = 0;
 uint32_t seen[SIZE];
 bool progress_check_done = false;
