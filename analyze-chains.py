@@ -45,6 +45,11 @@ def stats():
     for size, count in by_size.items():
         print(size, ": ", count)
 
+    for i, chain in enumerate(chains):
+        parsed_chain = parse_chain(chain)
+        with open(f"generated-{len(parsed_chain)}-{i}.txt", "w") as f:
+            f.write(chain)
+
 
 def get_smaller_chains():
     chain_sets = {}

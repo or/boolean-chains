@@ -70,16 +70,51 @@ def submit_batch_job(job_name, command_args):
     return with_retry(submit)
 
 
-print("Submitting jobs to AWS Batch...")
+def get_all_jobs(job_queue):
+    all_jobs = []
+
+    for status in [
+        "SUBMITTED",
+        "PENDING",
+        "RUNNABLE",
+        "STARTING",
+        "RUNNING",
+        "SUCCEEDED",
+        # "FAILED",
+    ]:
+        response = batch_client.list_jobs(jobQueue=job_queue, jobStatus=status)
+        all_jobs.extend(response.get("jobSummaryList", []))
+
+    return all_jobs
+
+
+print(f"Fetching jobs from queue {JOB_QUEUE}...")
+existing_jobs = get_all_jobs(JOB_QUEUE)
+seen_jobs = set()
+for job in existing_jobs:
+    job_name = job.get("jobName")
+    if job_name in seen_jobs:
+        print(f"duplicate: {job_name}")
+    seen_jobs.add(job_name)
+
+print(f"Submitting jobs to queue {JOB_QUEUE}...")
 process = subprocess.Popen(
-    ["../target/boolean-chains-full-fast-plan", "2"], stdout=subprocess.PIPE, text=True
+    ["../get-random-lines.sh", "../plan-15-21.txt", "100"],
+    stdout=subprocess.PIPE,
+    text=True,
 )
+
+num_added = 0
 for args in process.stdout:
     args = args.strip()
     clean_args = args.replace(" ", "_")
     job_name = f"{JOB_ID}_{clean_args}"
+    if job_name in seen_jobs:
+        print(f"Job {job_name} already exists, ignoring...")
+        continue
 
-    print(f"Submitting job: {job_name}")
+    num_added += 1
+    print(f"Submitting job: {job_name} ({num_added})")
     submit_batch_job(job_name, args)
 
 print("Done.")
