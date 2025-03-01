@@ -62,8 +62,6 @@ size_t start_indices_size = 0;
 size_t current_best_length = 1000;
 uint16_t choices[30];
 uint64_t total_chains = 0;
-bool progress_restoration_done = false;
-bool chunk_mode = false;
 constexpr uint32_t start_chain_length = 4;
 uint32_t seen[SIZE] __attribute__((aligned(64)));
 uint32_t chain[25] __attribute__((aligned(64)));
@@ -207,28 +205,10 @@ void find_optimal_chain(const size_t chain_size,
     ADD_EXPRESSION(new_expressions_size, ft5)
   }
 
-  const size_t next_chain_size = chain_size + 1;
-  size_t start_i = expressions_index;
-  size_t max_i = new_expressions_size;
-  if (__builtin_expect(progress_restoration_done, 1)) {
-    CAPTURE_STATS_CALL
-  } else {
-    if (__builtin_expect(chain_size < start_indices_size, 1)) {
-      start_i = start_indices[chain_size];
-      max_i = start_i + 1;
-      cout << "skipping to ";
-      for (size_t j = start_chain_length; j < chain_size; ++j) {
-        cout << choices[j] << ", ";
-      }
-      cout << start_i << endl;
-    } else {
-      cout << "over" << endl;
-      progress_restoration_done = true;
-      CAPTURE_STATS_CALL
-    }
-  }
+  CAPTURE_STATS_CALL
 
-  for (size_t i = start_i; i < max_i;) {
+  const size_t next_chain_size = chain_size + 1;
+  for (size_t i = expressions_index; i < new_expressions_size;) {
     choices[chain_size] = i;
     chain[chain_size] = expressions[i];
     const uint32_t next_num_unfulfilled_targets =
@@ -320,7 +300,6 @@ int main(int argc, char *argv[]) {
   // progress vector
   if (argc > 1 && strcmp(argv[1], "-c") == 0) {
     start_i++;
-    chunk_mode = true;
   }
 
 #endif
