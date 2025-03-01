@@ -5,7 +5,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <vector>
 using namespace std;
 
 #ifndef CAPTURE_STATS
@@ -58,8 +57,8 @@ constexpr uint32_t NUM_TARGETS = sizeof(TARGETS) / sizeof(uint32_t);
 
 uint32_t TARGET_LOOKUP[SIZE] = {0};
 
-vector<uint16_t> start_indices;
-size_t start_indices_size;
+uint16_t start_indices[100] = {0};
+size_t start_indices_size = 0;
 size_t current_best_length = 1000;
 uint16_t choices[30];
 uint64_t total_chains = 0;
@@ -369,15 +368,14 @@ int main(int argc, char *argv[]) {
   constexpr size_t chain_size = 4;
 
   for (size_t i = 0; i < chain_size; i++) {
-    start_indices.push_back(0);
+    start_indices[start_indices_size++] = 0;
   }
 
 #if PLAN_MODE != 1
   // read the progress vector, e.g 5 2 9, commas will be ignored: 5, 2, 9
   for (size_t i = start_i; i < argc; i++) {
-    start_indices.push_back(atoi(argv[i]));
+    start_indices[start_indices_size++] = atoi(argv[i]);
   }
-  start_indices_size = start_indices.size();
   seen_insert(0);
   for (size_t i = 0; i < chain_size; i++) {
     seen_insert(chain[i]);
