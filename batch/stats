@@ -1,0 +1,5 @@
+#!/bin/bash
+
+egrep -r 'chain \(' "computing-results/boolean-chains/$1"
+egrep -r 'New' "computing-results/boolean-chains/$1"
+egrep -r 'total' "computing-results/boolean-chains/$1" | awk '{print $3}' | sort | gpaste -s -d+ | bc
