@@ -18,17 +18,19 @@ using namespace std;
 
 #if CAPTURE_STATS
 #define CAPTURE_STATS_CALL                                                     \
-  const auto new_expressions = new_expressions_size - expressions_size;        \
-  stats_total_num_expressions[chain_size] += new_expressions;                  \
-  if (stats_num_data_points[chain_size] == 0 ||                                \
-      new_expressions < stats_min_num_expressions[chain_size]) {               \
-    stats_min_num_expressions[chain_size] = new_expressions;                   \
-  }                                                                            \
-  if (stats_num_data_points[chain_size] == 0 ||                                \
-      new_expressions > stats_max_num_expressions[chain_size]) {               \
-    stats_max_num_expressions[chain_size] = new_expressions;                   \
-  }                                                                            \
-  stats_num_data_points[chain_size]++;
+  {                                                                            \
+    const auto new_expressions = new_expressions_size - expressions_size;      \
+    if (new_expressions < stats_min_num_expressions[chain_size]) {             \
+      stats_min_num_expressions[chain_size] = new_expressions;                 \
+    }                                                                          \
+    if (new_expressions > stats_max_num_expressions[chain_size]) {             \
+      stats_max_num_expressions[chain_size] = new_expressions;                 \
+    }                                                                          \
+    stats_total_num_expressions[chain_size] += new_expressions;                \
+    stats_num_data_points[chain_size]++;                                       \
+  }
+#else
+#define CAPTURE_STATS_CALL
 #endif
 
 constexpr uint32_t N = 13;
@@ -69,8 +71,9 @@ uint32_t chain[25] __attribute__((aligned(64)));
 uint32_t expressions[1000] __attribute__((aligned(64)));
 
 #if CAPTURE_STATS
+#define UNDEFINED 0xffffffff
 uint64_t stats_total_num_expressions[25] = {0};
-uint32_t stats_min_num_expressions[25] = {0};
+uint32_t stats_min_num_expressions[25] = {UNDEFINED};
 uint32_t stats_max_num_expressions[25] = {0};
 uint64_t stats_num_data_points[25] = {0};
 #endif
@@ -310,7 +313,10 @@ void on_exit() {
            stats_num_data_points[i] == 0
                ? 0
                : stats_total_num_expressions[i] / stats_num_data_points[i],
-           stats_min_num_expressions[i], stats_max_num_expressions[i]);
+           stats_min_num_expressions[i] == UNDEFINED
+               ? 0
+               : stats_min_num_expressions[i],
+           stats_max_num_expressions[i]);
   }
   cout << flush;
 #endif
@@ -350,6 +356,11 @@ int main(int argc, char *argv[]) {
 #endif
     target_lookup_insert(TARGETS[i]);
   }
+
+#if CAPTURE_STATS
+  memset(stats_min_num_expressions, UNDEFINED,
+         sizeof(stats_min_num_expressions));
+#endif
 
   chain[0] = 0b0000000011111111 >> (16 - N);
   chain[1] = 0b0000111100001111 >> (16 - N);
