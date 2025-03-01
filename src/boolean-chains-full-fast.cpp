@@ -245,7 +245,7 @@ void find_optimal_chain(const size_t chain_size,
         num_unfulfilled_target_functions - target_lookup_get(chain[chain_size]);
 
     total_chains++;
-    if (__builtin_expect((total_chains & 0xfffffff) == 0, 0)) {
+    if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
       for (size_t j = start_chain_length; j < next_chain_size; ++j) {
         cout << choices[j];
         if (j != next_chain_size - 1) {
