@@ -124,11 +124,10 @@ inline void seen_remove(uint32_t bit) {
     const uint32_t index = value >> 5;                                         \
     const uint32_t bit_index = value & 0b11111;                                \
     const uint32_t shifted = 1 << bit_index;                                   \
-    if (!(seen[index] & shifted)) {                                            \
-      seen[index] |= shifted;                                                  \
-      expressions[expressions_size] = value;                                   \
-      expressions_size++;                                                      \
-    }                                                                          \
+    const uint32_t was_absent = ((seen[index] & shifted) == 0);                \
+    seen[index] |= shifted;                                                    \
+    expressions[expressions_size] = value;                                     \
+    expressions_size += was_absent;                                            \
   }
 
 int compare_choices_with_start_indices(const size_t chain_size) {
