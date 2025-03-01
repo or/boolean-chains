@@ -18,7 +18,7 @@ using namespace std;
 #if CAPTURE_STATS
 #define CAPTURE_STATS_CALL                                                     \
   {                                                                            \
-    const auto new_expressions = new_expressions_size - expressions_size;      \
+    const auto new_expressions = next_expressions_size - expressions_size;     \
     if (new_expressions < stats_min_num_expressions[chain_size]) {             \
       stats_min_num_expressions[chain_size] = new_expressions;                 \
     }                                                                          \
@@ -57,6 +57,7 @@ constexpr uint32_t NUM_TARGETS = sizeof(TARGETS) / sizeof(uint32_t);
 
 uint32_t TARGET_LOOKUP[SIZE] = {0};
 
+bool chunk_mode = false;
 uint16_t start_indices[100] = {0};
 size_t start_indices_size = 0;
 size_t current_best_length = 1000;
@@ -133,6 +134,29 @@ inline void seen_remove(uint32_t bit) {
 // for the expect 0 above: testing for the first 2^32 chains of N=13, L=19
 // revealed: 0: 70.5% 1: 29.5%
 
+#define GENERATE_NEW_EXPRESSIONS                                               \
+  const uint32_t h = chain[chain_size - 1];                                    \
+  const uint32_t not_h = ~h;                                                   \
+  for (size_t j = 0; j < chain_size - 1; j++) {                                \
+    const uint32_t g = chain[j];                                               \
+    const uint32_t not_g = ~g;                                                 \
+                                                                               \
+    const uint32_t ft1 = g & h;                                                \
+    ADD_EXPRESSION(next_expressions_size, ft1)                                 \
+                                                                               \
+    const uint32_t ft2 = g & not_h;                                            \
+    ADD_EXPRESSION(next_expressions_size, ft2)                                 \
+                                                                               \
+    const uint32_t ft3 = g ^ h;                                                \
+    ADD_EXPRESSION(next_expressions_size, ft3)                                 \
+                                                                               \
+    const uint32_t ft4 = g | h;                                                \
+    ADD_EXPRESSION(next_expressions_size, ft4)                                 \
+                                                                               \
+    const uint32_t ft5 = not_g & h;                                            \
+    ADD_EXPRESSION(next_expressions_size, ft5)                                 \
+  }
+
 void print_chain(const size_t chain_size) {
   return;
   cout << "chain (" << chain_size << "):" << endl;
@@ -182,33 +206,14 @@ void find_optimal_chain(const size_t chain_size,
   }
 #endif
 
-  size_t new_expressions_size = expressions_size;
-  const uint32_t h = chain[chain_size - 1];
-  const uint32_t not_h = ~h;
-  for (size_t j = 0; j < chain_size - 1; j++) {
-    const uint32_t g = chain[j];
-    const uint32_t not_g = ~g;
+  const size_t next_chain_size = chain_size + 1;
+  size_t next_expressions_size = expressions_size;
 
-    const uint32_t ft1 = g & h;
-    ADD_EXPRESSION(new_expressions_size, ft1)
-
-    const uint32_t ft2 = g & not_h;
-    ADD_EXPRESSION(new_expressions_size, ft2)
-
-    const uint32_t ft3 = g ^ h;
-    ADD_EXPRESSION(new_expressions_size, ft3)
-
-    const uint32_t ft4 = g | h;
-    ADD_EXPRESSION(new_expressions_size, ft4)
-
-    const uint32_t ft5 = not_g & h;
-    ADD_EXPRESSION(new_expressions_size, ft5)
-  }
+  GENERATE_NEW_EXPRESSIONS
 
   CAPTURE_STATS_CALL
 
-  const size_t next_chain_size = chain_size + 1;
-  for (size_t i = expressions_index; i < new_expressions_size;) {
+  for (size_t i = expressions_index; i < next_expressions_size;) {
     choices[chain_size] = i;
     chain[chain_size] = expressions[i];
     const uint32_t next_num_unfulfilled_targets =
@@ -247,11 +252,40 @@ void find_optimal_chain(const size_t chain_size,
     // call
     i++;
     find_optimal_chain(next_chain_size, next_num_unfulfilled_targets,
-                       new_expressions_size, i);
+                       next_expressions_size, i);
   }
 
-  for (size_t i = expressions_size; i < new_expressions_size; i++) {
+  for (size_t i = expressions_size; i < next_expressions_size; i++) {
     seen_remove(expressions[i]);
+  }
+}
+
+void find_optimal_chain_restore_progress(
+    const size_t chain_size, const size_t num_unfulfilled_target_functions,
+    const size_t expressions_size, const size_t expressions_index) {
+  const size_t next_chain_size = chain_size + 1;
+  size_t next_expressions_size = expressions_size;
+
+  GENERATE_NEW_EXPRESSIONS
+
+  choices[chain_size] = start_indices[chain_size];
+  chain[chain_size] = expressions[start_indices[chain_size]];
+  const uint32_t next_num_unfulfilled_targets =
+      num_unfulfilled_target_functions - target_lookup_get(chain[chain_size]);
+
+  cout << "skipping to ";
+  for (size_t j = start_chain_length; j < chain_size; ++j) {
+    cout << choices[j] << ", ";
+  }
+  cout << choices[chain_size] << endl;
+
+  if (next_chain_size < start_indices_size) {
+    find_optimal_chain_restore_progress(
+        next_chain_size, next_num_unfulfilled_targets, next_expressions_size,
+        choices[chain_size] + 1);
+  } else {
+    find_optimal_chain(next_chain_size, next_num_unfulfilled_targets,
+                       next_expressions_size, choices[chain_size] + 1);
   }
 }
 
@@ -300,6 +334,7 @@ int main(int argc, char *argv[]) {
   // progress vector
   if (argc > 1 && strcmp(argv[1], "-c") == 0) {
     start_i++;
+    chunk_mode = true;
   }
 
 #endif
@@ -365,7 +400,12 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  find_optimal_chain(chain_size, NUM_TARGETS, expressions_size, 0);
+  if (chunk_mode) {
+    find_optimal_chain_restore_progress(chain_size, NUM_TARGETS,
+                                        expressions_size, 0);
+  } else {
+    find_optimal_chain(chain_size, NUM_TARGETS, expressions_size, 0);
+  }
 
   return 0;
 }
