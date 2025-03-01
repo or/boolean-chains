@@ -58,6 +58,7 @@ constexpr uint32_t NUM_TARGETS = sizeof(TARGETS) / sizeof(uint32_t);
 uint32_t TARGET_LOOKUP[SIZE] = {0};
 
 bool chunk_mode = false;
+bool progress_check_done = true;
 uint16_t start_indices[100] = {0};
 size_t start_indices_size = 0;
 size_t current_best_length = 1000;
@@ -79,6 +80,21 @@ uint64_t stats_num_data_points[25] = {0};
 #if PLAN_MODE
 size_t plan_depth = 1;
 #endif
+int compare_choices_with_start_indices(const size_t chain_size) {
+  size_t max_i =
+      chain_size <= start_indices_size ? chain_size : start_indices_size;
+  for (size_t i = start_chain_length; i < max_i; i++) {
+    if (choices[i] < start_indices[i]) {
+      return -1;
+    } else if (choices[i] > start_indices[i]) {
+      return 1;
+    }
+  }
+  if (chain_size > start_indices_size) {
+    return 1;
+  }
+  return 0;
+}
 
 inline uint32_t target_lookup_get(uint32_t bit) {
   const uint32_t index = bit >> 5;
@@ -211,7 +227,24 @@ void find_optimal_chain(const size_t chain_size,
 
   GENERATE_NEW_EXPRESSIONS
 
-  CAPTURE_STATS_CALL
+  if (progress_check_done) {
+    CAPTURE_STATS_CALL
+  } else {
+    choices[chain_size] = 0;
+    int result = compare_choices_with_start_indices(next_chain_size);
+    if (result < 0 && chain_size < start_indices_size) {
+      const auto start_i = start_indices[chain_size];
+      cout << "skipping to ";
+      for (size_t j = start_chain_length; j < chain_size; ++j) {
+        cout << choices[j] << ", ";
+      }
+      cout << start_i << endl;
+    }
+    if (result > 0) {
+      progress_check_done = true;
+      CAPTURE_STATS_CALL
+    }
+  }
 
   for (size_t i = expressions_index; i < next_expressions_size;) {
     choices[chain_size] = i;
@@ -253,6 +286,11 @@ void find_optimal_chain(const size_t chain_size,
     i++;
     find_optimal_chain(next_chain_size, next_num_unfulfilled_targets,
                        next_expressions_size, i);
+  }
+
+  if (__builtin_expect(chunk_mode && chain_size == start_indices_size, 0)) {
+    cout << "completed chunk" << endl;
+    exit(0);
   }
 
   for (size_t i = expressions_size; i < next_expressions_size; i++) {
