@@ -239,7 +239,7 @@ void find_optimal_chain(const size_t chain_size,
     CAPTURE_STATS_CALL
   }
 
-  for (size_t i = start_i; i < new_expressions_size; i++) {
+  for (size_t i = start_i; i < new_expressions_size;) {
     choices[chain_size] = i;
     chain[chain_size] = expressions[i];
     const uint32_t next_num_unfulfilled_targets =
@@ -258,6 +258,7 @@ void find_optimal_chain(const size_t chain_size,
     }
 
     if (next_chain_size + next_num_unfulfilled_targets > MAX_LENGTH) {
+      i++;
       continue;
     }
 
@@ -269,11 +270,15 @@ void find_optimal_chain(const size_t chain_size,
       } else if (next_chain_size == current_best_length) {
         print_chain(next_chain_size);
       }
+      i++;
       continue;
     }
 
+    // do this manually here, this avoids an extra addition for i + 1 in the
+    // call
+    i++;
     find_optimal_chain(next_chain_size, next_num_unfulfilled_targets,
-                       new_expressions_size, i + 1);
+                       new_expressions_size, i);
   }
 
   if (__builtin_expect(chunk_mode && chain_size == start_indices_size, 0)) {
