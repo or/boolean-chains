@@ -369,11 +369,12 @@ int main(int argc, char *argv[]) {
   for (size_t i = start_i; i < argc; i++) {
     start_indices[start_indices_size++] = atoi(argv[i]);
   }
+#endif
+
   seen_insert(0);
   for (size_t i = 0; i < chain_size; i++) {
     seen_insert(chain[i]);
   }
-#endif
 
   size_t expressions_size = 0;
   for (size_t k = 1; k < chain_size - 1; k++) {
