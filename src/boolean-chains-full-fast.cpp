@@ -58,15 +58,15 @@ uint32_t TARGET_LOOKUP[SIZE] = {0};
 
 vector<uint16_t> start_indices;
 size_t start_indices_size;
-uint32_t chain[25];
 size_t current_best_length = 1000;
 uint16_t choices[30];
 uint64_t total_chains = 0;
-uint32_t seen[SIZE];
 bool progress_check_done = false;
-uint32_t expressions[1000];
 bool chunk_mode = false;
 constexpr uint32_t start_chain_length = 4;
+uint32_t seen[SIZE] __attribute__((aligned(64)));
+uint32_t chain[25] __attribute__((aligned(64)));
+uint32_t expressions[1000] __attribute__((aligned(64)));
 
 #if CAPTURE_STATS
 uint64_t stats_total_num_expressions[25] = {0};
