@@ -223,7 +223,9 @@ void find_optimal_chain(const size_t chain_size,
 
   const size_t next_chain_size = chain_size + 1;
   size_t start_i = expressions_index;
-  if (!progress_check_done) {
+  if (progress_check_done) {
+    CAPTURE_STATS_CALL
+  } else {
     choices[chain_size] = 0;
     int result = compare_choices_with_start_indices(next_chain_size);
     if (result < 0 && chain_size < start_indices_size) {
@@ -238,8 +240,6 @@ void find_optimal_chain(const size_t chain_size,
       progress_check_done = true;
       CAPTURE_STATS_CALL
     }
-  } else {
-    CAPTURE_STATS_CALL
   }
 
   for (size_t i = start_i; i < new_expressions_size;) {
