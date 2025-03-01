@@ -124,11 +124,14 @@ inline void seen_remove(uint32_t bit) {
     const uint32_t index = value >> 5;                                         \
     const uint32_t bit_index = value & 0b11111;                                \
     const uint32_t shifted = 1 << bit_index;                                   \
-    const uint32_t was_absent = ((seen[index] & shifted) == 0);                \
-    seen[index] |= shifted;                                                    \
+    const uint32_t old_value = seen[index];                                    \
+    const uint32_t new_value = old_value | shifted;                            \
+    seen[index] = new_value;                                                   \
     expressions[expressions_size] = value;                                     \
-    expressions_size += was_absent;                                            \
+    expressions_size += __builtin_expect((old_value != new_value), 0);         \
   }
+// for the expect 0 above: testing for the first 2^32 chains of N=13, L=19
+// revealed: 0: 70.5% 1: 29.5%
 
 int compare_choices_with_start_indices(const size_t chain_size) {
   size_t max_i =
