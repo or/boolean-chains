@@ -150,6 +150,7 @@ int compare_choices_with_start_indices(const size_t chain_size) {
 }
 
 void print_chain(const size_t chain_size) {
+  return;
   cout << "chain (" << chain_size << "):" << endl;
   for (size_t i = 0; i < chain_size; i++) {
     cout << "x" << i + 1;
@@ -256,7 +257,7 @@ void find_optimal_chain(const size_t chain_size,
         }
       }
       cout << " [best: " << current_best_length << "] " << total_chains << endl;
-      // exit(0);
+      exit(0);
     }
 
     if (next_chain_size + next_num_unfulfilled_targets > MAX_LENGTH) {
