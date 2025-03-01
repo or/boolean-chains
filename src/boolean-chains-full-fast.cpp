@@ -62,7 +62,7 @@ size_t start_indices_size = 0;
 size_t current_best_length = 1000;
 uint16_t choices[30];
 uint64_t total_chains = 0;
-bool progress_check_done = false;
+bool progress_restoration_done = false;
 bool chunk_mode = false;
 constexpr uint32_t start_chain_length = 4;
 uint32_t seen[SIZE] __attribute__((aligned(64)));
@@ -134,22 +134,6 @@ inline void seen_remove(uint32_t bit) {
   }
 // for the expect 0 above: testing for the first 2^32 chains of N=13, L=19
 // revealed: 0: 70.5% 1: 29.5%
-
-int compare_choices_with_start_indices(const size_t chain_size) {
-  size_t max_i =
-      chain_size <= start_indices_size ? chain_size : start_indices_size;
-  for (size_t i = start_chain_length; i < max_i; i++) {
-    if (choices[i] < start_indices[i]) {
-      return -1;
-    } else if (choices[i] > start_indices[i]) {
-      return 1;
-    }
-  }
-  if (chain_size > start_indices_size) {
-    return 1;
-  }
-  return 0;
-}
 
 void print_chain(const size_t chain_size) {
   return;
@@ -225,26 +209,26 @@ void find_optimal_chain(const size_t chain_size,
 
   const size_t next_chain_size = chain_size + 1;
   size_t start_i = expressions_index;
-  if (progress_check_done) {
+  size_t max_i = new_expressions_size;
+  if (__builtin_expect(progress_restoration_done, 1)) {
     CAPTURE_STATS_CALL
   } else {
-    choices[chain_size] = 0;
-    int result = compare_choices_with_start_indices(next_chain_size);
-    if (result < 0 && chain_size < start_indices_size) {
+    if (__builtin_expect(chain_size < start_indices_size, 1)) {
       start_i = start_indices[chain_size];
+      max_i = start_i + 1;
       cout << "skipping to ";
       for (size_t j = start_chain_length; j < chain_size; ++j) {
         cout << choices[j] << ", ";
       }
       cout << start_i << endl;
-    }
-    if (result > 0) {
-      progress_check_done = true;
+    } else {
+      cout << "over" << endl;
+      progress_restoration_done = true;
       CAPTURE_STATS_CALL
     }
   }
 
-  for (size_t i = start_i; i < new_expressions_size;) {
+  for (size_t i = start_i; i < max_i;) {
     choices[chain_size] = i;
     chain[chain_size] = expressions[i];
     const uint32_t next_num_unfulfilled_targets =
@@ -284,11 +268,6 @@ void find_optimal_chain(const size_t chain_size,
     i++;
     find_optimal_chain(next_chain_size, next_num_unfulfilled_targets,
                        new_expressions_size, i);
-  }
-
-  if (__builtin_expect(chunk_mode && chain_size == start_indices_size, 0)) {
-    cout << "completed chunk" << endl;
-    exit(0);
   }
 
   for (size_t i = expressions_size; i < new_expressions_size; i++) {
