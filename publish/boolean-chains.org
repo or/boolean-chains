@@ -1,0 +1,517 @@
+#+title: Boolean Chains
+#+date: <2025-03-01 Sun>
+#+author: Oliver Runge
+#+export_file_name: release/index.html
+#+html_head_extra: <style>body {font-size: large;}</style>
+#+html_head_extra: <link rel="icon" href="./boolean-chains-favicon.png" type="image/png">
+#+html_head_extra: <meta content="./boolean-chains-favicon.png" property="og:image">
+
+* Boolean Chains
+:PROPERTIES:
+:CUSTOM_ID: boolean-chains
+:END:
+** Introduction
+:PROPERTIES:
+:CUSTOM_ID: introduction
+:END:
+- TAOCP 7.1.2
+** Starting point
+:PROPERTIES:
+:CUSTOM_ID: starting-point
+:END:
+- footprint heuristic
+- greedy algorithm
+** Expanding the search
+:PROPERTIES:
+:CUSTOM_ID: expanded-search
+:END:
+I started by using Algorithm L and Algorithm U from exercise 7.1.2-11, but
+instead of taking the best instruction based on the footprint heuristic, I tried
+the top $k_l$ instructions recursively for chain lengths $l$. With $k_l = 5$ for
+$4 < l < 9$, $k_l = 3$ for $9 < l < 13$, and $k_l = 1$ for $k \geq 13$.
+
+The idea is that the first few instructions are less likely to be optimal due to
+the greedy approach, so we want to try more of them. But as the chain gets
+longer the greedy algorithm does a good job of identifying the best next steps,
+so we try fewer and fewer options. This makes the search space manageable.
+
+I experimented with the order of the instructions in order to decide which top
+$k$ to pick. The book greedily picks the instruction that appears in most target
+footprints, preferring a lower minimal cost. I tried out the opposite: ordering
+by minimal cost first and then prefer a higher number of matching footprints. To
+break ties I also ordered by the negative of the index of generated
+instructions. That index depends on the order in which the instructions are
+generated; so this criterion really only makes the order deterministic.
+
+This approach generated several chains of length 20, one step
+shorter than the previously shortest chain in the book:
+
+\begin{aligned}
+    x_5    &= x_2    \oplus x_3                   & \quad
+    x_{12} &= x_5    \lor   x_9                   & \quad
+    x_{19} &= x_1    \land  x_{14}                & \\
+
+    x_6    &= x_1    \lor   x_5                   & \quad
+    x_{13} &= x_{11} <      x_{12} = \overline{f} & \quad
+    x_{20} &= x_9    \oplus x_{19} = \overline{a} & \\
+
+    x_7    &= x_4    \oplus x_5                   & \quad
+    x_{14} &= x_4    \land  x_{12}                & \quad
+    x_{21} &= x_{10} \oplus x_{20}                & \\
+
+    x_8    &= x_2    >      x_7                   & \quad
+    x_{15} &= x_{13} \oplus x_{14}                & \quad
+    x_{22} &= x_{17} >      x_{21}                & \\
+
+    x_9    &= x_3    <      x_7                   & \quad
+    x_{16} &= x_7    >      x_{15} = \overline{d} & \quad
+    x_{23} &= x_{14} \oplus x_{22} = \overline{e} & \\
+
+    x_{10} &= x_6    \lor   x_8    = g            & \quad
+    x_{17} &= x_{11} \lor   x_{14}                & \quad
+    x_{24} &= x_2    \oplus x_{22} = \overline{b} & \\
+
+    x_{11} &= x_1    \oplus x_2                   & \quad
+    x_{18} &= x_6    >      x_{17} = \overline{c} & \\
+\end{aligned}
+
+* Searching for the optimal solution
+:PROPERTIES:
+:CUSTOM_ID: exhaustive-search
+:END:
+For the decimal display 7.1.2-(44) I noticed that these chains are short enough
+to search the entire space of all possible chains up to length 11, as a solution
+of that length exists (7.1.2-(45)). It turns out 11 is the optimum, and it
+only can be reached if the single stray /don't-care/ is 1. (From here on I
+assume that single /don't-care/ is actually a 1, because that's the case in the
+initial problem and the shortest chain with 0 is 11 steps long. It's possible
+that for 12 digits, 13 digits, etc. a shorter chain exists with 0 in that place,
+but I didn't care about that.)
+
+Based on this I've tried to reduce the number of /don't-cares/, finding minimal
+chains for a display for the first 11 digits ~0123456789A~, then one for the
+first 12 digits ~0123456789Ab~, etc.
+
+The search space for these chains grows rather quickly, but we can reduce it in
+a few ways:
+
+1. We estimate the length of the minimal chain to be just one or two more than
+   the best chain we already found for the display with one less digit; call
+   this maximal length $m$.
+
+2. Let $t = 7$ be the number of target functions and $w$ the number of target
+   functions not yet contained in the chain we're currently looking at, then as
+   soon as we see a chain of length $c$ with $c + w > m$ we can stop pursuing
+   this branch, because any chain fulfilling the remaining targets would exceed
+   length $m$.
+
+3. A lot of equivalent chains can be found in different orders, which wastes a
+   lot of computation. I consider two chains equivalent if the set of the
+   functions they generate are equal. There are chains for which one or more
+   functions can be derived with two or more instructions based on previous
+   functions, but those variants can easily be generated from the set of
+   functions.
+
+   It is sufficient to apply every function $f$ only at the shortest length it is
+   found in the current branch. That means if we are at $c = 3$ and encounter,
+   say, $f =$ 0110 1001 0110 1010 for the first time, then we apply it and
+   recurse to $c + 1$.  If we afterwards pick a different function at the same
+   length $c$ and  down the line $f$ reappears, then we ignore it. Even if the
+   function results from a different instruction at that time, we could've just
+   chosen $f$ at length $c$ and done the same steps afterwards for the same
+   complete chain length.
+
+   Once we backtrack to length $c-1$, however, we must forget about all $f$
+   we've applied at that length in this branch, because they might re-appear in
+   a different branch for the first time (in that branch) and there result in
+   different chains.
+
+   This property makes it very easy to maintain all new instructions in a single,
+   shared array, to which we only ever add at each level of recursion and then
+   move the length back on backtracking. We also can simply start at the
+   instruction following the last instruction applied at the previous recursion
+   level, automatically ensuring that we're not duplicating work.
+
+   A side effect of this is that the number of relevant branches at every chain
+   length usually goes down as we try more and more instructions at that length.
+   This is a minor challenge in trying to generate roughly equal chunks for
+   parallelization.
+
+4. Newly generated instructions at every length will still duplicate some functions
+   we've seen before, e.g. if we chose $x_4 = x_1 \oplus x_2$, then $x_4 \oplus
+   x_1$ and $x_4 \oplus x_2$ would be new instructions at the next length, but
+   they'd duplicate $x_2$ and $x_1$ respectively. The same is true for any
+   function derived on a different path in the previous chain.
+
+   To ignore those duplicates we can maintain a bit set of all the functions
+   we've already seen in the chain up to that point, and it turns out this can
+   be the same set we use for 3. to avoid revisiting functions down the line.
+
+** Algorithm S
+:PROPERTIES:
+:CUSTOM_ID: algorithm-s
+:END:
+This algorithm generates all unique boolean chains for inputs $x_k$, $1 \leq k
+\leq n$, $n \geq 2$ up to a maximum length of $m$ in order to find boolean chains that
+contain target functions $f_k$, $1 \leq k \leq t$.
+Let the inputs be distinct from the target functions, otherwise just remove them
+from the target functions.
+
+The algorithm generates all relevant boolean chains in depth-first manner, but
+all the data can be shared across the different lengths of the chain.
+
+Let $c$ be the length of the current chain at any time, including the $n$
+inputs.
+
+$I(c)$ is a 0-based array of available functions that can be generated with the
+instructions based on the functions in the chain so far for the current chain of
+length $c$. $N(c)$ is the relevant length of that array.
+
+$C(i)$ is a 0-based array of indexes into $I$, for each step
+$0 \leq i < c$ of the current chain of length $c$. Therefore
+$I(C(0))$, $I(C(1))$, $I(C(2))$, ... is the actual chain.
+
+$S$ is a set of functions we've seen already and don't need to try again in this
+branch.
+
+$F = \{f_k \, | \, 1 \leq k \leq t\}$ is the set of target functions.
+
+Finally, $w(c)$ is the number of target functions not yet in the current chain of
+length $c$.
+
+*S1.* [Initialize.] Set $c \leftarrow n$ and $w(c) \leftarrow |F|$ to count all
+the target functions we have yet to discover. Also set $I(k) \leftarrow
+x_{k+1}$, and $C(k) \leftarrow k$ for $0 \leq k < n$.
+
+Build possible instructions of all combinations of the first $n-1$ inputs.
+The instructions involving the $n\text{-th}$ input will be added by the main loop.
+First we set $S \leftarrow \emptyset$ and $N(0) \leftarrow n$ then for $1 \leq k
+< n$ we add new instructions with Algorithm *A* with input $k$.
+
+*S2.* [Cull search?] If $c + w > m$ we can't win anymore, stop this branch and
+go to *S8*.
+
+*S3.* [Found solution?] If $w(c) = 0$ we have found a solution, print it. Go to *S8*.
+
+*S4.* [Add new possible instructions.] Run Algorithm *A* with input $c$.
+
+*S5.* [Prepare looping on the next instruction.] Set $C(c) \leftarrow C(c-1)$,
+because we don't need to try any instructions we already tried during the last step.
+
+*S6.* [Pick the next instruction.] Set $C(c) \leftarrow C(c) + 1$. If $C(c) \geq
+N(c)$ go to *S7*. Otherwise if $C(c) \in F$ then we have found a new target
+function, set $w(c+1) \leftarrow w(c) - 1$ otherwise $w(c+1) \leftarrow w(c)$.
+Finally set $c \leftarrow c + 1$ and go to *S2*.
+
+*S7.* [Clean up function set.] Set $S \leftarrow S - \{ I(j) \, | \, N(c-1) \leq j <
+N(c)\}$ to forget about all the functions we've seen at this chain length in this
+branch.
+
+*S8.* [Backtrack.] Set $c \leftarrow c - 1$. If $c < n$ terminate the algorithm,
+otherwise go to *S6*.
+
+** Algorithm A
+:PROPERTIES:
+:CUSTOM_ID: algorithm-a
+:END:
+This adds new possible instructions to the array $I$ for a given chain $C$ with
+length $l$, which is the input to the algorithm, given all the arrays set up in
+Algorithm S.
+
+*A1.* [Initialize.] Set $N(l) \leftarrow N(l-1)$.
+
+*A2.* [Loop on instructions.] Set $h \leftarrow I(C(l))$ and for $0 \leq j < l$,
+set $g \leftarrow I(C(j))$ and do step *A3* for $f = g \, \& \, h$, $f = g \, |
+\, h$, $f = g \oplus h$, $f = \overline{g} \, \& \, h$, and $f = g \, \& \,
+\overline{h}$.
+
+*A3.* [Add instruction if new.] If $f \not\in S$ set $S \leftarrow S \cup \{f\}$,
+$I(N(l)) \leftarrow f$, and $N(l) \leftarrow N(l) + 1$.
+
+** Performance
+:PROPERTIES:
+:CUSTOM_ID: performance
+:END:
+My latest version of this program processes around 400-420 million chains per
+second on my MacBook Air (M2, 2023). On AWS Batch with Fargate capacity on 1
+vCPU it processes around 150-200 million chains per second; so about 38-51
+thousand million chains per second across 256 jobs.
+
+The program might be suitable for the GPU, but I have no experience with GPU
+programming. I'll try to investigate this.
+
+I also plan to use some of the tricks I've learnt optimizing the full search for
+the original approach with Algorithm U and a wider search space. I wrote that
+original program with a class-based style, some templating, naive sets, etc. -
+all very slow compared to the latest version of exhaustive search.
+
+* Results
+:PROPERTIES:
+:CUSTOM_ID: results
+:END:
+I tracked some statistics on the number of new instructions encountered at
+different lengths and the number of chains generated. For the decimal display
+for 13 digits, searching to a maximal length of $m=19$ the program looked at
+15,586,512,093,540 chains,
+The exact number depends on the order in which instructions are generated, and
+the following table provides some statistics on the number of newly added
+instructions at every length.
+
+The main takeaway is that the branching factor doesn't grow much as the chains
+get longer, because so many instructions result in the same functions and we
+ignore different orders of the same set of functions. The table is slightly
+misleading, however, as the number of actual branches will be roughly the sum of
+these newly added instructions up to that length, e.g. at length 8 on average
+$30+8+10+11+12 = 71$.
+
+That the numbers go down again after length 12 is due to the algorithm stopping
+at a max length of 19 and bailing out once a chain has no hope of generating all
+7 target functions by length 10 anymore (12 = 19 - 7 target functions). So fewer
+and fewer branches make it to those higher lengths.
+
+|  c |       chains | sum new instructions | avg | min | max |
+|----+--------------+----------------------+-----+-----+-----|
+|  4 |            1 |                   30 |  30 |  30 |  30 |
+|  5 |           30 |                  252 |   8 |   2 |  10 |
+|  6 |          687 |                 6881 |  10 |   3 |  15 |
+|  7 |        15349 |               170840 |  11 |   2 |  20 |
+|  8 |       362425 |              4448336 |  12 |   1 |  25 |
+|  9 |      9341932 |            127672810 |  13 |   1 |  30 |
+| 10 |    266485149 |           4055025721 |  15 |   0 |  33 |
+| 11 |   8442288161 |         141892395181 |  16 |   0 |  38 |
+| 12 | 296360074644 |        5451011054514 |  18 |   0 |  43 |
+| 13 |  67539256837 |        1281813235039 |  18 |   0 |  46 |
+| 14 |  29625227652 |         564173170164 |  19 |   0 |  51 |
+| 15 |   1038462604 |          23435424999 |  22 |   0 |  53 |
+| 16 |     27930118 |            762860238 |  27 |   2 |  54 |
+| 17 |       255268 |              7328660 |  28 |   5 |  51 |
+| 18 |         1282 |                39984 |  31 |  16 |  45 |
+** Seven-segment display for 10 digits
+:PROPERTIES:
+:CUSTOM_ID: 10-digits
+:END:
+Total chains generated: 7,461,658
+
+Number of unique optimal sets of functions: 3
+
+\begin{aligned}
+    x_5    &= x_1  \lor   x_2                   & \quad
+    x_9    &= x_5  <      x_8    = \overline{f} & \quad
+    x_{13} &= x_3  <      x_{10} = \overline{a} & \\
+
+    x_6    &= x_3  \oplus x_5                   & \quad
+    x_{10} &= x_6  \oplus x_8    = \overline{d} & \quad
+    x_{14} &= x_4  \lor   x_{10} = \overline{e} & \\
+
+    x_7    &= x_2  <      x_6                   & \quad
+    x_{11} &= x_4  <      x_9    = \overline{c} & \quad
+    x_{15} &= x_6  \lor   x_{12} = g            & \\
+
+    x_8    &= x_4  \lor   x_7                   & \quad
+    x_{12} &= x_2  >      x_{10} = \overline{b} & \\
+\end{aligned}
+
+#+NAME: fig:10-digits
+[[./10-digits-segments.svg]]
+
+** Seven-segment display for 11 digits
+:PROPERTIES:
+:CUSTOM_ID: 11-digits
+:END:
+Total chains generated: 344,252,541
+
+Number of unique optimal sets of functions: 91
+
+\begin{aligned}
+    x_5    &= x_1    \lor   x_2                   & \quad
+    x_9    &= x_3    \oplus x_7                   & \quad
+    x_{13} &= x_9    \oplus x_{10} = \overline{d} & \\
+
+    x_6    &= x_1    \oplus x_3                   & \quad
+    x_{10} &= x_5    <      x_8    = \overline{f} & \quad
+    x_{14} &= x_3    <      x_{13} = \overline{a} & \\
+
+    x_7    &= x_2    >      x_4                   & \quad
+    x_{11} &= x_2    >      x_9    = \overline{b} & \quad
+    x_{15} &= x_8    \oplus x_{13} = g            & \\
+
+    x_8    &= x_4    \lor   x_6                   & \quad
+    x_{12} &= x_4    <      x_{10} = \overline{c} & \quad
+    x_{16} &= x_4    \lor   x_{14} = \overline{e} & \\
+
+\end{aligned}
+
+#+NAME: fig:11-digits
+[[./11-digits-segments.svg]]
+
+** Seven-segment display for 12 digits
+:PROPERTIES:
+:CUSTOM_ID: 12-digits
+:END:
+Total chains generated: 263,675,232,692
+
+Number of unique optimal sets of functions: 6
+
+\begin{aligned}
+    x_5    &= x_1    \oplus x_3                   & \quad
+    x_{10} &= x_3    \oplus x_9                   & \quad
+    x_{15} &= x_7    \lor   x_{13} = g            & \\
+
+    x_6    &= x_3    \oplus x_4                   & \quad
+    x_{11} &= x_5    <      x_{10} = \overline{a} & \quad
+    x_{16} &= x_9    <      x_{13} = \overline{b} & \\
+
+    x_7    &= x_2    <      x_5                   & \quad
+    x_{12} &= x_6    \lor   x_{11}                & \quad
+    x_{17} &= x_{10} >      x_{13} = \overline{f} & \\
+
+    x_8    &= x_6    >      x_7                   & \quad
+    x_{13} &= x_8    \oplus x_{11}                & \quad
+    x_{18} &= x_4    <      x_{17} = \overline{c} & \\
+
+    x_9    &= x_2    \oplus x_8    = \overline{d} & \quad
+    x_{14} &= x_3    \oplus x_{12} = \overline{e} & \\
+\end{aligned}
+
+#+NAME: fig:12-digits
+[[./12-digits-segments.svg]]
+
+** Seven-segment display for 13 digits
+:PROPERTIES:
+:CUSTOM_ID: 13-digits
+:END:
+Total chains generated: 15,586,512,093,540
+
+Number of unique optimal sets of functions: 1 (!)
+
+\begin{aligned}
+    x_5    &= x_2    \oplus x_3                   & \quad
+    x_{10} &= x_5    \lor   x_9    = g            & \quad
+    x_{15} &= x_6    \land  x_{14} = \overline{a} & \\
+
+    x_6    &= x_2    \oplus x_4                   & \quad
+    x_{11} &= x_7    >      x_9    = \overline{f} & \quad
+    x_{16} &= x_9    \land  x_{15}                & \\
+
+    x_7    &= x_5    \lor   x_6                   & \quad
+    x_{12} &= x_4    <      x_{11} = \overline{c} & \quad
+    x_{17} &= x_4    \oplus x_{16} = \overline{e} & \\
+
+    x_8    &= x_2    \land  x_7                   & \quad
+    x_{13} &= x_8    \lor   x_{11}                & \quad
+    x_{18} &= x_8    \oplus x_{16} = \overline{b} & \\
+
+    x_9    &= x_1    \oplus x_8                   & \quad
+    x_{14} &= x_3    \oplus x_{13}                & \quad
+    x_{19} &= x_{14} >      x_{18} = \overline{d} & \\
+
+\end{aligned}
+
+#+NAME: fig:13-digits
+[[./13-digits-segments.svg]]
+
+** Seven-segment display for 14 digits
+:PROPERTIES:
+:CUSTOM_ID: 14-digits
+:END:
+Total chains generated: 1,172,393,232,657,510
+
+Number of unique optimal sets of functions: 35
+
+\begin{aligned}
+    x_5    &= x_1    \oplus x_2                   & \quad
+    x_{11} &= x_5    <      x_9    = \overline{f} & \quad
+    x_{17} &= x_1    \oplus x_{15} = \overline{e} & \\
+
+    x_6    &= x_1    \oplus x_4                   & \quad
+    x_{12} &= x_8    \oplus x_9    = \overline{a} & \quad
+    x_{18} &= x_{13} <      x_{15} = \overline{d} & \\
+
+    x_7    &= x_3    \oplus x_4                   & \quad
+    x_{13} &= x_2    \oplus x_{10}                & \quad
+    x_{19} &= x_{13} \land  x_{16} = \overline{b} & \\
+
+    x_8    &= x_3    \lor   x_5                   & \quad
+    x_{14} &= x_4    <      x_{11} = \overline{c} & \quad
+    x_{20} &= x_{13} \lor   x_{16} = g            & \\
+
+    x_9    &= x_6    \lor   x_7                   & \quad
+    x_{15} &= x_6    \lor   x_{12}                & \\
+
+    x_{10} &= x_7    <      x_8                   & \quad
+    x_{16} &= x_7    \oplus x_{12}                & \\
+\end{aligned}
+
+This chain almost solves the 15 digit case, with one segment missing from
+the ~E~. So close!
+
+#+NAME: fig:14-digits
+[[./14-digits-segments.svg]]
+
+** Seven-segment display for 15 digits
+:PROPERTIES:
+:CUSTOM_ID: 15-digits
+:END:
+Total chains generated: 5,226,376,747,363,427 [~9.4% done]
+
+Number of unique optimal sets of functions: 0 [so far]
+
+** Seven-segment display for 16 digits
+:PROPERTIES:
+:CUSTOM_ID: 16-digits
+:END:
+
+?
+
+** Exercise 7.1.2-54
+:PROPERTIES:
+:CUSTOM_ID: 7.1.2-54
+:END:
+Total chains generated: 934,236,665,700
+
+Number of unique optimal sets of functions: 1270
+
+The minimal length is 13, one step shorter than the solution known in the book.
+
+Here is the first one found:
+
+\begin{aligned}
+    x_5    &= x_1    \land  x_2          & \quad
+    x_{10} &= x_4    >      x_7          & \quad
+    x_{15} &= x_7    \land  x_{11} = f_1 & \\
+
+    x_6    &= x_1    \oplus x_3          & \quad
+    x_{11} &= x_6    \oplus x_8          & \quad
+    x_{16} &= x_9    >      x_{13} = f_3 & \\
+
+    x_7    &= x_2    \oplus x_3          & \quad
+    x_{12} &= x_5    \land  x_9    = f_5 & \quad
+    x_{17} &= x_4    \land  x_{15} = f_6 & \\
+
+    x_8    &= x_4    \lor   x_5          & \quad
+    x_{13} &= x_1    \land  x_{10} = f_4 & \\
+
+    x_9    &= x_4    \land  x_6          & \quad
+    x_{14} &= x_6    <      x_{10} = f_2 & \\
+\end{aligned}
+
+** Exercise 7.1.2-59
+:PROPERTIES:
+:CUSTOM_ID: 7.1.2-59
+:END:
+Total chains generated: 29,104,454,427,931
+
+Number of unique optimal sets of functions of length 16 or fewer: 0
+
+Therefore the chain of length 17 presented in the book is optimal.
+
+* Source code
+:PROPERTIES:
+:CUSTOM_ID: source-code
+:END:
+The code can be found on GitHub: https://github.com/or/boolean-chains
+
+Initially I used this to learn a bit of Rust, then re-implemented it in C++,
+then switched over to C++ completely as I made better progress. I wonder whether
+it could be even faster in Rust, however, if written by someone who knows Rust
+better than me.
