@@ -297,6 +297,13 @@ void on_exit() {
           "         "
           "min              max"
        << endl;
+
+  stats_total_num_expressions[start_chain_length] +=
+      stats_total_num_expressions[start_chain_length - 1];
+  stats_min_num_expressions[start_chain_length] +=
+      stats_min_num_expressions[start_chain_length - 1];
+  stats_max_num_expressions[start_chain_length] +=
+      stats_min_num_expressions[start_chain_length - 1];
   for (int i = start_chain_length; i < MAX_LENGTH; i++) {
     printf("%2d: %16" PRIu64 " %25" PRIu64 " %16" PRIu64 " %16" PRId32
            " %16" PRIu32 "\n",
@@ -357,7 +364,7 @@ int main(int argc, char *argv[]) {
   chain[1] = 0b0000111100001111 >> (16 - N);
   chain[2] = 0b0011001100110011 >> (16 - N);
   chain[3] = 0b0101010101010101 >> (16 - N);
-  constexpr size_t chain_size = 4;
+  size_t chain_size = 4;
 
   for (size_t i = 0; i < chain_size; i++) {
     start_indices[start_indices_size++] = 0;
@@ -375,7 +382,8 @@ int main(int argc, char *argv[]) {
     seen_insert(chain[i]);
   }
 
-  size_t expressions_size = 0;
+  const uint32_t expressions_size = 0;
+  size_t next_expressions_size = 0;
   for (size_t k = 1; k < chain_size - 1; k++) {
     const uint32_t h = chain[k];
     const uint32_t not_h = ~h;
@@ -384,27 +392,32 @@ int main(int argc, char *argv[]) {
       const uint32_t not_g = ~g;
 
       const uint32_t ft1 = g & h;
-      ADD_EXPRESSION(expressions_size, ft1)
+      ADD_EXPRESSION(next_expressions_size, ft1)
 
       const uint32_t ft2 = g & not_h;
-      ADD_EXPRESSION(expressions_size, ft2)
+      ADD_EXPRESSION(next_expressions_size, ft2)
 
       const uint32_t ft3 = g ^ h;
-      ADD_EXPRESSION(expressions_size, ft3)
+      ADD_EXPRESSION(next_expressions_size, ft3)
 
       const uint32_t ft4 = g | h;
-      ADD_EXPRESSION(expressions_size, ft4)
+      ADD_EXPRESSION(next_expressions_size, ft4)
 
       const uint32_t ft5 = not_g & h;
-      ADD_EXPRESSION(expressions_size, ft5)
+      ADD_EXPRESSION(next_expressions_size, ft5)
     }
   }
 
+  // just to get the initial branch before the algorithm even starts
+  chain_size--;
+  CAPTURE_STATS_CALL
+  chain_size++;
+
   if (chunk_mode) {
     find_optimal_chain_restore_progress(chain_size, NUM_TARGETS,
-                                        expressions_size, 0);
+                                        next_expressions_size, 0);
   } else {
-    find_optimal_chain(chain_size, NUM_TARGETS, expressions_size, 0);
+    find_optimal_chain(chain_size, NUM_TARGETS, next_expressions_size, 0);
   }
 
   return 0;
