@@ -1,0 +1,1045 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2025-03-03 Mon 13:47 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Boolean Chains</title>
+<meta name="author" content="Oliver Runge" />
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+<style>body {font-size: large;}</style>
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        displayAlign: "center",
+        displayIndent: "0em",
+
+        "HTML-CSS": { scale: 1.0,
+                        linebreaks: { automatic: "%LINEBREAKS" },
+                        webFont: "mathjax-modern"
+                       },
+        SVG: {scale: 1.0,
+              linebreaks: { automatic: "%LINEBREAKS" },
+              font: "mathjax-modern"},
+        NativeMML: {scale: 1.0},
+        TeX: {  Macros: {
+N: "\\mathbb{N}",
+Z: "\\mathbb{Z}",
+vector: "\\overrightarrow",
+dcolvec: ["\\left(\\begin{matrix} #1 \\\\ #2 \\end{matrix}\\right)", 2],
+tcolvec: ["\\left(\\begin{matrix} #1 \\\\ #2 \\ #3 \\end{matrix}\\right)", 3]
+ }, equationNumbers: {autoNumber: "%AUTONUMBER"},
+               MultLineWidth: "85%",
+               TagSide: "right",
+               TagIndent: ".8em"
+             }
+});
+</script>
+<script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Boolean Chains</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org0a902aa">1. Boolean Chains</a>
+<ul>
+<li><a href="#org28ddbd6">1.1. Introduction</a></li>
+<li><a href="#orgd45eefc">1.2. Starting point</a></li>
+<li><a href="#org6476bce">1.3. Expanding the search</a></li>
+</ul>
+</li>
+<li><a href="#orgcbff056">2. Searching for the optimal solution</a>
+<ul>
+<li><a href="#orgcf8a809">2.1. Algorithm S</a></li>
+<li><a href="#orgd5e4b4c">2.2. Algorithm A</a></li>
+<li><a href="#org66e010a">2.3. Performance</a></li>
+</ul>
+</li>
+<li><a href="#orgd96aea4">3. Results</a>
+<ul>
+<li><a href="#orgfc55dd5">3.1. Seven-segment display for 10 digits</a></li>
+<li><a href="#orga8e7c15">3.2. Seven-segment display for 11 digits</a></li>
+<li><a href="#orga8cd69b">3.3. Seven-segment display for 12 digits</a></li>
+<li><a href="#orgd38522d">3.4. Seven-segment display for 13 digits</a></li>
+<li><a href="#orgbb15a5b">3.5. Seven-segment display for 14 digits</a></li>
+<li><a href="#org6c1b20b">3.6. Seven-segment display for 15 digits</a></li>
+<li><a href="#orgb91382b">3.7. Seven-segment display for 16 digits</a></li>
+<li><a href="#org1da78ce">3.8. Exercise 7.1.2-54</a></li>
+<li><a href="#org7c97c3d">3.9. Exercise 7.1.2-59</a></li>
+</ul>
+</li>
+<li><a href="#org44c3069">4. Source code</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org0a902aa" class="outline-2">
+<h2 id="org0a902aa"><span class="section-number-2">1.</span> Boolean Chains</h2>
+<div class="outline-text-2" id="text-1">
+</div>
+<div id="outline-container-org28ddbd6" class="outline-3">
+<h3 id="org28ddbd6"><span class="section-number-3">1.1.</span> Introduction</h3>
+<div class="outline-text-3" id="text-1-1">
+<ul class="org-ul">
+<li>TAOCP 7.1.2</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgd45eefc" class="outline-3">
+<h3 id="orgd45eefc"><span class="section-number-3">1.2.</span> Starting point</h3>
+<div class="outline-text-3" id="text-1-2">
+<ul class="org-ul">
+<li>footprint heuristic</li>
+<li>greedy algorithm</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org6476bce" class="outline-3">
+<h3 id="org6476bce"><span class="section-number-3">1.3.</span> Expanding the search</h3>
+<div class="outline-text-3" id="text-1-3">
+<p>
+I started by using Algorithm L and Algorithm U from exercise 7.1.2-11, but
+instead of taking the best instruction based on the footprint heuristic, I tried
+the top \(k_l\) instructions recursively for chain lengths \(l\). With \(k_l = 5\) for
+\(4 < l < 9\), \(k_l = 3\) for \(9 < l < 13\), and \(k_l = 1\) for \(k \geq 13\).
+</p>
+
+<p>
+The idea is that the first few instructions are less likely to be optimal due to
+the greedy approach, so we want to try more of them. But as the chain gets
+longer the greedy algorithm does a good job of identifying the best next steps,
+so we try fewer and fewer options. This makes the search space manageable.
+</p>
+
+<p>
+I experimented with the order of the instructions in order to decide which top
+\(k\) to pick. The book greedily picks the instruction that appears in most target
+footprints, preferring a lower minimal cost. I tried out the opposite: ordering
+by minimal cost first and then prefer a higher number of matching footprints. To
+break ties I also ordered by the negative of the index of generated
+instructions. That index depends on the order in which the instructions are
+generated; so this criterion really only makes the order deterministic.
+</p>
+
+<p>
+This approach generated several chains of length 20, one step
+shorter than the previously shortest chain in the book:
+</p>
+
+\begin{aligned}
+    x_5    &= x_2    \oplus x_3                   & \quad
+    x_{12} &= x_5    \lor   x_9                   & \quad
+    x_{19} &= x_1    \land  x_{14}                & \\
+
+    x_6    &= x_1    \lor   x_5                   & \quad
+    x_{13} &= x_{11} <      x_{12} = \overline{f} & \quad
+    x_{20} &= x_9    \oplus x_{19} = \overline{a} & \\
+
+    x_7    &= x_4    \oplus x_5                   & \quad
+    x_{14} &= x_4    \land  x_{12}                & \quad
+    x_{21} &= x_{10} \oplus x_{20}                & \\
+
+    x_8    &= x_2    >      x_7                   & \quad
+    x_{15} &= x_{13} \oplus x_{14}                & \quad
+    x_{22} &= x_{17} >      x_{21}                & \\
+
+    x_9    &= x_3    <      x_7                   & \quad
+    x_{16} &= x_7    >      x_{15} = \overline{d} & \quad
+    x_{23} &= x_{14} \oplus x_{22} = \overline{e} & \\
+
+    x_{10} &= x_6    \lor   x_8    = g            & \quad
+    x_{17} &= x_{11} \lor   x_{14}                & \quad
+    x_{24} &= x_2    \oplus x_{22} = \overline{b} & \\
+
+    x_{11} &= x_1    \oplus x_2                   & \quad
+    x_{18} &= x_6    >      x_{17} = \overline{c} & \\
+\end{aligned}
+</div>
+</div>
+</div>
+<div id="outline-container-orgcbff056" class="outline-2">
+<h2 id="orgcbff056"><span class="section-number-2">2.</span> Searching for the optimal solution</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+For the decimal display 7.1.2-(44) I noticed that these chains are short enough
+to search the entire space of all possible chains up to length 11, as a solution
+of that length exists (7.1.2-(45)). It turns out 11 is the optimum, and it
+only can be reached if the single stray <i>don&rsquo;t-care</i> is 1. (From here on I
+assume that single <i>don&rsquo;t-care</i> is actually a 1, because that&rsquo;s the case in the
+initial problem and the shortest chain with 0 is 11 steps long. It&rsquo;s possible
+that for 12 digits, 13 digits, etc. a shorter chain exists with 0 in that place,
+but I didn&rsquo;t care about that.)
+</p>
+
+<p>
+Based on this I&rsquo;ve tried to reduce the number of <i>don&rsquo;t-cares</i>, finding minimal
+chains for a display for the first 11 digits <code>0123456789A</code>, then one for the
+first 12 digits <code>0123456789Ab</code>, etc.
+</p>
+
+<p>
+The search space for these chains grows rather quickly, but we can reduce it in
+a few ways:
+</p>
+
+<ol class="org-ol">
+<li>We estimate the length of the minimal chain to be just one or two more than
+the best chain we already found for the display with one less digit; call
+this maximal length \(m\).</li>
+
+<li>Let \(t = 7\) be the number of target functions and \(w\) the number of target
+functions not yet contained in the chain we&rsquo;re currently looking at, then as
+soon as we see a chain of length \(c\) with \(c + w > m\) we can stop pursuing
+this branch, because any chain fulfilling the remaining targets would exceed
+length \(m\).</li>
+
+<li><p>
+A lot of equivalent chains can be found in different orders, which wastes a
+lot of computation. I consider two chains equivalent if the set of the
+functions they generate are equal. There are chains for which one or more
+functions can be derived with two or more instructions based on previous
+functions, but those variants can easily be generated from the set of
+functions.
+</p>
+
+<p>
+It is sufficient to apply every function \(f\) only at the shortest length it is
+found in the current branch. That means if we are at \(c = 3\) and encounter,
+say, \(f =\) 0110 1001 0110 1010 for the first time, then we apply it and
+recurse to \(c + 1\).  If we afterwards pick a different function at the same
+length \(c\) and  down the line \(f\) reappears, then we ignore it. Even if the
+function results from a different instruction at that time, we could&rsquo;ve just
+chosen \(f\) at length \(c\) and done the same steps afterwards for the same
+complete chain length.
+</p>
+
+<p>
+Once we backtrack to length \(c-1\), however, we must forget about all \(f\)
+we&rsquo;ve applied at that length in this branch, because they might re-appear in
+a different branch for the first time (in that branch) and there result in
+different chains.
+</p>
+
+<p>
+This property makes it very easy to maintain all new instructions in a single,
+shared array, to which we only ever add at each level of recursion and then
+move the length back on backtracking. We also can simply start at the
+instruction following the last instruction applied at the previous recursion
+level, automatically ensuring that we&rsquo;re not duplicating work.
+</p>
+
+<p>
+A side effect of this is that the number of relevant branches at every chain
+length usually goes down as we try more and more instructions at that length.
+This is a minor challenge in trying to generate roughly equal chunks for
+parallelization.
+</p></li>
+
+<li><p>
+Newly generated instructions at every length will still duplicate some functions
+we&rsquo;ve seen before, e.g. if we chose \(x_4 = x_1 \oplus x_2\), then \(x_4 \oplus
+   x_1\) and \(x_4 \oplus x_2\) would be new instructions at the next length, but
+they&rsquo;d duplicate \(x_2\) and \(x_1\) respectively. The same is true for any
+function derived on a different path in the previous chain.
+</p>
+
+<p>
+To ignore those duplicates we can maintain a bit set of all the functions
+we&rsquo;ve already seen in the chain up to that point, and it turns out this can
+be the same set we use for 3. to avoid revisiting functions down the line.
+</p></li>
+</ol>
+</div>
+<div id="outline-container-orgcf8a809" class="outline-3">
+<h3 id="orgcf8a809"><span class="section-number-3">2.1.</span> Algorithm S</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+This algorithm generates all unique boolean chains for inputs \(x_k\), \(1 \leq k
+\leq n\), \(n \geq 2\) up to a maximum length of \(m\) in order to find boolean chains that
+contain target functions \(f_k\), \(1 \leq k \leq t\).
+</p>
+
+<p>
+Let \(c\) be the length of the current chain at any time, including the \(n\)
+inputs.
+</p>
+
+<p>
+\(I(c)\) is a 0-based array of available functions that can be generated with the
+instructions based on the functions in the chain so far for the current chain of
+length \(c\). \(N(c)\) is the relevant length of that array.
+</p>
+
+<p>
+\(C(i)\) is a 0-based array of indexes into \(I\), for each step
+\(0 \leq i < c\) of the current chain of length \(c\). Therefore
+\(I(C(0))\), \(I(C(1))\), \(I(C(2))\), &#x2026; is the actual chain.
+</p>
+
+<p>
+\(S\) is a set of functions we&rsquo;ve seen already and don&rsquo;t need to try again in this
+branch.
+</p>
+
+<p>
+\(F = \{f_k \, | \, 1 \leq k \leq t\}\) is the set of target functions. We demand
+\(x_k \not\in F\) for all inputs, otherwise just remove it from \(F\).
+</p>
+
+<p>
+Finally, \(w(c)\) is the number of target functions not yet in the current chain of
+length \(c\).
+</p>
+
+<p>
+<b>S1.</b> [Initialize.] Set \(c \leftarrow n\) and \(w(c) \leftarrow |F|\) to count all
+the target functions we have yet to discover. Also set \(I(k) \leftarrow
+x_{k+1}\), and \(C(k) \leftarrow k\) for \(0 \leq k < n\).
+</p>
+
+<p>
+Build possible instructions of all combinations of the first \(n-1\) inputs.
+The instructions involving the \(n\text{-th}\) input will be added by the main loop.
+First we set \(S \leftarrow \emptyset\) and \(N(0) \leftarrow n\) then for \(1 \leq k
+< n\) we add new instructions with Algorithm <b>A</b> with input \(k\).
+</p>
+
+<p>
+<b>S2.</b> [Cull search?] If \(c + w > m\) we can&rsquo;t win anymore, stop this branch and
+go to <b>S8</b>.
+</p>
+
+<p>
+<b>S3.</b> [Found solution?] If \(w(c) = 0\) we have found a solution, print it. Go to <b>S8</b>.
+</p>
+
+<p>
+<b>S4.</b> [Add new possible instructions.] Run Algorithm <b>A</b> with input \(c\).
+</p>
+
+<p>
+<b>S5.</b> [Prepare looping on the next instruction.] Set \(C(c) \leftarrow C(c-1)\),
+because we don&rsquo;t need to try any instructions we already tried during the last step.
+</p>
+
+<p>
+<b>S6.</b> [Pick the next instruction.] Set \(C(c) \leftarrow C(c) + 1\). If \(C(c) \geq
+N(c)\) go to <b>S7</b>. Otherwise if \(C(c) \in F\) then we have found a new target
+function, set \(w(c+1) \leftarrow w(c) - 1\) otherwise \(w(c+1) \leftarrow w(c)\).
+Finally set \(c \leftarrow c + 1\) and go to <b>S2</b>.
+</p>
+
+<p>
+<b>S7.</b> [Clean up function set.] Set \(S \leftarrow S - \{ I(j) \, | \, N(c-1) \leq j <
+N(c)\}\) to forget about all the functions we&rsquo;ve seen at this chain length in this
+branch.
+</p>
+
+<p>
+<b>S8.</b> [Backtrack.] Set \(c \leftarrow c - 1\). If \(c < n\) terminate the algorithm,
+otherwise go to <b>S6</b>.
+</p>
+</div>
+</div>
+<div id="outline-container-orgd5e4b4c" class="outline-3">
+<h3 id="orgd5e4b4c"><span class="section-number-3">2.2.</span> Algorithm A</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+This adds new possible instructions to the array \(I\) for a given chain \(C\) with
+length \(c\), which is the input to the algorithm, given all the arrays set up in
+Algorithm S.
+</p>
+
+<p>
+<b>A1.</b> [Initialize.] Set \(N(c) \leftarrow N(c-1)\).
+</p>
+
+<p>
+<b>A2.</b> [Loop on instructions.] Set \(h \leftarrow I(C(c))\) and for \(0 \leq j < c\),
+set \(g \leftarrow I(C(j))\) and do step <b>A3</b> for \(f = g \, \& \, h\), \(f = g \, |
+\, h\), \(f = g \oplus h\), \(f = \overline{g} \, \& \, h\), and \(f = g \, \& \,
+\overline{h}\).
+</p>
+
+<p>
+<b>A3.</b> [Add instruction if new.] If \(f \not\in S\) set \(S \leftarrow S \cup \{f\}\),
+\(I(N(c)) \leftarrow f\), and \(N(c) \leftarrow N(c) + 1\).
+</p>
+</div>
+</div>
+<div id="outline-container-org66e010a" class="outline-3">
+<h3 id="org66e010a"><span class="section-number-3">2.3.</span> Performance</h3>
+<div class="outline-text-3" id="text-2-3">
+<p>
+My latest version of this program processes around 400-420 million chains per
+second on my MacBook Air (M2, 2023). On AWS Batch with Fargate capacity on 1
+vCPU it processes around 150-200 million chains per second; so about 38-51
+thousand million chains per second across 256 jobs.
+</p>
+
+<p>
+The program might be suitable for the GPU, but I have no experience with GPU
+programming. I&rsquo;ll try to investigate this.
+</p>
+
+<p>
+I also plan to use some of the tricks I&rsquo;ve learnt optimizing the full search for
+the original approach with Algorithm U and a wider search space. I wrote that
+original program with a class-based style, some templating, naive sets, etc. -
+all very slow compared with the latest version.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-orgd96aea4" class="outline-2">
+<h2 id="orgd96aea4"><span class="section-number-2">3.</span> Results</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+I tracked some statistics on the number of new instructions encountered at
+different lengths and the number of chains generated. For the decimal display
+for 13 digits, searching to a maximal length of \(m=19\) the program looked at
+15,586,512,093,540 chains,
+The exact number depends on the order in which instructions are generated, and
+the following table provides some statistics on the number of newly added
+instructions at every length.
+</p>
+
+<p>
+The main takeaway is that the branching factor doesn&rsquo;t grow much as the chains
+get longer, because so many instructions result in the same functions and we
+ignore different orders of the same set of functions. The table is slightly
+misleading, however, as the number of actual branches will be roughly the sum of
+these newly added instructions up to that length, e.g. at length 8 on average
+\(30+8+10+11+12 = 71\).
+</p>
+
+<p>
+That the numbers go down again after length 12 is due to the algorithm stopping
+at a max length of 19 and bailing out once a chain has no hope of generating all
+7 target functions by length 10 anymore (12 = 19 - 7 target functions). So fewer
+and fewer branches make it to those higher lengths.
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-right">c</th>
+<th scope="col" class="org-right">chains</th>
+<th scope="col" class="org-right">sum new instructions</th>
+<th scope="col" class="org-right">avg</th>
+<th scope="col" class="org-right">min</th>
+<th scope="col" class="org-right">max</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-right">4</td>
+<td class="org-right">1</td>
+<td class="org-right">30</td>
+<td class="org-right">30</td>
+<td class="org-right">30</td>
+<td class="org-right">30</td>
+</tr>
+
+<tr>
+<td class="org-right">5</td>
+<td class="org-right">30</td>
+<td class="org-right">252</td>
+<td class="org-right">8</td>
+<td class="org-right">2</td>
+<td class="org-right">10</td>
+</tr>
+
+<tr>
+<td class="org-right">6</td>
+<td class="org-right">687</td>
+<td class="org-right">6881</td>
+<td class="org-right">10</td>
+<td class="org-right">3</td>
+<td class="org-right">15</td>
+</tr>
+
+<tr>
+<td class="org-right">7</td>
+<td class="org-right">15349</td>
+<td class="org-right">170840</td>
+<td class="org-right">11</td>
+<td class="org-right">2</td>
+<td class="org-right">20</td>
+</tr>
+
+<tr>
+<td class="org-right">8</td>
+<td class="org-right">362425</td>
+<td class="org-right">4448336</td>
+<td class="org-right">12</td>
+<td class="org-right">1</td>
+<td class="org-right">25</td>
+</tr>
+
+<tr>
+<td class="org-right">9</td>
+<td class="org-right">9341932</td>
+<td class="org-right">127672810</td>
+<td class="org-right">13</td>
+<td class="org-right">1</td>
+<td class="org-right">30</td>
+</tr>
+
+<tr>
+<td class="org-right">10</td>
+<td class="org-right">266485149</td>
+<td class="org-right">4055025721</td>
+<td class="org-right">15</td>
+<td class="org-right">0</td>
+<td class="org-right">33</td>
+</tr>
+
+<tr>
+<td class="org-right">11</td>
+<td class="org-right">8442288161</td>
+<td class="org-right">141892395181</td>
+<td class="org-right">16</td>
+<td class="org-right">0</td>
+<td class="org-right">38</td>
+</tr>
+
+<tr>
+<td class="org-right">12</td>
+<td class="org-right">296360074644</td>
+<td class="org-right">5451011054514</td>
+<td class="org-right">18</td>
+<td class="org-right">0</td>
+<td class="org-right">43</td>
+</tr>
+
+<tr>
+<td class="org-right">13</td>
+<td class="org-right">67539256837</td>
+<td class="org-right">1281813235039</td>
+<td class="org-right">18</td>
+<td class="org-right">0</td>
+<td class="org-right">46</td>
+</tr>
+
+<tr>
+<td class="org-right">14</td>
+<td class="org-right">29625227652</td>
+<td class="org-right">564173170164</td>
+<td class="org-right">19</td>
+<td class="org-right">0</td>
+<td class="org-right">51</td>
+</tr>
+
+<tr>
+<td class="org-right">15</td>
+<td class="org-right">1038462604</td>
+<td class="org-right">23435424999</td>
+<td class="org-right">22</td>
+<td class="org-right">0</td>
+<td class="org-right">53</td>
+</tr>
+
+<tr>
+<td class="org-right">16</td>
+<td class="org-right">27930118</td>
+<td class="org-right">762860238</td>
+<td class="org-right">27</td>
+<td class="org-right">2</td>
+<td class="org-right">54</td>
+</tr>
+
+<tr>
+<td class="org-right">17</td>
+<td class="org-right">255268</td>
+<td class="org-right">7328660</td>
+<td class="org-right">28</td>
+<td class="org-right">5</td>
+<td class="org-right">51</td>
+</tr>
+
+<tr>
+<td class="org-right">18</td>
+<td class="org-right">1282</td>
+<td class="org-right">39984</td>
+<td class="org-right">31</td>
+<td class="org-right">16</td>
+<td class="org-right">45</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="outline-container-orgfc55dd5" class="outline-3">
+<h3 id="orgfc55dd5"><span class="section-number-3">3.1.</span> Seven-segment display for 10 digits</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+Total chains generated: 7,461,658
+</p>
+
+<p>
+Number of unique optimal chains: 3
+</p>
+
+\begin{aligned}
+    x_5    &= x_1  \lor   x_2                   & \quad
+    x_9    &= x_5  <      x_8    = \overline{f} & \quad
+    x_{13} &= x_3  <      x_{10} = \overline{a} & \\
+
+    x_6    &= x_3  \oplus x_5                   & \quad
+    x_{10} &= x_6  \oplus x_8    = \overline{d} & \quad
+    x_{14} &= x_4  \lor   x_{10} = \overline{e} & \\
+
+    x_7    &= x_2  <      x_6                   & \quad
+    x_{11} &= x_4  <      x_9    = \overline{c} & \quad
+    x_{15} &= x_6  \lor   x_{12} = g            & \\
+
+    x_8    &= x_4  \lor   x_7                   & \quad
+    x_{12} &= x_2  >      x_{10} = \overline{b} & \\
+\end{aligned}
+</div>
+</div>
+<div id="outline-container-orga8e7c15" class="outline-3">
+<h3 id="orga8e7c15"><span class="section-number-3">3.2.</span> Seven-segment display for 11 digits</h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+Total chains generated: 344,252,541
+</p>
+
+<p>
+Number of unique optimal chains: 91
+</p>
+
+\begin{aligned}
+    x_5    &= x_1    \lor   x_2                   & \quad
+    x_9    &= x_3    \oplus x_7                   & \quad
+    x_{13} &= x_9    \oplus x_{10} = \overline{d} & \\
+
+    x_6    &= x_1    \oplus x_3                   & \quad
+    x_{10} &= x_5    <      x_8    = \overline{f} & \quad
+    x_{14} &= x_3    <      x_{13} = \overline{a} & \\
+
+    x_7    &= x_2    >      x_4                   & \quad
+    x_{11} &= x_2    >      x_9    = \overline{b} & \quad
+    x_{15} &= x_8    \oplus x_{13} = g            & \\
+
+    x_8    &= x_4    \lor   x_6                   & \quad
+    x_{12} &= x_4    <      x_{10} = \overline{c} & \quad
+    x_{16} &= x_4    \lor   x_{14} = \overline{e} & \\
+
+\end{aligned}
+</div>
+</div>
+<div id="outline-container-orga8cd69b" class="outline-3">
+<h3 id="orga8cd69b"><span class="section-number-3">3.3.</span> Seven-segment display for 12 digits</h3>
+<div class="outline-text-3" id="text-3-3">
+<p>
+Total chains generated: 263,675,232,692
+</p>
+
+<p>
+Number of unique optimal chains: 6
+</p>
+
+\begin{aligned}
+    x_5    &= x_1    \oplus x_3                   & \quad
+    x_{10} &= x_3    \oplus x_9                   & \quad
+    x_{15} &= x_7    \lor   x_{13} = g            & \\
+
+    x_6    &= x_3    \oplus x_4                   & \quad
+    x_{11} &= x_5    <      x_{10} = \overline{a} & \quad
+    x_{16} &= x_9    <      x_{13} = \overline{b} & \\
+
+    x_7    &= x_2    <      x_5                   & \quad
+    x_{12} &= x_6    \lor   x_{11}                & \quad
+    x_{17} &= x_{10} >      x_{13} = \overline{f} & \\
+
+    x_8    &= x_6    >      x_7                   & \quad
+    x_{13} &= x_8    \oplus x_{11}                & \quad
+    x_{18} &= x_4    <      x_{17} = \overline{c} & \\
+
+    x_9    &= x_2    \oplus x_8    = \overline{d} & \quad
+    x_{14} &= x_3    \oplus x_{12} = \overline{e} & \\
+\end{aligned}
+</div>
+</div>
+<div id="outline-container-orgd38522d" class="outline-3">
+<h3 id="orgd38522d"><span class="section-number-3">3.4.</span> Seven-segment display for 13 digits</h3>
+<div class="outline-text-3" id="text-3-4">
+<p>
+Total chains generated: 15,586,512,093,540
+</p>
+
+<p>
+Number of unique optimal chains: 1 (!)
+</p>
+
+\begin{aligned}
+    x_5    &= x_2    \oplus x_3                   & \quad
+    x_{10} &= x_5    \lor   x_9    = g            & \quad
+    x_{15} &= x_6    \land  x_{14} = \overline{a} & \\
+
+    x_6    &= x_2    \oplus x_4                   & \quad
+    x_{11} &= x_7    >      x_9    = \overline{f} & \quad
+    x_{16} &= x_9    \land  x_{15}                & \\
+
+    x_7    &= x_5    \lor   x_6                   & \quad
+    x_{12} &= x_4    <      x_{11} = \overline{c} & \quad
+    x_{17} &= x_4    \oplus x_{16} = \overline{e} & \\
+
+    x_8    &= x_2    \land  x_7                   & \quad
+    x_{13} &= x_8    \lor   x_{11}                & \quad
+    x_{18} &= x_8    \oplus x_{16} = \overline{b} & \\
+
+    x_9    &= x_1    \oplus x_8                   & \quad
+    x_{14} &= x_3    \oplus x_{13}                & \quad
+    x_{19} &= x_{14} >      x_{18} = \overline{d} & \\
+
+\end{aligned}
+</div>
+</div>
+<div id="outline-container-orgbb15a5b" class="outline-3">
+<h3 id="orgbb15a5b"><span class="section-number-3">3.5.</span> Seven-segment display for 14 digits</h3>
+<div class="outline-text-3" id="text-3-5">
+<p>
+Total chains generated: 1,172,393,232,657,510
+</p>
+
+<p>
+Number of unique optimal chains: 35
+</p>
+
+\begin{aligned}
+    x_5    &= x_1    \oplus x_2                   & \quad
+    x_{11} &= x_5    <      x_9    = \overline{f} & \quad
+    x_{17} &= x_1    \oplus x_{15} = \overline{e} & \\
+
+    x_6    &= x_1    \oplus x_4                   & \quad
+    x_{12} &= x_8    \oplus x_9    = \overline{a} & \quad
+    x_{18} &= x_{13} <      x_{15} = \overline{d} & \\
+
+    x_7    &= x_3    \oplus x_4                   & \quad
+    x_{13} &= x_2    \oplus x_{10}                & \quad
+    x_{19} &= x_{13} \land  x_{16} = \overline{b} & \\
+
+    x_8    &= x_3    \lor   x_5                   & \quad
+    x_{14} &= x_4    <      x_{11} = \overline{c} & \quad
+    x_{20} &= x_{13} \lor   x_{16} = g            & \\
+
+    x_9    &= x_6    \lor   x_7                   & \quad
+    x_{15} &= x_6    \lor   x_{12}                & \\
+
+    x_{10} &= x_7    <      x_8                   & \quad
+    x_{16} &= x_7    \oplus x_{12}                & \\
+\end{aligned}
+
+<p>
+This chain almost solves the 15 digit case, with one segment missing from
+the <code>E</code>. So close!
+<img src="./14-digits-segments.svg" alt="14-digits-segments.svg" class="org-svg" />
+</p>
+</div>
+</div>
+<div id="outline-container-org6c1b20b" class="outline-3">
+<h3 id="org6c1b20b"><span class="section-number-3">3.6.</span> Seven-segment display for 15 digits</h3>
+<div class="outline-text-3" id="text-3-6">
+<p>
+Total chains generated: 2,623,870,804,835,610
+</p>
+
+<p>
+Number of unique optimal chains: 0 [so far]
+</p>
+</div>
+</div>
+<div id="outline-container-orgb91382b" class="outline-3">
+<h3 id="orgb91382b"><span class="section-number-3">3.7.</span> Seven-segment display for 16 digits</h3>
+<div class="outline-text-3" id="text-3-7">
+<p>
+?
+</p>
+</div>
+</div>
+<div id="outline-container-org1da78ce" class="outline-3">
+<h3 id="org1da78ce"><span class="section-number-3">3.8.</span> Exercise 7.1.2-54</h3>
+<div class="outline-text-3" id="text-3-8">
+<p>
+Total chains generated: 934,236,665,700
+</p>
+
+<p>
+Number of unique optimal chains: 1270
+</p>
+
+<p>
+The minimal length is 13, one step shorter than the solution known in the book.
+</p>
+
+<p>
+Here is the first one found, by sheer coincidence it finds all target functions
+at the end.
+</p>
+
+\begin{aligned}
+    x_5    &= x_1    \land  x_2          & \quad
+    x_{10} &= x_4    >      x_7          & \quad
+    x_{15} &= x_7    \land  x_{11} = f_1 & \\
+
+    x_6    &= x_1    \oplus x_3          & \quad
+    x_{11} &= x_6    \oplus x_8          & \quad
+    x_{16} &= x_9    >      x_{13} = f_3 & \\
+
+    x_7    &= x_2    \oplus x_3          & \quad
+    x_{12} &= x_5    \land  x_9    = f_5 & \quad
+    x_{17} &= x_4    \land  x_{15} = f_6 & \\
+
+    x_8    &= x_4    \lor   x_5          & \quad
+    x_{13} &= x_1    \land  x_{10} = f_4 & \\
+
+    x_9    &= x_4    \land  x_6          & \quad
+    x_{14} &= x_6    <      x_{10} = f_2 & \\
+\end{aligned}
+</div>
+</div>
+<div id="outline-container-org7c97c3d" class="outline-3">
+<h3 id="org7c97c3d"><span class="section-number-3">3.9.</span> Exercise 7.1.2-59</h3>
+<div class="outline-text-3" id="text-3-9">
+<p>
+Total chains generated: 29,104,454,427,931
+</p>
+
+<p>
+Number of unique optimal chains of length 16 or fewer: 0
+</p>
+
+<p>
+Therefore the chain of length 17 presented in the book is optimal.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org44c3069" class="outline-2">
+<h2 id="org44c3069"><span class="section-number-2">4.</span> Source code</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+The code can be found on GitHub: <a href="https://github.com/or/boolean-chains">https://github.com/or/boolean-chains</a>
+</p>
+
+<p>
+Initially I used this to learn a bit of Rust, then re-implemented it in C++,
+then switched over to C++ completely as I made better progress. I wonder whether
+it could be even faster in Rust, however, if written by someone who knows Rust
+better than me.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Date: 2025-03-01 Sat 00:00</p>
+<p class="author">Author: Oliver Runge</p>
+<p class="date">Created: 2025-03-03 Mon 13:47</p>
+</div>
+</body>
+</html>
