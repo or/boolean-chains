@@ -158,7 +158,6 @@ inline void seen_remove(uint32_t bit) {
   }
 
 void print_chain(const size_t chain_size) {
-  return;
   cout << "chain (" << chain_size << "):" << endl;
   for (size_t i = 0; i < chain_size; i++) {
     cout << "x" << i + 1;
