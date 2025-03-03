@@ -232,9 +232,9 @@ $I(N(l)) \leftarrow f$, and $N(l) \leftarrow N(l) + 1$.
 :PROPERTIES:
 :CUSTOM_ID: performance
 :END:
-My latest version of this program processes around 400-420 million chains per
+My latest version of this program processes around 510-530 million chains per
 second on my MacBook Air (M2, 2023). On AWS Batch with Fargate capacity on 1
-vCPU it processes around 150-200 million chains per second; so about 38-51
+vCPU it processes around 200-230 million chains per second; so about 51-59
 thousand million chains per second across 256 jobs.
 
 The program might be suitable for the GPU, but I have no experience with GPU
