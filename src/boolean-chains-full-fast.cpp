@@ -11,14 +11,11 @@ using namespace std;
 #define CAPTURE_STATS 1
 #endif
 
-#ifndef PLAN_MODE
-#define PLAN_MODE 0
-#endif
-
 #if CAPTURE_STATS
 #define CAPTURE_STATS_CALL                                                     \
   {                                                                            \
-    const auto new_expressions = next_expressions_size - expressions_size;     \
+    const auto new_expressions =                                               \
+        expressions_size[chain_size] - expressions_size[chain_size - 1];       \
     if (new_expressions < stats_min_num_expressions[chain_size]) {             \
       stats_min_num_expressions[chain_size] = new_expressions;                 \
     }                                                                          \
@@ -32,9 +29,9 @@ using namespace std;
 #define CAPTURE_STATS_CALL
 #endif
 
-constexpr uint32_t N = 15;
+constexpr uint32_t N = 12;
 constexpr uint32_t SIZE = 1 << (N - 1);
-constexpr uint32_t MAX_LENGTH = 21;
+constexpr uint32_t MAX_LENGTH = 18;
 constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
 constexpr uint32_t TARGET_1 =
     ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY;
@@ -55,19 +52,8 @@ constexpr uint32_t TARGETS[] = {
 };
 constexpr uint32_t NUM_TARGETS = sizeof(TARGETS) / sizeof(uint32_t);
 
-uint32_t TARGET_LOOKUP[SIZE] = {0};
-
-bool chunk_mode = false;
-uint16_t start_indices[100] = {0};
-size_t start_indices_size = 0;
-size_t current_best_length = 1000;
-uint16_t choices[30];
-uint64_t total_chains = 0;
 uint32_t start_chain_length;
-uint32_t seen[SIZE] __attribute__((aligned(64)));
-uint32_t chain[25] __attribute__((aligned(64)));
-uint32_t expressions[1000] __attribute__((aligned(64)));
-
+uint64_t total_chains = 0;
 #if CAPTURE_STATS
 #define UNDEFINED 0xffffffff
 uint64_t stats_total_num_expressions[25] = {0};
@@ -76,16 +62,13 @@ uint32_t stats_max_num_expressions[25] = {0};
 uint64_t stats_num_data_points[25] = {0};
 #endif
 
-#if PLAN_MODE
-size_t plan_depth = 1;
-#endif
-
 #define ADD_EXPRESSION(expressions_size, value)                                \
   expressions[expressions_size] = value;                                       \
   expressions_size += seen[value];                                             \
   seen[value] = 0;
 
 #define GENERATE_NEW_EXPRESSIONS                                               \
+  expressions_size[chain_size] = expressions_size[chain_size - 1];             \
   const uint32_t h = chain[chain_size - 1];                                    \
   const uint32_t not_h = ~h;                                                   \
   for (size_t j = 0; j < chain_size - 1; j++) {                                \
@@ -93,22 +76,23 @@ size_t plan_depth = 1;
     const uint32_t not_g = ~g;                                                 \
                                                                                \
     const uint32_t ft1 = g & h;                                                \
-    ADD_EXPRESSION(next_expressions_size, ft1)                                 \
+    ADD_EXPRESSION(expressions_size[chain_size], ft1)                          \
                                                                                \
     const uint32_t ft2 = g & not_h;                                            \
-    ADD_EXPRESSION(next_expressions_size, ft2)                                 \
+    ADD_EXPRESSION(expressions_size[chain_size], ft2)                          \
                                                                                \
     const uint32_t ft3 = g ^ h;                                                \
-    ADD_EXPRESSION(next_expressions_size, ft3)                                 \
+    ADD_EXPRESSION(expressions_size[chain_size], ft3)                          \
                                                                                \
     const uint32_t ft4 = g | h;                                                \
-    ADD_EXPRESSION(next_expressions_size, ft4)                                 \
+    ADD_EXPRESSION(expressions_size[chain_size], ft4)                          \
                                                                                \
     const uint32_t ft5 = not_g & h;                                            \
-    ADD_EXPRESSION(next_expressions_size, ft5)                                 \
+    ADD_EXPRESSION(expressions_size[chain_size], ft5)                          \
   }
 
-void print_chain(const size_t chain_size) {
+void print_chain(const uint32_t *chain, const uint32_t *target_lookup,
+                 const size_t chain_size) {
   cout << "chain (" << chain_size << "):" << endl;
   for (size_t i = 0; i < chain_size; i++) {
     cout << "x" << i + 1;
@@ -133,104 +117,12 @@ void print_chain(const size_t chain_size) {
       }
     }
     cout << " = " << bitset<N>(chain[i]).to_string();
-    if (TARGET_LOOKUP[chain[i]]) {
+    if (target_lookup[chain[i]]) {
       cout << " [target]";
     }
     cout << endl;
   }
   cout << endl;
-}
-
-void find_optimal_chain(const size_t chain_size,
-                        const size_t num_unfulfilled_target_functions,
-                        const size_t expressions_size,
-                        const size_t expressions_index) {
-#if PLAN_MODE
-  if (chain_size - start_chain_length >= plan_depth) {
-    cout << "-c";
-    for (size_t j = start_chain_length; j < chain_size; ++j) {
-      cout << " " << choices[j];
-    }
-    cout << endl;
-    return;
-  }
-#endif
-
-  const size_t next_chain_size = chain_size + 1;
-  size_t next_expressions_size = expressions_size;
-
-  GENERATE_NEW_EXPRESSIONS
-
-  CAPTURE_STATS_CALL
-
-  for (size_t i = expressions_index; i < next_expressions_size;) {
-    choices[chain_size] = i;
-    chain[chain_size] = expressions[i];
-    const uint32_t next_num_unfulfilled_targets =
-        num_unfulfilled_target_functions - TARGET_LOOKUP[chain[chain_size]];
-
-    total_chains++;
-    if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-      for (size_t j = start_chain_length; j < next_chain_size; ++j) {
-        cout << choices[j] << ", ";
-      }
-      cout << "[best: " << current_best_length << "] " << total_chains << endl;
-      // exit(0);
-    }
-
-    if (next_chain_size + next_num_unfulfilled_targets > MAX_LENGTH) {
-      i++;
-      continue;
-    }
-
-    if (__builtin_expect(!next_num_unfulfilled_targets, 0)) {
-      print_chain(next_chain_size);
-      if (next_chain_size < current_best_length) {
-        current_best_length = next_chain_size;
-      }
-      i++;
-      continue;
-    }
-
-    // do this manually here, this avoids an extra addition for i + 1 in the
-    // call
-    i++;
-    find_optimal_chain(next_chain_size, next_num_unfulfilled_targets,
-                       next_expressions_size, i);
-  }
-
-  for (size_t i = expressions_size; i < next_expressions_size; i++) {
-    seen[expressions[i]] = 1;
-  }
-}
-
-void find_optimal_chain_restore_progress(
-    const size_t chain_size, const size_t num_unfulfilled_target_functions,
-    const size_t expressions_size, const size_t expressions_index) {
-  const size_t next_chain_size = chain_size + 1;
-  size_t next_expressions_size = expressions_size;
-
-  GENERATE_NEW_EXPRESSIONS
-
-  choices[chain_size] = start_indices[chain_size];
-  chain[chain_size] = expressions[start_indices[chain_size]];
-  const uint32_t next_num_unfulfilled_targets =
-      num_unfulfilled_target_functions - TARGET_LOOKUP[chain[chain_size]];
-
-  cout << "skipping to ";
-  for (size_t j = start_chain_length; j < chain_size; ++j) {
-    cout << choices[j] << ", ";
-  }
-  cout << choices[chain_size] << endl;
-
-  if (next_chain_size < start_indices_size) {
-    find_optimal_chain_restore_progress(
-        next_chain_size, next_num_unfulfilled_targets, next_expressions_size,
-        choices[chain_size] + 1);
-  } else {
-    find_optimal_chain(next_chain_size, next_num_unfulfilled_targets,
-                       next_expressions_size, choices[chain_size] + 1);
-  }
 }
 
 void on_exit() {
@@ -268,11 +160,15 @@ void on_exit() {
 void signal_handler(int signal) { exit(signal); }
 
 int main(int argc, char *argv[]) {
-#if PLAN_MODE
-  if (argc > 1) {
-    plan_depth = atoi(argv[1]);
-  }
-#else
+  size_t current_best_length = 1000;
+  uint32_t num_unfulfilled_targets = NUM_TARGETS;
+  alignas(64) uint32_t choices[30];
+  alignas(64) uint32_t target_lookup[SIZE] = {0};
+  alignas(64) uint32_t seen[SIZE];
+  alignas(64) uint32_t chain[25];
+  alignas(64) uint32_t expressions[600];
+  alignas(64) uint32_t expressions_size[25];
+
   atexit(on_exit);
   signal(SIGINT, signal_handler);
   signal(SIGTERM, signal_handler);
@@ -280,24 +176,16 @@ int main(int argc, char *argv[]) {
   cout << "N = " << N << ", MAX_LENGTH: " << MAX_LENGTH
        << ", CAPTURE_STATS: " << CAPTURE_STATS << endl;
 
-  size_t start_i = 1;
-  // -c for chunk mode, only complete one slice of the depth given by the
-  // progress vector
-  if (argc > 1 && strcmp(argv[1], "-c") == 0) {
-    start_i++;
-    chunk_mode = true;
+  for (size_t i = 0; i < SIZE; i++) {
+    // flip the logic: 1 means unseen, 0 seen, that'll avoid one operation when
+    // setting this flag
+    seen[i] = 1;
   }
 
-#endif
-
-#if PLAN_MODE != 1
   cout << NUM_TARGETS << " targets:" << endl;
-#endif
   for (size_t i = 0; i < NUM_TARGETS; i++) {
-#if PLAN_MODE != 1
     cout << "  " << bitset<N>(TARGETS[i]).to_string() << endl;
-#endif
-    TARGET_LOOKUP[TARGETS[i]] = 1;
+    target_lookup[TARGETS[i]] = 1;
   }
 
 #if CAPTURE_STATS
@@ -312,30 +200,13 @@ int main(int argc, char *argv[]) {
   size_t chain_size = 4;
   start_chain_length = chain_size;
 
-  for (size_t i = 0; i < chain_size; i++) {
-    start_indices[start_indices_size++] = 0;
-  }
-
-#if PLAN_MODE != 1
-  // read the progress vector, e.g 5 2 9, commas will be ignored: 5, 2, 9
-  for (size_t i = start_i; i < argc; i++) {
-    start_indices[start_indices_size++] = atoi(argv[i]);
-  }
-#endif
-
-  for (size_t i = 0; i < SIZE; i++) {
-    // flip the logic: 1 means unseen, 0 seen, that'll avoid one operation when
-    // setting this flag
-    seen[i] = 1;
-  }
-
   seen[0] = 0;
   for (size_t i = 0; i < chain_size; i++) {
     seen[chain[i]] = 0;
   }
 
-  const uint32_t expressions_size = 0;
-  size_t next_expressions_size = 0;
+  expressions_size[chain_size - 2] = 0;
+  expressions_size[chain_size - 1] = 0;
   for (size_t k = 1; k < chain_size - 1; k++) {
     const uint32_t h = chain[k];
     const uint32_t not_h = ~h;
@@ -344,19 +215,19 @@ int main(int argc, char *argv[]) {
       const uint32_t not_g = ~g;
 
       const uint32_t ft1 = g & h;
-      ADD_EXPRESSION(next_expressions_size, ft1)
+      ADD_EXPRESSION(expressions_size[chain_size - 1], ft1)
 
       const uint32_t ft2 = g & not_h;
-      ADD_EXPRESSION(next_expressions_size, ft2)
+      ADD_EXPRESSION(expressions_size[chain_size - 1], ft2)
 
       const uint32_t ft3 = g ^ h;
-      ADD_EXPRESSION(next_expressions_size, ft3)
+      ADD_EXPRESSION(expressions_size[chain_size - 1], ft3)
 
       const uint32_t ft4 = g | h;
-      ADD_EXPRESSION(next_expressions_size, ft4)
+      ADD_EXPRESSION(expressions_size[chain_size - 1], ft4)
 
       const uint32_t ft5 = not_g & h;
-      ADD_EXPRESSION(next_expressions_size, ft5)
+      ADD_EXPRESSION(expressions_size[chain_size - 1], ft5)
     }
   }
 
@@ -365,12 +236,65 @@ int main(int argc, char *argv[]) {
   CAPTURE_STATS_CALL
   chain_size++;
 
-  if (chunk_mode) {
-    find_optimal_chain_restore_progress(chain_size, NUM_TARGETS,
-                                        next_expressions_size, 0);
-  } else {
-    find_optimal_chain(chain_size, NUM_TARGETS, next_expressions_size, 0);
+  // so that the first addition in the loop results in 0 for the first choice
+  choices[chain_size] = 0xffffffff;
+
+start:
+
+  GENERATE_NEW_EXPRESSIONS
+
+  CAPTURE_STATS_CALL
+
+next:
+  choices[chain_size]++;
+  if (choices[chain_size] < expressions_size[chain_size]) {
+    chain[chain_size] = expressions[choices[chain_size]];
+    num_unfulfilled_targets -= target_lookup[chain[chain_size]];
+
+    total_chains++;
+    if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+      for (size_t j = start_chain_length; j < chain_size; ++j) {
+        cout << choices[j] << ", ";
+      }
+      cout << choices[chain_size] << " [best: " << current_best_length << "] "
+           << total_chains << endl;
+      // exit(0);
+    }
+
+    if (chain_size + num_unfulfilled_targets >= MAX_LENGTH) {
+      // no need to do this, as it must have been 0 to end up in this path
+      // num_unfulfilled_targets += target_lookup[chain[chain_size]];
+      goto next;
+    }
+
+    if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+      print_chain(chain, target_lookup, chain_size + 1);
+      if (chain_size + 1 < current_best_length) {
+        current_best_length = chain_size + 1;
+      }
+      // it must have been 1 to end up in this path, so we can just increment
+      // num_unfulfilled_targets += target_lookup[chain[chain_size]];
+      num_unfulfilled_targets++;
+      goto next;
+    }
+
+    chain_size++;
+    choices[chain_size] = choices[chain_size - 1];
+    goto start;
   }
+
+  for (size_t i = expressions_size[chain_size - 1];
+       i < expressions_size[chain_size]; i++) {
+    seen[expressions[i]] = 1;
+  }
+
+  chain_size--;
+  if (__builtin_expect(chain_size < start_chain_length, 0)) {
+    return 0;
+  }
+  num_unfulfilled_targets += target_lookup[chain[chain_size]];
+
+  goto next;
 
   return 0;
 }
