@@ -63,7 +63,7 @@ size_t start_indices_size = 0;
 size_t current_best_length = 1000;
 uint16_t choices[30];
 uint64_t total_chains = 0;
-constexpr uint32_t start_chain_length = 4;
+uint32_t start_chain_length;
 uint32_t seen[SIZE] __attribute__((aligned(64)));
 uint32_t chain[25] __attribute__((aligned(64)));
 uint32_t expressions[1000] __attribute__((aligned(64)));
@@ -316,6 +316,7 @@ int main(int argc, char *argv[]) {
   chain[2] = 0b0011001100110011 >> (16 - N);
   chain[3] = 0b0101010101010101 >> (16 - N);
   size_t chain_size = 4;
+  start_chain_length = chain_size;
 
   for (size_t i = 0; i < chain_size; i++) {
     start_indices[start_indices_size++] = 0;
