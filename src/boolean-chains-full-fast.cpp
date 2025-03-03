@@ -172,12 +172,9 @@ void find_optimal_chain(const size_t chain_size,
     total_chains++;
     if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
       for (size_t j = start_chain_length; j < next_chain_size; ++j) {
-        cout << choices[j];
-        if (j != next_chain_size - 1) {
-          cout << ", ";
-        }
+        cout << choices[j] << ", ";
       }
-      cout << " [best: " << current_best_length << "] " << total_chains << endl;
+      cout << "[best: " << current_best_length << "] " << total_chains << endl;
       // exit(0);
     }
 
@@ -187,12 +184,9 @@ void find_optimal_chain(const size_t chain_size,
     }
 
     if (__builtin_expect(!next_num_unfulfilled_targets, 0)) {
+      print_chain(next_chain_size);
       if (next_chain_size < current_best_length) {
-        cout << "New best chain found (" << next_chain_size << "):" << endl;
-        print_chain(next_chain_size);
         current_best_length = next_chain_size;
-      } else if (next_chain_size == current_best_length) {
-        print_chain(next_chain_size);
       }
       i++;
       continue;
