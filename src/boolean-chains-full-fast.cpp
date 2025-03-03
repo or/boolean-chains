@@ -162,12 +162,12 @@ void signal_handler(int signal) { exit(signal); }
 int main(int argc, char *argv[]) {
   size_t current_best_length = 1000;
   uint32_t num_unfulfilled_targets = NUM_TARGETS;
-  alignas(64) uint32_t choices[30];
-  alignas(64) uint32_t target_lookup[SIZE] = {0};
-  alignas(64) uint32_t seen[SIZE];
-  alignas(64) uint32_t chain[25];
-  alignas(64) uint32_t expressions[600];
-  alignas(64) uint32_t expressions_size[25];
+  uint32_t choices[30] __attribute__((aligned(64)));
+  uint32_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
+  uint32_t seen[SIZE] __attribute__((aligned(64)));
+  uint32_t chain[25] __attribute__((aligned(64)));
+  uint32_t expressions[600] __attribute__((aligned(64)));
+  uint32_t expressions_size[25] __attribute__((aligned(64)));
 
   atexit(on_exit);
   signal(SIGINT, signal_handler);
@@ -245,56 +245,54 @@ start:
 
   CAPTURE_STATS_CALL
 
-next:
-  choices[chain_size]++;
-  if (choices[chain_size] < expressions_size[chain_size]) {
-    chain[chain_size] = expressions[choices[chain_size]];
-    num_unfulfilled_targets -= target_lookup[chain[chain_size]];
+  do {
+    choices[chain_size]++;
+    while (choices[chain_size] < expressions_size[chain_size]) {
+      chain[chain_size] = expressions[choices[chain_size]];
+      num_unfulfilled_targets -= target_lookup[chain[chain_size]];
 
-    total_chains++;
-    if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-      for (size_t j = start_chain_length; j < chain_size; ++j) {
-        cout << choices[j] << ", ";
+      total_chains++;
+      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+        for (size_t j = start_chain_length; j < chain_size; ++j) {
+          cout << choices[j] << ", ";
+        }
+        cout << choices[chain_size] << " [best: " << current_best_length << "] "
+             << total_chains << endl;
+        // exit(0);
       }
-      cout << choices[chain_size] << " [best: " << current_best_length << "] "
-           << total_chains << endl;
-      // exit(0);
-    }
 
-    if (chain_size + num_unfulfilled_targets >= MAX_LENGTH) {
-      // no need to do this, as it must have been 0 to end up in this path
-      // num_unfulfilled_targets += target_lookup[chain[chain_size]];
-      goto next;
-    }
-
-    if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-      print_chain(chain, target_lookup, chain_size + 1);
-      if (chain_size + 1 < current_best_length) {
-        current_best_length = chain_size + 1;
+      if (chain_size + num_unfulfilled_targets >= MAX_LENGTH) {
+        // no need to do this, as it must have been 0 to end up in this path
+        // num_unfulfilled_targets += target_lookup[chain[chain_size]];
+        choices[chain_size]++;
+        continue;
       }
-      // it must have been 1 to end up in this path, so we can just increment
-      // num_unfulfilled_targets += target_lookup[chain[chain_size]];
-      num_unfulfilled_targets++;
-      goto next;
+
+      if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+        print_chain(chain, target_lookup, chain_size + 1);
+        if (chain_size + 1 < current_best_length) {
+          current_best_length = chain_size + 1;
+        }
+        // it must have been 1 to end up in this path, so we can just increment
+        // num_unfulfilled_targets += target_lookup[chain[chain_size]];
+        num_unfulfilled_targets++;
+        choices[chain_size]++;
+        continue;
+      }
+
+      chain_size++;
+      choices[chain_size] = choices[chain_size - 1];
+      goto start;
     }
 
-    chain_size++;
-    choices[chain_size] = choices[chain_size - 1];
-    goto start;
-  }
+    for (size_t i = expressions_size[chain_size - 1];
+         i < expressions_size[chain_size]; i++) {
+      seen[expressions[i]] = 1;
+    }
 
-  for (size_t i = expressions_size[chain_size - 1];
-       i < expressions_size[chain_size]; i++) {
-    seen[expressions[i]] = 1;
-  }
-
-  chain_size--;
-  if (__builtin_expect(chain_size < start_chain_length, 0)) {
-    return 0;
-  }
-  num_unfulfilled_targets += target_lookup[chain[chain_size]];
-
-  goto next;
+    chain_size--;
+    num_unfulfilled_targets += target_lookup[chain[chain_size]];
+  } while (__builtin_expect(chain_size >= start_chain_length, 1));
 
   return 0;
 }
