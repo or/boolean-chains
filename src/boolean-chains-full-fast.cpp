@@ -67,6 +67,7 @@ uint32_t start_chain_length;
 uint32_t seen[SIZE] __attribute__((aligned(64)));
 uint32_t chain[25] __attribute__((aligned(64)));
 uint32_t expressions[1000] __attribute__((aligned(64)));
+uint32_t num_unfulfilled_targets = NUM_TARGETS;
 
 #if CAPTURE_STATS
 #define UNDEFINED 0xffffffff
@@ -141,9 +142,7 @@ void print_chain(const size_t chain_size) {
   cout << endl;
 }
 
-void find_optimal_chain(const size_t chain_size,
-                        const size_t num_unfulfilled_target_functions,
-                        const size_t expressions_size,
+void find_optimal_chain(const size_t chain_size, const size_t expressions_size,
                         const size_t expressions_index) {
 #if PLAN_MODE
   if (chain_size - start_chain_length >= plan_depth) {
@@ -166,8 +165,7 @@ void find_optimal_chain(const size_t chain_size,
   for (size_t i = expressions_index; i < next_expressions_size;) {
     choices[chain_size] = i;
     chain[chain_size] = expressions[i];
-    const uint32_t next_num_unfulfilled_targets =
-        num_unfulfilled_target_functions - TARGET_LOOKUP[chain[chain_size]];
+    num_unfulfilled_targets += TARGET_LOOKUP[chain[chain_size]];
 
     total_chains++;
     if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
@@ -178,23 +176,25 @@ void find_optimal_chain(const size_t chain_size,
       // exit(0);
     }
 
-    if (next_chain_size + next_num_unfulfilled_targets > MAX_LENGTH) {
+    if (next_chain_size + num_unfulfilled_targets > MAX_LENGTH) {
       i++;
+      num_unfulfilled_targets -= TARGET_LOOKUP[chain[chain_size]];
       continue;
     }
 
-    if (__builtin_expect(!next_num_unfulfilled_targets, 0)) {
+    if (__builtin_expect(!num_unfulfilled_targets, 0)) {
       print_chain(next_chain_size);
       current_best_length = next_chain_size;
       i++;
+      num_unfulfilled_targets -= TARGET_LOOKUP[chain[chain_size]];
       continue;
     }
 
     // do this manually here, this avoids an extra addition for i + 1 in the
     // call
     i++;
-    find_optimal_chain(next_chain_size, next_num_unfulfilled_targets,
-                       next_expressions_size, i);
+    find_optimal_chain(next_chain_size, next_expressions_size, i);
+    num_unfulfilled_targets -= TARGET_LOOKUP[chain[chain_size]];
   }
 
   for (size_t i = expressions_size; i < next_expressions_size; i++) {
@@ -202,9 +202,9 @@ void find_optimal_chain(const size_t chain_size,
   }
 }
 
-void find_optimal_chain_restore_progress(
-    const size_t chain_size, const size_t num_unfulfilled_target_functions,
-    const size_t expressions_size, const size_t expressions_index) {
+void find_optimal_chain_restore_progress(const size_t chain_size,
+                                         const size_t expressions_size,
+                                         const size_t expressions_index) {
   const size_t next_chain_size = chain_size + 1;
   size_t next_expressions_size = expressions_size;
 
@@ -212,8 +212,8 @@ void find_optimal_chain_restore_progress(
 
   choices[chain_size] = start_indices[chain_size];
   chain[chain_size] = expressions[start_indices[chain_size]];
-  const uint32_t next_num_unfulfilled_targets =
-      num_unfulfilled_target_functions - TARGET_LOOKUP[chain[chain_size]];
+
+  num_unfulfilled_targets += TARGET_LOOKUP[chain[chain_size]];
 
   cout << "skipping to ";
   for (size_t j = start_chain_length; j < chain_size; ++j) {
@@ -222,13 +222,13 @@ void find_optimal_chain_restore_progress(
   cout << choices[chain_size] << endl;
 
   if (next_chain_size < start_indices_size) {
-    find_optimal_chain_restore_progress(
-        next_chain_size, next_num_unfulfilled_targets, next_expressions_size,
-        choices[chain_size] + 1);
+    find_optimal_chain_restore_progress(next_chain_size, next_expressions_size,
+                                        choices[chain_size] + 1);
   } else {
-    find_optimal_chain(next_chain_size, next_num_unfulfilled_targets,
-                       next_expressions_size, choices[chain_size] + 1);
+    find_optimal_chain(next_chain_size, next_expressions_size,
+                       choices[chain_size] + 1);
   }
+  num_unfulfilled_targets -= TARGET_LOOKUP[chain[chain_size]];
 }
 
 void on_exit() {
@@ -364,10 +364,9 @@ int main(int argc, char *argv[]) {
   chain_size++;
 
   if (chunk_mode) {
-    find_optimal_chain_restore_progress(chain_size, NUM_TARGETS,
-                                        next_expressions_size, 0);
+    find_optimal_chain_restore_progress(chain_size, next_expressions_size, 0);
   } else {
-    find_optimal_chain(chain_size, NUM_TARGETS, next_expressions_size, 0);
+    find_optimal_chain(chain_size, next_expressions_size, 0);
   }
 
   return 0;
