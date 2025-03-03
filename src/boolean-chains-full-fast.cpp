@@ -81,14 +81,9 @@ size_t plan_depth = 1;
 #endif
 
 #define ADD_EXPRESSION(expressions_size, value)                                \
-  {                                                                            \
-    const uint32_t old_value = seen[value];                                    \
-    seen[value] = 1;                                                           \
-    expressions[expressions_size] = value;                                     \
-    expressions_size += __builtin_expect((old_value != 1), 0);                 \
-  }
-// for the expect 0 above: testing for the first 2^32 chains of N=13, L=19
-// revealed: 0: 70.5% 1: 29.5%
+  expressions[expressions_size] = value;                                       \
+  expressions_size += seen[value];                                             \
+  seen[value] = 0;
 
 #define GENERATE_NEW_EXPRESSIONS                                               \
   const uint32_t h = chain[chain_size - 1];                                    \
@@ -211,7 +206,7 @@ void find_optimal_chain(const size_t chain_size,
   }
 
   for (size_t i = expressions_size; i < next_expressions_size; i++) {
-    seen[expressions[i]] = 0;
+    seen[expressions[i]] = 1;
   }
 }
 
@@ -333,9 +328,15 @@ int main(int argc, char *argv[]) {
   }
 #endif
 
-  seen[0] = 1;
+  for (size_t i = 0; i < SIZE; i++) {
+    // flip the logic: 1 means unseen, 0 seen, that'll avoid one operation when
+    // setting this flag
+    seen[i] = 1;
+  }
+
+  seen[0] = 0;
   for (size_t i = 0; i < chain_size; i++) {
-    seen[chain[i]] = 1;
+    seen[chain[i]] = 0;
   }
 
   const uint32_t expressions_size = 0;
