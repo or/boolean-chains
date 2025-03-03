@@ -33,7 +33,7 @@ using namespace std;
 #endif
 
 constexpr uint32_t N = 15;
-constexpr uint32_t SIZE = ((1 << (N - 1)) + 31) / 32;
+constexpr uint32_t SIZE = 1 << (N - 1);
 constexpr uint32_t MAX_LENGTH = 21;
 constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
 constexpr uint32_t TARGET_1 =
@@ -80,56 +80,12 @@ uint64_t stats_num_data_points[25] = {0};
 size_t plan_depth = 1;
 #endif
 
-inline uint32_t target_lookup_get(const uint32_t bit) {
-  const uint32_t index = bit >> 5;
-  const uint32_t bit_index = bit & 0b11111;
-  return (TARGET_LOOKUP[index] >> bit_index) & 1;
-}
-
-inline void target_lookup_insert(const uint32_t bit) {
-  const uint32_t index = bit >> 5;
-  const uint32_t bit_index = bit & 0b11111;
-  TARGET_LOOKUP[index] |= (1 << bit_index);
-}
-
-inline uint32_t seen_get(const uint32_t bit) {
-  const uint32_t index = bit >> 5;
-  const uint32_t bit_index = bit & 0b11111;
-  return (seen[index] >> bit_index) & 1;
-}
-
-inline void seen_insert(const uint32_t bit) {
-  const uint32_t index = bit >> 5;
-  const uint32_t bit_index = bit & 0b11111;
-  seen[index] |= (1 << bit_index);
-}
-
-inline bool seen_insert_if_not_present(const uint32_t bit) {
-  const uint32_t index = bit >> 5;
-  const uint32_t bit_index = bit & 0b11111;
-  if ((seen[index] >> bit_index) & 1) {
-    return false;
-  }
-  seen[index] |= (1 << bit_index);
-  return true;
-}
-
-inline void seen_remove(const uint32_t bit) {
-  const uint32_t index = bit >> 5;
-  const uint32_t bit_index = bit & 0b11111;
-  seen[index] &= ~(1 << bit_index);
-}
-
 #define ADD_EXPRESSION(expressions_size, value)                                \
   {                                                                            \
-    const uint32_t index = value >> 5;                                         \
-    const uint32_t bit_index = value & 0b11111;                                \
-    const uint32_t shifted = 1 << bit_index;                                   \
-    const uint32_t old_value = seen[index];                                    \
-    const uint32_t new_value = old_value | shifted;                            \
-    seen[index] = new_value;                                                   \
+    const uint32_t old_value = seen[value];                                    \
+    seen[value] = 1;                                                           \
     expressions[expressions_size] = value;                                     \
-    expressions_size += __builtin_expect((old_value != new_value), 0);         \
+    expressions_size += __builtin_expect((old_value != 1), 0);                 \
   }
 // for the expect 0 above: testing for the first 2^32 chains of N=13, L=19
 // revealed: 0: 70.5% 1: 29.5%
@@ -182,7 +138,7 @@ void print_chain(const size_t chain_size) {
       }
     }
     cout << " = " << bitset<N>(chain[i]).to_string();
-    if (target_lookup_get(chain[i])) {
+    if (TARGET_LOOKUP[chain[i]]) {
       cout << " [target]";
     }
     cout << endl;
@@ -216,7 +172,7 @@ void find_optimal_chain(const size_t chain_size,
     choices[chain_size] = i;
     chain[chain_size] = expressions[i];
     const uint32_t next_num_unfulfilled_targets =
-        num_unfulfilled_target_functions - target_lookup_get(chain[chain_size]);
+        num_unfulfilled_target_functions - TARGET_LOOKUP[chain[chain_size]];
 
     total_chains++;
     if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
@@ -255,7 +211,7 @@ void find_optimal_chain(const size_t chain_size,
   }
 
   for (size_t i = expressions_size; i < next_expressions_size; i++) {
-    seen_remove(expressions[i]);
+    seen[expressions[i]] = 0;
   }
 }
 
@@ -270,7 +226,7 @@ void find_optimal_chain_restore_progress(
   choices[chain_size] = start_indices[chain_size];
   chain[chain_size] = expressions[start_indices[chain_size]];
   const uint32_t next_num_unfulfilled_targets =
-      num_unfulfilled_target_functions - target_lookup_get(chain[chain_size]);
+      num_unfulfilled_target_functions - TARGET_LOOKUP[chain[chain_size]];
 
   cout << "skipping to ";
   for (size_t j = start_chain_length; j < chain_size; ++j) {
@@ -352,7 +308,7 @@ int main(int argc, char *argv[]) {
 #if PLAN_MODE != 1
     cout << "  " << bitset<N>(TARGETS[i]).to_string() << endl;
 #endif
-    target_lookup_insert(TARGETS[i]);
+    TARGET_LOOKUP[TARGETS[i]] = 1;
   }
 
 #if CAPTURE_STATS
@@ -377,9 +333,9 @@ int main(int argc, char *argv[]) {
   }
 #endif
 
-  seen_insert(0);
+  seen[0] = 1;
   for (size_t i = 0; i < chain_size; i++) {
-    seen_insert(chain[i]);
+    seen[chain[i]] = 1;
   }
 
   const uint32_t expressions_size = 0;
