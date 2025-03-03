@@ -80,31 +80,31 @@ uint64_t stats_num_data_points[25] = {0};
 size_t plan_depth = 1;
 #endif
 
-inline uint32_t target_lookup_get(uint32_t bit) {
+inline uint32_t target_lookup_get(const uint32_t bit) {
   const uint32_t index = bit >> 5;
   const uint32_t bit_index = bit & 0b11111;
   return (TARGET_LOOKUP[index] >> bit_index) & 1;
 }
 
-inline void target_lookup_insert(uint32_t bit) {
+inline void target_lookup_insert(const uint32_t bit) {
   const uint32_t index = bit >> 5;
   const uint32_t bit_index = bit & 0b11111;
   TARGET_LOOKUP[index] |= (1 << bit_index);
 }
 
-inline uint32_t seen_get(uint32_t bit) {
+inline uint32_t seen_get(const uint32_t bit) {
   const uint32_t index = bit >> 5;
   const uint32_t bit_index = bit & 0b11111;
   return (seen[index] >> bit_index) & 1;
 }
 
-inline void seen_insert(uint32_t bit) {
+inline void seen_insert(const uint32_t bit) {
   const uint32_t index = bit >> 5;
   const uint32_t bit_index = bit & 0b11111;
   seen[index] |= (1 << bit_index);
 }
 
-inline bool seen_insert_if_not_present(uint32_t bit) {
+inline bool seen_insert_if_not_present(const uint32_t bit) {
   const uint32_t index = bit >> 5;
   const uint32_t bit_index = bit & 0b11111;
   if ((seen[index] >> bit_index) & 1) {
@@ -114,7 +114,7 @@ inline bool seen_insert_if_not_present(uint32_t bit) {
   return true;
 }
 
-inline void seen_remove(uint32_t bit) {
+inline void seen_remove(const uint32_t bit) {
   const uint32_t index = bit >> 5;
   const uint32_t bit_index = bit & 0b11111;
   seen[index] &= ~(1 << bit_index);
