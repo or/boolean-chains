@@ -193,8 +193,10 @@ void on_exit() {
 void signal_handler(int signal) { exit(signal); }
 
 int main(int argc, char *argv[]) {
-  size_t current_best_length = 1000;
   uint32_t num_unfulfilled_targets = NUM_TARGETS;
+  size_t current_best_length = 1000;
+  size_t start_indices_size __attribute__((aligned(64))) = 0;
+  uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
   uint32_t choices[30] __attribute__((aligned(64)));
   uint32_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
   uint32_t seen[SIZE] __attribute__((aligned(64)));
@@ -206,9 +208,26 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, signal_handler);
   signal(SIGTERM, signal_handler);
 
+  chain[0] = 0b0000000011111111 >> (16 - N);
+  chain[1] = 0b0000111100001111 >> (16 - N);
+  chain[2] = 0b0011001100110011 >> (16 - N);
+  chain[3] = 0b0101010101010101 >> (16 - N);
+  size_t chain_size = 4;
+  start_chain_length = chain_size;
+
 #if PLAN_MODE
   if (argc > 1) {
     plan_depth = atoi(argv[1]);
+  }
+#else
+  size_t start_i = 1;
+  for (size_t i = 0; i < chain_size; i++) {
+    start_indices[start_indices_size++] = 0;
+  }
+
+  // read the progress vector, e.g 5 2 9, commas will be ignored: 5, 2, 9
+  for (size_t i = start_i; i < argc; i++) {
+    start_indices[start_indices_size++] = atoi(argv[i]);
   }
 #endif
 
@@ -235,14 +254,6 @@ int main(int argc, char *argv[]) {
   memset(stats_min_num_expressions, UNDEFINED,
          sizeof(stats_min_num_expressions));
 #endif
-
-  chain[0] = 0b0000000011111111 >> (16 - N);
-  chain[1] = 0b0000111100001111 >> (16 - N);
-  chain[2] = 0b0011001100110011 >> (16 - N);
-  chain[3] = 0b0101010101010101 >> (16 - N);
-  size_t chain_size = 4;
-  start_chain_length = chain_size;
-
   seen[0] = 0;
   for (size_t i = 0; i < chain_size; i++) {
     seen[chain[i]] = 0;
@@ -270,8 +281,31 @@ int main(int argc, char *argv[]) {
   CAPTURE_STATS_CALL
   chain_size++;
 
-  // so that the first addition in the loop results in 0 for the first choice
-  choices[chain_size] = 0xffffffff;
+  // restore progress
+  if (start_indices_size > start_chain_length) {
+    while (chain_size < start_indices_size - 1) {
+      GENERATE_NEW_EXPRESSIONS
+      choices[chain_size] = start_indices[chain_size];
+      chain[chain_size] = expressions[choices[chain_size]];
+      num_unfulfilled_targets -= target_lookup[chain[chain_size]];
+      chain_size++;
+    }
+
+    GENERATE_NEW_EXPRESSIONS
+
+    // will be incremented again in the main loop
+    choices[chain_size] = start_indices[chain_size] - 1;
+
+    // this will be counted again
+    total_chains--;
+
+    // this must not be inside the while loop, otherwise it destroys the
+    // compiler's ability to optimize, making it only about half as fast
+    goto restore_progress;
+  } else {
+    // so that the first addition in the loop results in 0 for the first choice
+    choices[chain_size] = 0xffffffff;
+  }
 
 start:
 
@@ -279,6 +313,7 @@ start:
 
   CAPTURE_STATS_CALL
 
+restore_progress:
   do {
     choices[chain_size]++;
     while (choices[chain_size] < expressions_size[chain_size]) {
