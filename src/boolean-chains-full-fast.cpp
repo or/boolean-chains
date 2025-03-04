@@ -265,7 +265,6 @@ start:
     choices[chain_size]++;
     while (choices[chain_size] < expressions_size[chain_size]) {
       chain[chain_size] = expressions[choices[chain_size]];
-      num_unfulfilled_targets -= target_lookup[chain[chain_size]];
 
       total_chains++;
       if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
@@ -277,6 +276,7 @@ start:
         // exit(0);
       }
 
+      num_unfulfilled_targets -= target_lookup[chain[chain_size]];
       if (chain_size + num_unfulfilled_targets >= MAX_LENGTH) {
         // no need to do this, as it must have been 0 to end up in this path
         // num_unfulfilled_targets += target_lookup[chain[chain_size]];
