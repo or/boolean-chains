@@ -21,19 +21,21 @@
 :END:
 - footprint heuristic
 - greedy algorithm
-** Expanding the search
+** Hungry search
 :PROPERTIES:
-:CUSTOM_ID: expanded-search
+:CUSTOM_ID: hungry-search
 :END:
 I started by using Algorithm L and Algorithm U from exercise 7.1.2-11, but
 instead of taking the best instruction based on the footprint heuristic, I tried
 the top $k_l$ instructions recursively for chain lengths $l$. With $k_l = 5$ for
-$4 < l < 9$, $k_l = 3$ for $9 < l < 13$, and $k_l = 1$ for $k \geq 13$.
+$4 \leq l < 9$, $k_l = 3$ for $9 \leq l < 13$, and $k_l = 1$ for $k \geq 13$.
+I'll call this /hungry search/, as it takes smaller and smaller bites until it
+is done.
 
-The idea is that the first few instructions are less likely to be optimal due to
-the greedy approach, so we want to try more of them. But as the chain gets
-longer the greedy algorithm does a good job of identifying the best next steps,
-so we try fewer and fewer options. This makes the search space manageable.
+The idea is that the first few instructions are less likely to be optimal when
+chosen greedily, so we want to try more of them. But as the chain gets longer
+the greedy algorithm does a good job of identifying the best next steps, so we
+try fewer and fewer options. This makes the search space manageable.
 
 I experimented with the order of the instructions in order to decide which top
 $k$ to pick. The book greedily picks the instruction that appears in most target
@@ -452,7 +454,7 @@ the ~E~. So close!
 :PROPERTIES:
 :CUSTOM_ID: 15-digits
 :END:
-Total chains generated: 5,226,376,747,363,427 [~9.4% done]
+Total chains generated: 6,971,008,363,185,938 [~10.1% done]
 
 Number of unique optimal sets of functions: 0 [so far]
 
