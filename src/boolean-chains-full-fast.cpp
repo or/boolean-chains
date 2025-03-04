@@ -193,7 +193,9 @@ void on_exit() {
 void signal_handler(int signal) { exit(signal); }
 
 int main(int argc, char *argv[]) {
+  bool chunk_mode = false;
   uint32_t num_unfulfilled_targets = NUM_TARGETS;
+  size_t stop_chain_size;
   size_t current_best_length = 1000;
   size_t start_indices_size __attribute__((aligned(64))) = 0;
   uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
@@ -221,6 +223,13 @@ int main(int argc, char *argv[]) {
   }
 #else
   size_t start_i = 1;
+  // -c for chunk mode, only complete one slice of the depth given by the
+  // progress vector
+  if (argc > 1 && strcmp(argv[1], "-c") == 0) {
+    start_i++;
+    chunk_mode = true;
+  }
+
   for (size_t i = 0; i < chain_size; i++) {
     start_indices[start_indices_size++] = 0;
   }
@@ -280,6 +289,11 @@ int main(int argc, char *argv[]) {
   // just to get the initial branch before the algorithm even starts
   CAPTURE_STATS_CALL
   chain_size++;
+
+  stop_chain_size = start_chain_length;
+  if (chunk_mode) {
+    stop_chain_size = start_indices_size;
+  }
 
   // restore progress
   if (start_indices_size > start_chain_length) {
@@ -373,7 +387,7 @@ restore_progress:
 
     chain_size--;
     num_unfulfilled_targets += target_lookup[chain[chain_size]];
-  } while (__builtin_expect(chain_size >= start_chain_length, 1));
+  } while (__builtin_expect(chain_size >= stop_chain_size, 1));
 
   return 0;
 }
