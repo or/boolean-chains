@@ -11,6 +11,10 @@ using namespace std;
 #define CAPTURE_STATS 1
 #endif
 
+#ifndef PLAN_MODE
+#define PLAN_MODE 0
+#endif
+
 #if CAPTURE_STATS
 #define CAPTURE_STATS_CALL                                                     \
   {                                                                            \
@@ -51,6 +55,10 @@ constexpr uint32_t TARGETS[] = {
     TARGET_1, TARGET_2, TARGET_3, TARGET_4, TARGET_5, TARGET_6, TARGET_7,
 };
 constexpr uint32_t NUM_TARGETS = sizeof(TARGETS) / sizeof(uint32_t);
+
+#if PLAN_MODE
+size_t plan_depth = 1;
+#endif
 
 uint32_t start_chain_length;
 uint64_t total_chains = 0;
@@ -198,8 +206,11 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, signal_handler);
   signal(SIGTERM, signal_handler);
 
-  cout << "N = " << N << ", MAX_LENGTH: " << MAX_LENGTH
-       << ", CAPTURE_STATS: " << CAPTURE_STATS << endl;
+#if PLAN_MODE
+  if (argc > 1) {
+    plan_depth = atoi(argv[1]);
+  }
+#endif
 
   for (size_t i = 0; i < SIZE; i++) {
     // flip the logic: 1 means unseen, 0 seen, that'll avoid one operation when
@@ -207,11 +218,18 @@ int main(int argc, char *argv[]) {
     seen[i] = 1;
   }
 
+  for (size_t i = 0; i < NUM_TARGETS; i++) {
+    target_lookup[TARGETS[i]] = 1;
+  }
+
+#if PLAN_MODE != 1
+  cout << "N = " << N << ", MAX_LENGTH: " << MAX_LENGTH
+       << ", CAPTURE_STATS: " << CAPTURE_STATS << endl;
   cout << NUM_TARGETS << " targets:" << endl;
   for (size_t i = 0; i < NUM_TARGETS; i++) {
     cout << "  " << bitset<N>(TARGETS[i]).to_string() << endl;
-    target_lookup[TARGETS[i]] = 1;
   }
+#endif
 
 #if CAPTURE_STATS
   memset(stats_min_num_expressions, UNDEFINED,
@@ -265,6 +283,18 @@ start:
     choices[chain_size]++;
     while (choices[chain_size] < expressions_size[chain_size]) {
       chain[chain_size] = expressions[choices[chain_size]];
+
+#if PLAN_MODE
+      if (chain_size + 1 - start_chain_length >= plan_depth) {
+        cout << "-c";
+        for (size_t j = start_chain_length; j <= chain_size; ++j) {
+          cout << " " << choices[j];
+        }
+        cout << endl;
+        choices[chain_size]++;
+        continue;
+      }
+#endif
 
       total_chains++;
       if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
