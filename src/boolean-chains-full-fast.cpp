@@ -62,9 +62,9 @@ uint32_t stats_max_num_expressions[25] = {0};
 uint64_t stats_num_data_points[25] = {0};
 #endif
 
-#define ADD_EXPRESSION(expressions_size, value)                                \
-  expressions[expressions_size] = value;                                       \
-  expressions_size += seen[value];                                             \
+#define ADD_EXPRESSION(value)                                                  \
+  expressions[expressions_size[chain_size]] = value;                           \
+  expressions_size[chain_size] += seen[value];                                 \
   seen[value] = 0;
 
 #define GENERATE_NEW_EXPRESSIONS                                               \
@@ -79,40 +79,40 @@ uint64_t stats_num_data_points[25] = {0};
                      g3 = chain[j + 3];                                        \
       const uint32_t not_g0 = ~g0, not_g1 = ~g1, not_g2 = ~g2, not_g3 = ~g3;   \
                                                                                \
-      ADD_EXPRESSION(expressions_size[chain_size], g0 &h);                     \
-      ADD_EXPRESSION(expressions_size[chain_size], g1 &h);                     \
-      ADD_EXPRESSION(expressions_size[chain_size], g2 &h);                     \
-      ADD_EXPRESSION(expressions_size[chain_size], g3 &h);                     \
+      ADD_EXPRESSION(g0 &h);                                                   \
+      ADD_EXPRESSION(g1 &h);                                                   \
+      ADD_EXPRESSION(g2 &h);                                                   \
+      ADD_EXPRESSION(g3 &h);                                                   \
                                                                                \
-      ADD_EXPRESSION(expressions_size[chain_size], not_g0 &h);                 \
-      ADD_EXPRESSION(expressions_size[chain_size], not_g1 &h);                 \
-      ADD_EXPRESSION(expressions_size[chain_size], not_g2 &h);                 \
-      ADD_EXPRESSION(expressions_size[chain_size], not_g3 &h);                 \
+      ADD_EXPRESSION(not_g0 &h);                                               \
+      ADD_EXPRESSION(not_g1 &h);                                               \
+      ADD_EXPRESSION(not_g2 &h);                                               \
+      ADD_EXPRESSION(not_g3 &h);                                               \
                                                                                \
-      ADD_EXPRESSION(expressions_size[chain_size], g0 &not_h);                 \
-      ADD_EXPRESSION(expressions_size[chain_size], g1 &not_h);                 \
-      ADD_EXPRESSION(expressions_size[chain_size], g2 &not_h);                 \
-      ADD_EXPRESSION(expressions_size[chain_size], g3 &not_h);                 \
+      ADD_EXPRESSION(g0 &not_h);                                               \
+      ADD_EXPRESSION(g1 &not_h);                                               \
+      ADD_EXPRESSION(g2 &not_h);                                               \
+      ADD_EXPRESSION(g3 &not_h);                                               \
                                                                                \
-      ADD_EXPRESSION(expressions_size[chain_size], g0 ^ h);                    \
-      ADD_EXPRESSION(expressions_size[chain_size], g1 ^ h);                    \
-      ADD_EXPRESSION(expressions_size[chain_size], g2 ^ h);                    \
-      ADD_EXPRESSION(expressions_size[chain_size], g3 ^ h);                    \
+      ADD_EXPRESSION(g0 ^ h);                                                  \
+      ADD_EXPRESSION(g1 ^ h);                                                  \
+      ADD_EXPRESSION(g2 ^ h);                                                  \
+      ADD_EXPRESSION(g3 ^ h);                                                  \
                                                                                \
-      ADD_EXPRESSION(expressions_size[chain_size], g0 | h);                    \
-      ADD_EXPRESSION(expressions_size[chain_size], g1 | h);                    \
-      ADD_EXPRESSION(expressions_size[chain_size], g2 | h);                    \
-      ADD_EXPRESSION(expressions_size[chain_size], g3 | h);                    \
+      ADD_EXPRESSION(g0 | h);                                                  \
+      ADD_EXPRESSION(g1 | h);                                                  \
+      ADD_EXPRESSION(g2 | h);                                                  \
+      ADD_EXPRESSION(g3 | h);                                                  \
     }                                                                          \
                                                                                \
     for (; j < chain_size - 1; j++) {                                          \
       const uint32_t g = chain[j];                                             \
-      const uint32_t not_g = chain[j];                                         \
-      ADD_EXPRESSION(expressions_size[chain_size], g &h);                      \
-      ADD_EXPRESSION(expressions_size[chain_size], not_g &h);                  \
-      ADD_EXPRESSION(expressions_size[chain_size], g &not_h);                  \
-      ADD_EXPRESSION(expressions_size[chain_size], g ^ h);                     \
-      ADD_EXPRESSION(expressions_size[chain_size], g | h);                     \
+      const uint32_t not_g = ~chain[j];                                        \
+      ADD_EXPRESSION(g &h);                                                    \
+      ADD_EXPRESSION(not_g &h);                                                \
+      ADD_EXPRESSION(g &not_h);                                                \
+      ADD_EXPRESSION(g ^ h);                                                   \
+      ADD_EXPRESSION(g | h);                                                   \
     }                                                                          \
   }
 
@@ -230,34 +230,25 @@ int main(int argc, char *argv[]) {
     seen[chain[i]] = 0;
   }
 
-  expressions_size[chain_size - 2] = 0;
+  chain_size--;
   expressions_size[chain_size - 1] = 0;
-  for (size_t k = 1; k < chain_size - 1; k++) {
+  expressions_size[chain_size] = 0;
+  for (size_t k = 1; k < chain_size; k++) {
     const uint32_t h = chain[k];
     const uint32_t not_h = ~h;
     for (size_t j = 0; j < k; j++) {
       const uint32_t g = chain[j];
       const uint32_t not_g = ~g;
 
-      const uint32_t ft1 = g & h;
-      ADD_EXPRESSION(expressions_size[chain_size - 1], ft1)
-
-      const uint32_t ft2 = g & not_h;
-      ADD_EXPRESSION(expressions_size[chain_size - 1], ft2)
-
-      const uint32_t ft3 = g ^ h;
-      ADD_EXPRESSION(expressions_size[chain_size - 1], ft3)
-
-      const uint32_t ft4 = g | h;
-      ADD_EXPRESSION(expressions_size[chain_size - 1], ft4)
-
-      const uint32_t ft5 = not_g & h;
-      ADD_EXPRESSION(expressions_size[chain_size - 1], ft5)
+      ADD_EXPRESSION(g & h)
+      ADD_EXPRESSION(g & not_h)
+      ADD_EXPRESSION(g ^ h)
+      ADD_EXPRESSION(g | h)
+      ADD_EXPRESSION(not_g & h)
     }
   }
 
   // just to get the initial branch before the algorithm even starts
-  chain_size--;
   CAPTURE_STATS_CALL
   chain_size++;
 
