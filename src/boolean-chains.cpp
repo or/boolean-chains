@@ -128,7 +128,7 @@ void find_optimal_chain(Chain<N> &chain, size_t &current_best_length,
       continue;
     }
 
-    // cout << "top " << max << " expressions:" << endl;
+    // cout << "top expressions:" << endl;
     // for (int j = 0; j < range.size() && j < 20; j++) {
     //   auto expr = result.first_expressions[range[j]];
     //   auto chain_expr = ChainExpression(chain.expressions.size(), expr);

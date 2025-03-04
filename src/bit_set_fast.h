@@ -6,11 +6,11 @@
 
 using namespace std;
 
-const size_t SIZE = 24;
+const size_t ARRAY_SIZE = 24;
 
 class BitSet {
 private:
-  uint32_t bit_set[SIZE];
+  uint32_t bit_set[ARRAY_SIZE];
 
 public:
   BitSet() { memset(bit_set, 0, sizeof(bit_set)); }
@@ -19,7 +19,7 @@ public:
   }
 
   bool is_disjoint(const BitSet &other) const {
-    for (size_t i = 0; i < SIZE; ++i) {
+    for (size_t i = 0; i < ARRAY_SIZE; ++i) {
       if (bit_set[i] & other.bit_set[i]) {
         return false;
       }
@@ -30,7 +30,7 @@ public:
   bool get(uint32_t bit) const {
     uint32_t index = bit >> 5;
     uint32_t bit_index = bit & 0b11111;
-    if (SIZE <= index) {
+    if (ARRAY_SIZE <= index) {
       return false;
     }
     return bit_set[index] & (1 << bit_index);
@@ -43,14 +43,16 @@ public:
   }
 
   void add(const BitSet &other) {
-    for (size_t i = 0; i < SIZE; ++i) {
+    for (size_t i = 0; i < ARRAY_SIZE; ++i) {
       bit_set[i] |= other.bit_set[i];
     }
   }
 
   void intersect(const BitSet &other) {
-    for (size_t i = 0; i < SIZE; ++i) {
+    for (size_t i = 0; i < ARRAY_SIZE; ++i) {
       bit_set[i] &= other.bit_set[i];
     }
   }
+
+  void clear() { memset(bit_set, 0, sizeof(bit_set)); }
 };
