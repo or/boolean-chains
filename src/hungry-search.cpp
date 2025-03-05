@@ -305,6 +305,8 @@ int main(int argc, char *argv[]) {
     stop_chain_size = start_indices_size;
   }
 
+  cout << "hungry-search: N = " << N << ", MAX_LENGTH: " << MAX_LENGTH << endl;
+
   // restore progress
   if (start_indices_size > start_chain_length) {
     while (chain_size < start_indices_size - 1) {
@@ -392,6 +394,13 @@ restore_progress:
 
     chain_size--;
     num_unfulfilled_targets += target_lookup[chain[chain_size]];
+    // if it was a target function, then we can skip all other choices at this
+    // length, because the target function needs to be taken at some point,
+    // might as well be now
+    //
+    // the trick here is to simply add a large number to
+    // the choices at that level if target_lookup is 1, this avoids branching
+    choices[chain_size] += target_lookup[chain[chain_size]] << 16;
   } while (__builtin_expect(chain_size >= stop_chain_size, 1));
 
   return 0;
