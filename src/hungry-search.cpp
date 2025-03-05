@@ -56,6 +56,23 @@ uint32_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
     }                                                                          \
   }
 
+#define GENERATE_NEW_EXPRESSIONS                                               \
+  algorithm_l_with_footprints(chain, chain_size);                              \
+                                                                               \
+  expressions_size[chain_size] = levels_size[1];                               \
+  memcpy(expressions[chain_size], levels[1],                                   \
+         sizeof(uint32_t) * expressions_size[chain_size]);                     \
+                                                                               \
+  priorities[chain_size].clear();                                              \
+  for (size_t i = 0; i < expressions_size[chain_size]; i++) {                  \
+    priorities[chain_size].push_back(i);                                       \
+  }                                                                            \
+                                                                               \
+  count_first_expressions_in_footprints(expressions_size[chain_size]);         \
+                                                                               \
+  sort(priorities[chain_size].begin(), priorities[chain_size].end(),           \
+       [&](size_t x, size_t y) { return get_priority(x) < get_priority(y); });
+
 void print_expression(const uint32_t *chain, const uint32_t index,
                       const size_t chain_size, const uint32_t f) {
   cout << "x" << index + 1;
@@ -229,6 +246,8 @@ int main(int argc, char *argv[]) {
   uint32_t expressions_size[MAX_LENGTH] __attribute__((aligned(64)));
   vector<uint32_t> priorities[MAX_LENGTH] __attribute__((aligned(64)));
   uint32_t choices[MAX_LENGTH] __attribute__((aligned(64)));
+  size_t start_indices_size __attribute__((aligned(64))) = 0;
+  uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
   size_t current_best_length = 1000;
   size_t bite_size[MAX_LENGTH] = {0};
   for (size_t i = 0; i < MAX_LENGTH; i++) {
@@ -259,22 +278,46 @@ int main(int argc, char *argv[]) {
   size_t chain_size = 4;
   start_chain_length = chain_size;
 
-start:
-  algorithm_l_with_footprints(chain, chain_size);
-
-  expressions_size[chain_size] = levels_size[1];
-  memcpy(expressions[chain_size], levels[1],
-         sizeof(uint32_t) * expressions_size[chain_size]);
-
-  priorities[chain_size].clear();
-  for (size_t i = 0; i < expressions_size[chain_size]; i++) {
-    priorities[chain_size].push_back(i);
+  size_t start_i = 1;
+  for (size_t i = 0; i < chain_size; i++) {
+    start_indices[start_indices_size++] = 0;
   }
 
-  count_first_expressions_in_footprints(expressions_size[chain_size]);
+  // read the progress vector, e.g 5 2 9, commas will be ignored: 5, 2, 9
+  for (size_t i = start_i; i < argc; i++) {
+    start_indices[start_indices_size++] = atoi(argv[i]);
+  }
 
-  sort(priorities[chain_size].begin(), priorities[chain_size].end(),
-       [&](size_t x, size_t y) { return get_priority(x) < get_priority(y); });
+  // restore progress
+  if (start_indices_size > start_chain_length) {
+    while (chain_size < start_indices_size - 1) {
+      GENERATE_NEW_EXPRESSIONS
+      choices[chain_size] = start_indices[chain_size];
+      chain[chain_size] =
+          expressions[chain_size][priorities[chain_size][choices[chain_size]]];
+      num_unfulfilled_targets -= target_lookup[chain[chain_size]];
+      chain_size++;
+    }
+
+    GENERATE_NEW_EXPRESSIONS
+
+    // will be incremented again in the main loop
+    choices[chain_size] = start_indices[chain_size] - 1;
+
+    // this will be counted again
+    total_chains--;
+
+    // this must not be inside the while loop, otherwise it destroys the
+    // compiler's ability to optimize, making it only about half as fast
+    goto restore_progress;
+  } else {
+    // so that the first addition in the loop results in 0 for the first choice
+    choices[chain_size] = 0xffffffff;
+  }
+
+start:
+
+  GENERATE_NEW_EXPRESSIONS
 
   // cout << "top expressions (of " << priorities[chain_size].size()
   //      << "):" << endl;
@@ -287,9 +330,7 @@ start:
   //        << get<2>(priority) << "]" << endl;
   // }
 
-  // will be incremented right away again on the first loop, starting at 0
-  choices[chain_size] = 0xffffffff;
-
+restore_progress:
   do {
     choices[chain_size]++;
     while (choices[chain_size] < bite_size[chain_size]) {
@@ -327,6 +368,8 @@ start:
       }
 
       chain_size++;
+      // will be incremented right away again on the first loop, starting at 0
+      choices[chain_size] = 0xffffffff;
       goto start;
     }
 
