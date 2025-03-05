@@ -487,9 +487,16 @@ the ~E~. So close!
 :PROPERTIES:
 :CUSTOM_ID: 15-digits
 :END:
-Total chains generated: 6,971,008,363,185,938 [~10.1% done]
+Total chains generated: 7,507,993,123,697,303 [~11% done]
 
 Number of unique optimal sets of functions: 0 [so far]
+
+I've paused this for now, as this search space exceeds the resources I have at
+the moment. I'm looking into the hungry search again for this.
+
+It's clear that there won't be any 16-step chains, otherwise the search for the
+14-digit display would've found them. Therefore any 15-step solution we might
+find must be optimal.
 
 ** Seven-segment display for 16 digits
 :PROPERTIES:
