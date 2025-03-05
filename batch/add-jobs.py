@@ -8,19 +8,29 @@ import sys
 AWS_PROFILE = "or"
 boto3.setup_default_session(profile_name=AWS_PROFILE, region_name="us-east-1")
 
-which = sys.argv[1] if len(sys.argv) > 1 else None
-if which == "ec2":
-    JOB_DEFINITION = "boolean-chains-job-definition-ec2"
-elif which == "fargate":
+which = sys.argv[1]
+
+if which == "full":
     JOB_DEFINITION = "boolean-chains-job-definition"
+    COMMAND = "boolean-chains-full-fast"
+    JOB_ID = "15-21"
+    JOB_PARAMETER_FILE = f"../full-plan-{JOB_ID}.txt"
+    JOB_QUEUE = f"boolean-chains-queue-{JOB_ID}"
+    S3_OUTPUT_PATH = f"s3://computing-results/boolean-chains/{JOB_ID}"
+
+elif which == "hungry":
+    JOB_DEFINITION = "hungry-search-job-definition"
+    COMMAND = "hungry-search"
+    JOB_ID = "16-23"
+    JOB_PARAMETER_FILE = f"../hungry-plan-{JOB_ID}.txt"
+    JOB_QUEUE = f"hungry-search-queue-{JOB_ID}-3"
+    S3_OUTPUT_PATH = f"s3://computing-results/hungry-search/{JOB_ID}"
+
 else:
-    print("first argument must be 'ec2' or 'fargate'")
+    print("first argument must be 'full' or 'hungry'")
     sys.exit(1)
 
-JOB_QUEUE = sys.argv[2]
-JOB_ID = sys.argv[3]
-
-S3_OUTPUT_PATH = f"s3://computing-results/boolean-chains/{JOB_ID}"
+NUMBER_OF_JOBS = int(sys.argv[2])
 
 batch_client = boto3.client("batch")
 
@@ -54,7 +64,7 @@ def submit_batch_job(job_name, command_args):
             "-c",
             f"aws s3 ls '{s3_filename}' && echo 'output already found, bailing out' && exit 0;"
             "date;"
-            f"(time /boolean-chains-full-fast {command_args}) 2>&1 | tee '/tmp/{output_filename}';"
+            f"(time /{COMMAND} {command_args}) 2>&1 | tee '/tmp/{output_filename}';"
             f"aws s3 cp '/tmp/{output_filename}' '{s3_filename}'",
         ]
     }
@@ -99,7 +109,7 @@ for job in existing_jobs:
 
 print(f"Submitting jobs to queue {JOB_QUEUE}...")
 process = subprocess.Popen(
-    ["../get-random-lines.sh", "../plan-15-21.txt", "100"],
+    ["../get-random-lines.sh", JOB_PARAMETER_FILE, str(NUMBER_OF_JOBS)],
     stdout=subprocess.PIPE,
     text=True,
 )
