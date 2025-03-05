@@ -13,7 +13,7 @@ using namespace std;
 
 constexpr uint32_t N = 16;
 constexpr uint32_t SIZE = 1 << (N - 1);
-constexpr uint32_t MAX_LENGTH = 26;
+constexpr uint32_t MAX_LENGTH = 23;
 constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
 constexpr uint32_t TARGET_1 =
     ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY;
@@ -255,15 +255,18 @@ int main(int argc, char *argv[]) {
   for (size_t i = 0; i < MAX_LENGTH; i++) {
     bite_size[i] = 1;
   }
-  bite_size[4] = 5;
-  bite_size[5] = 5;
-  bite_size[6] = 5;
-  bite_size[7] = 5;
-  bite_size[8] = 5;
-  bite_size[9] = 3;
-  bite_size[10] = 3;
+  bite_size[4] = 10;
+  bite_size[5] = 9;
+  bite_size[6] = 8;
+  bite_size[7] = 7;
+  bite_size[8] = 6;
+  bite_size[9] = 5;
+  bite_size[10] = 4;
   bite_size[11] = 3;
   bite_size[12] = 3;
+  bite_size[13] = 2;
+  bite_size[14] = 2;
+  bite_size[15] = 2;
 
   atexit(on_exit);
   signal(SIGINT, signal_handler);
