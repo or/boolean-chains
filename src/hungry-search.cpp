@@ -13,7 +13,7 @@ using namespace std;
 
 constexpr uint32_t N = 16;
 constexpr uint32_t SIZE = 1 << (N - 1);
-constexpr uint32_t MAX_LENGTH = 22;
+constexpr uint32_t MAX_LENGTH = 26;
 constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
 constexpr uint32_t TARGET_1 =
     ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY;
@@ -43,7 +43,6 @@ uint32_t levels[50][50000];
 size_t levels_size[10] = {0};
 uint32_t frequencies[50000];
 uint32_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
-uint32_t chain_lookup[SIZE] __attribute__((aligned(64))) = {0};
 
 #define ADD_FIRST_EXPRESSION(value)                                            \
   {                                                                            \
@@ -196,14 +195,11 @@ void algorithm_l_with_footprints(const uint32_t *chain,
   }
 }
 
-void count_first_expressions_in_footprints() {
-  memset(frequencies, 0, sizeof(uint32_t) * levels_size[1]);
+void count_first_expressions_in_footprints(const uint32_t expressions_size) {
+  memset(frequencies, 0, sizeof(uint32_t) * expressions_size);
 
   for (const uint32_t &f : TARGETS) {
-    if (chain_lookup[f]) {
-      continue;
-    }
-    for (size_t i = 0; i < levels_size[1]; i++) {
+    for (size_t i = 0; i < expressions_size; i++) {
       if (footprints[f].get(i)) {
         frequencies[i]++;
       }
@@ -227,10 +223,26 @@ void on_exit() { cout << "total chains: " << total_chains << endl; }
 void signal_handler(int signal) { exit(signal); }
 
 int main(int argc, char *argv[]) {
-  uint32_t chain[25] __attribute__((aligned(64)));
+  uint32_t chain[MAX_LENGTH] __attribute__((aligned(64)));
   uint32_t num_unfulfilled_targets = NUM_TARGETS;
-  vector<uint32_t> algorithm_result;
-  algorithm_result.reserve(1000);
+  uint32_t expressions[MAX_LENGTH][50000] __attribute__((aligned(64)));
+  uint32_t expressions_size[MAX_LENGTH] __attribute__((aligned(64)));
+  vector<uint32_t> priorities[MAX_LENGTH] __attribute__((aligned(64)));
+  uint32_t choices[MAX_LENGTH] __attribute__((aligned(64)));
+  size_t current_best_length = 1000;
+  size_t bite_size[MAX_LENGTH] = {0};
+  for (size_t i = 0; i < MAX_LENGTH; i++) {
+    bite_size[i] = 1;
+  }
+  bite_size[4] = 5;
+  bite_size[5] = 5;
+  bite_size[6] = 5;
+  bite_size[7] = 5;
+  bite_size[8] = 5;
+  bite_size[9] = 3;
+  bite_size[10] = 3;
+  bite_size[11] = 3;
+  bite_size[12] = 3;
 
   atexit(on_exit);
   signal(SIGINT, signal_handler);
@@ -247,48 +259,80 @@ int main(int argc, char *argv[]) {
   size_t chain_size = 4;
   start_chain_length = chain_size;
 
-  for (size_t i = 0; i < chain_size; i++) {
-    chain_lookup[chain[i]] = 1;
+start:
+  algorithm_l_with_footprints(chain, chain_size);
+
+  expressions_size[chain_size] = levels_size[1];
+  memcpy(expressions[chain_size], levels[1],
+         sizeof(uint32_t) * expressions_size[chain_size]);
+
+  priorities[chain_size].clear();
+  for (size_t i = 0; i < expressions_size[chain_size]; i++) {
+    priorities[chain_size].push_back(i);
   }
 
-  while (num_unfulfilled_targets) {
-    cout << "chain length: " << chain_size
-         << ", missing targets: " << num_unfulfilled_targets << endl;
+  count_first_expressions_in_footprints(expressions_size[chain_size]);
 
-    // do algorithm L
-    algorithm_l_with_footprints(chain, chain_size);
+  sort(priorities[chain_size].begin(), priorities[chain_size].end(),
+       [&](size_t x, size_t y) { return get_priority(x) < get_priority(y); });
 
-    algorithm_result.clear();
-    for (size_t i = 0; i < levels_size[1]; i++) {
-      algorithm_result.push_back(i);
+  // cout << "top expressions (of " << priorities[chain_size].size()
+  //      << "):" << endl;
+  // for (int j = 0; j < priorities[chain_size].size() && j < 5; j++) {
+  //   auto f = expressions[chain_size][priorities[chain_size][j]];
+  //   auto priority = get_priority(priorities[chain_size][j]);
+  //   cout << "   ";
+  //   print_expression(chain, chain_size, chain_size, f);
+  //   cout << " [" << get<0>(priority) << " " << get<1>(priority) << " "
+  //        << get<2>(priority) << "]" << endl;
+  // }
+
+  // will be incremented right away again on the first loop, starting at 0
+  choices[chain_size] = 0xffffffff;
+
+  do {
+    choices[chain_size]++;
+    while (choices[chain_size] < bite_size[chain_size]) {
+      chain[chain_size] =
+          expressions[chain_size][priorities[chain_size][choices[chain_size]]];
+
+      total_chains++;
+      if (__builtin_expect(chain_size <= 11, 0)) {
+        for (size_t j = start_chain_length; j < chain_size; ++j) {
+          cout << choices[j] << ", ";
+        }
+        cout << choices[chain_size] << " [best: " << current_best_length << "] "
+             << total_chains << endl;
+        // exit(0);
+      }
+
+      num_unfulfilled_targets -= target_lookup[chain[chain_size]];
+      if (chain_size + num_unfulfilled_targets >= MAX_LENGTH) {
+        // no need to do this, as it must have been 0 to end up in this path
+        // num_unfulfilled_targets += target_lookup[chain[chain_size]];
+        choices[chain_size]++;
+        continue;
+      }
+
+      if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+        print_chain(chain, chain_size + 1);
+        if (chain_size + 1 < current_best_length) {
+          current_best_length = chain_size + 1;
+        }
+        // it must have been 1 to end up in this path, so we can just increment
+        // num_unfulfilled_targets += target_lookup[chain[chain_size]];
+        num_unfulfilled_targets++;
+        choices[chain_size]++;
+        continue;
+      }
+
+      chain_size++;
+      goto start;
     }
 
-    count_first_expressions_in_footprints();
-
-    sort(algorithm_result.begin(), algorithm_result.end(),
-         [&](size_t x, size_t y) { return get_priority(x) < get_priority(y); });
-
-    cout << "top expressions (of " << algorithm_result.size() << "):" << endl;
-    for (int j = 0; j < algorithm_result.size() && j < 5; j++) {
-      auto f = levels[1][algorithm_result[j]];
-      auto priority = get_priority(algorithm_result[j]);
-      cout << "   ";
-      print_expression(chain, chain_size, chain_size, f);
-      cout << " [" << get<0>(priority) << " " << get<1>(priority) << " "
-           << get<2>(priority) << "]" << endl;
-    }
-
-    // pick next choice
-
-    chain[chain_size] = levels[1][algorithm_result[0]];
-    chain_lookup[chain[chain_size]] = 1;
-    if (target_lookup[chain[chain_size]]) {
-      num_unfulfilled_targets--;
-    }
-    chain_size++;
-  }
-
-  print_chain(chain, chain_size);
+    chain_size--;
+    num_unfulfilled_targets += target_lookup[chain[chain_size]];
+  } while (__builtin_expect(chain_size >= start_chain_length, 1));
 
   return 0;
 }
