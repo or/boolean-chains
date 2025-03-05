@@ -29,8 +29,8 @@ I started by using Algorithm L and Algorithm U from exercise 7.1.2-11, but
 instead of taking the best instruction based on the footprint heuristic, I tried
 the top $k_l$ instructions recursively for chain lengths $l$. With $k_l = 5$ for
 $4 \leq l < 9$, $k_l = 3$ for $9 \leq l < 13$, and $k_l = 1$ for $k \geq 13$.
-I'll call this /hungry search/, as it takes smaller and smaller bites until it
-is done.
+I'll call this /hungry search/, as it starts taking big bites, then smaller and
+smaller bites until it is done.
 
 The idea is that the first few instructions are less likely to be optimal when
 chosen greedily, so we want to try more of them. But as the chain gets longer
