@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2025-03-05 Wed 09:30 -->
+<!-- 2025-03-05 Wed 20:53 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Boolean Chains</title>
@@ -345,6 +345,41 @@ shorter than the previously shortest chain in the book:
 
     x_{11} &= x_1    \oplus x_2                   & \quad
     x_{18} &= x_6    >      x_{17} = \overline{c} & \\
+\end{aligned}
+
+<p>
+I then improved the runtime of the binary substantially, based on the program
+for the exhaustive search (see below), which allows bigger bites along the
+hungry search. I went with 10 choices for the first step, 9 for the
+next, 8 for the next, etc.. This hungry search found a chain of length 19:
+</p>
+
+\begin{aligned}
+    x_5    &= x_3    <      x_4                   & \quad
+    x_{12} &= x_1    \lor   x_{11}                & \quad
+    x_{19} &= x_8    >      x_{18} = \overline{a} & \\
+
+    x_6    &= x_3    \oplus x_4                   & \quad
+    x_{13} &= x_7    \lor   x_{12} = g            & \quad
+    x_{20} &= x_4    \oplus x_{14}                & \\
+
+    x_7    &= x_2    \oplus x_3                   & \quad
+    x_{14} &= x_7    >      x_{11}                & \quad
+    x_{21} &= x_{16} <      x_{20} = \overline{e} & \\
+
+    x_8    &= x_5    \lor   x_7                   & \quad
+    x_{15} &= x_2    \oplus x_{14}                & \quad
+    x_{22} &= x_{19} \oplus x_{20}                & \\
+
+    x_9    &= x_1    \oplus x_2                   & \quad
+    x_{16} &= x_9    <      x_{15} = \overline{c} & \quad
+    x_{23} &= x_8    \oplus x_{22} = \overline{d} & \\
+
+    x_{10} &= x_8    >      x_9    = \overline{f} & \quad
+    x_{17} &= x_{12} \land  x_{15} = \overline{b} & \\
+
+    x_{11} &= x_6    \oplus x_{10}                & \quad
+    x_{18} &= x_{11} \oplus x_{16}                & \\
 \end{aligned}
 </div>
 </div>
@@ -811,7 +846,7 @@ Number of unique optimal sets of functions: 3
 \end{aligned}
 
 
-<div id="orgf2883a3" class="figure">
+<div id="org75d64b6" class="figure">
 <p><img src="./10-digits-segments.svg" alt="10-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -848,7 +883,7 @@ Number of unique optimal sets of functions: 91
 \end{aligned}
 
 
-<div id="org5b3a31d" class="figure">
+<div id="org1350505" class="figure">
 <p><img src="./11-digits-segments.svg" alt="11-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -887,7 +922,7 @@ Number of unique optimal sets of functions: 6
 \end{aligned}
 
 
-<div id="org3db1f5c" class="figure">
+<div id="orgc43cc5a" class="figure">
 <p><img src="./12-digits-segments.svg" alt="12-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -928,7 +963,7 @@ Number of unique optimal sets of functions: 1 (!)
 \end{aligned}
 
 
-<div id="orga3bf2b4" class="figure">
+<div id="orgd3b03f6" class="figure">
 <p><img src="./13-digits-segments.svg" alt="13-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -975,7 +1010,7 @@ the <code>E</code>. So close!
 </p>
 
 
-<div id="orged5b060" class="figure">
+<div id="org2fc4a85" class="figure">
 <p><img src="./14-digits-segments.svg" alt="14-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1077,7 +1112,7 @@ better than me.
 <div id="postamble" class="status">
 <p class="date">Date: 2025-03-01 Sat 00:00</p>
 <p class="author">Author: Oliver Runge</p>
-<p class="date">Created: 2025-03-05 Wed 09:30</p>
+<p class="date">Created: 2025-03-05 Wed 20:53</p>
 </div>
 </body>
 </html>

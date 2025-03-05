@@ -77,6 +77,39 @@ shorter than the previously shortest chain in the book:
     x_{18} &= x_6    >      x_{17} = \overline{c} & \\
 \end{aligned}
 
+I then improved the runtime of the binary substantially, based on the program
+for the exhaustive search (see below), which allows bigger bites along the
+hungry search. I went with 10 choices for the first step, 9 for the
+next, 8 for the next, etc.. This hungry search found a chain of length 19:
+
+\begin{aligned}
+    x_5    &= x_3    <      x_4                   & \quad
+    x_{12} &= x_1    \lor   x_{11}                & \quad
+    x_{19} &= x_8    >      x_{18} = \overline{a} & \\
+
+    x_6    &= x_3    \oplus x_4                   & \quad
+    x_{13} &= x_7    \lor   x_{12} = g            & \quad
+    x_{20} &= x_4    \oplus x_{14}                & \\
+
+    x_7    &= x_2    \oplus x_3                   & \quad
+    x_{14} &= x_7    >      x_{11}                & \quad
+    x_{21} &= x_{16} <      x_{20} = \overline{e} & \\
+
+    x_8    &= x_5    \lor   x_7                   & \quad
+    x_{15} &= x_2    \oplus x_{14}                & \quad
+    x_{22} &= x_{19} \oplus x_{20}                & \\
+
+    x_9    &= x_1    \oplus x_2                   & \quad
+    x_{16} &= x_9    <      x_{15} = \overline{c} & \quad
+    x_{23} &= x_8    \oplus x_{22} = \overline{d} & \\
+
+    x_{10} &= x_8    >      x_9    = \overline{f} & \quad
+    x_{17} &= x_{12} \land  x_{15} = \overline{b} & \\
+
+    x_{11} &= x_6    \oplus x_{10}                & \quad
+    x_{18} &= x_{11} \oplus x_{16}                & \\
+\end{aligned}
+
 * Searching for the optimal solution
 :PROPERTIES:
 :CUSTOM_ID: exhaustive-search
