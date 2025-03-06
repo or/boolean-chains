@@ -339,17 +339,17 @@ int main(int argc, char *argv[]) {
     bite_size[i] = 1;
   }
   bite_size[4] = 15;
-  bite_size[5] = 15;
-  bite_size[6] = 13;
-  bite_size[7] = 13;
-  bite_size[8] = 10;
-  bite_size[9] = 10;
-  bite_size[10] = 8;
-  bite_size[11] = 8;
-  bite_size[12] = 6;
-  bite_size[13] = 6;
+  bite_size[5] = 14;
+  bite_size[6] = 12;
+  bite_size[7] = 10;
+  bite_size[8] = 8;
+  bite_size[9] = 6;
+  bite_size[10] = 5;
+  bite_size[11] = 5;
+  bite_size[12] = 4;
+  bite_size[13] = 4;
   bite_size[14] = 3;
-  bite_size[15] = 3;
+  bite_size[15] = 2;
 
   atexit(on_exit);
   signal(SIGINT, signal_handler);
