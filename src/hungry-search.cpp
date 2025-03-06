@@ -11,9 +11,9 @@
 #include <vector>
 using namespace std;
 
-constexpr uint32_t N = 11;
+constexpr uint32_t N = 15;
 constexpr uint32_t SIZE = 1 << (N - 1);
-constexpr uint32_t MAX_LENGTH = 16;
+constexpr uint32_t MAX_LENGTH = 21;
 constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
 constexpr uint32_t TARGET_1 =
     ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY;
@@ -382,7 +382,7 @@ restore_progress:
           expressions[chain_size][priorities[chain_size][choices[chain_size]]];
 
       total_chains++;
-      if (__builtin_expect(chain_size <= 7, 0)) {
+      if (__builtin_expect(chain_size <= 8, 0)) {
         for (size_t j = start_chain_length; j < chain_size; ++j) {
           cout << choices[j] << ", ";
         }

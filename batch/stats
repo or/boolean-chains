@@ -1,11 +1,16 @@
 #!/bin/bash
 
-echo "boolean-chains:"
+echo "boolean-chains 15-21:"
 egrep -r 'chain \(' "computing-results/boolean-chains/15-21"
 egrep -r 'New' "computing-results/boolean-chains/15-21"
 egrep -r 'total' "computing-results/boolean-chains/15-21" | awk '{print $3}' | sort | gpaste -s -d+ | bc
 
-echo "hungry-search:"
+echo "hungry-search 16-23:"
 egrep -r 'chain \(' "computing-results/hungry-search/16-23"
 egrep -r 'New' "computing-results/hungry-search/16-23"
 egrep -r 'total' "computing-results/hungry-search/16-23" | awk '{print $3}' | sort | gpaste -s -d+ | bc
+
+echo "hungry-search 15-21:"
+egrep -r 'chain \(' "computing-results/hungry-search/15-21"
+egrep -r 'New' "computing-results/hungry-search/15-21"
+egrep -r 'total' "computing-results/hungry-search/15-21" | awk '{print $3}' | sort | gpaste -s -d+ | bc
