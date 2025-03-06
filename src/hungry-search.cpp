@@ -11,9 +11,9 @@
 #include <vector>
 using namespace std;
 
-constexpr uint32_t N = 16;
+constexpr uint32_t N = 11;
 constexpr uint32_t SIZE = 1 << (N - 1);
-constexpr uint32_t MAX_LENGTH = 23;
+constexpr uint32_t MAX_LENGTH = 16;
 constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
 constexpr uint32_t TARGET_1 =
     ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY;
@@ -123,16 +123,8 @@ void erase(uint32_t *array, size_t &array_size, uint32_t f) {
   }
 }
 
-void algorithm_l_with_footprints(const uint32_t *chain,
-                                 const size_t chain_size) {
-  memset(costs, 0xff, sizeof(costs));
-  memset(footprints, 0, sizeof(footprints));
-  uint32_t c = 1 << (N - 1);
-
-  // for 0x00000000
-  costs[0] = 0;
-  c--;
-
+void generate_first_expressions(const uint32_t *chain, const size_t chain_size,
+                                uint32_t &c) {
   // U1. Initialize
   levels_size[0] = 0;
   for (size_t i = 0; i < chain_size; i++) {
@@ -158,6 +150,18 @@ void algorithm_l_with_footprints(const uint32_t *chain,
       ADD_FIRST_EXPRESSION(g ^ h);
     }
   }
+}
+void algorithm_l_with_footprints(const uint32_t *chain,
+                                 const size_t chain_size) {
+  memset(costs, 0xff, sizeof(costs));
+  memset(footprints, 0, sizeof(footprints));
+  uint32_t c = 1 << (N - 1);
+
+  // for 0x00000000
+  costs[0] = 0;
+  c--;
+
+  generate_first_expressions(chain, chain_size, c);
 
   // U3. Loop over r = 2, 3, ... while c > 0
   for (uint32_t r = 2; c > 0; ++r) {
@@ -242,6 +246,7 @@ void signal_handler(int signal) { exit(signal); }
 int main(int argc, char *argv[]) {
   bool chunk_mode = false;
   size_t stop_chain_size;
+  uint32_t dummy_c = 0;
   uint32_t chain[MAX_LENGTH] __attribute__((aligned(64)));
   uint32_t num_unfulfilled_targets = NUM_TARGETS;
   uint32_t expressions[MAX_LENGTH][50000] __attribute__((aligned(64)));
@@ -336,7 +341,26 @@ int main(int argc, char *argv[]) {
 
 start:
 
-  GENERATE_NEW_EXPRESSIONS
+  if (chain_size + num_unfulfilled_targets == MAX_LENGTH) {
+    memset(costs, 0xff, sizeof(costs));
+    generate_first_expressions(chain, chain_size, dummy_c);
+    bool found = false;
+    for (size_t i = 0; i < levels_size[1]; i++) {
+      const uint32_t f = levels[1][i];
+      if (target_lookup[f]) {
+        expressions[chain_size][0] = f;
+        priorities[chain_size].clear();
+        priorities[chain_size].push_back(0);
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      choices[chain_size] = 1 << 16;
+    }
+  } else {
+    GENERATE_NEW_EXPRESSIONS
+  }
 
   // cout << "top expressions (of " << priorities[chain_size].size()
   //      << "):" << endl;
@@ -352,12 +376,13 @@ start:
 restore_progress:
   do {
     choices[chain_size]++;
-    while (choices[chain_size] < bite_size[chain_size]) {
+    while (choices[chain_size] < bite_size[chain_size] &&
+           choices[chain_size] < priorities[chain_size].size()) {
       chain[chain_size] =
           expressions[chain_size][priorities[chain_size][choices[chain_size]]];
 
       total_chains++;
-      if (__builtin_expect(chain_size <= 11, 0)) {
+      if (__builtin_expect(chain_size <= 7, 0)) {
         for (size_t j = start_chain_length; j < chain_size; ++j) {
           cout << choices[j] << ", ";
         }
