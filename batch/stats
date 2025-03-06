@@ -1,26 +1,31 @@
 #!/bin/bash
 
-echo "boolean-chains 15-21:"
-egrep -r 'chain \(' "computing-results/boolean-chains/15-21"
-egrep -r 'New' "computing-results/boolean-chains/15-21"
-egrep -r 'total' "computing-results/boolean-chains/15-21" | awk '{print $3}' | sort | gpaste -s -d+ | bc
+# echo "boolean-chains 15-21:"
+# egrep -r 'chain \(' "computing-results/boolean-chains/15-21"
+# egrep -r 'New' "computing-results/boolean-chains/15-21"
+# egrep -r 'total' "computing-results/boolean-chains/15-21" | awk '{print $3}' | sort | gpaste -s -d+ | bc
 
-echo "hungry-search 16-23:"
-egrep -r 'chain \(' "computing-results/hungry-search/16-23"
-egrep -r 'New' "computing-results/hungry-search/16-23"
-egrep -r 'total' "computing-results/hungry-search/16-23" | awk '{print $3}' | sort | gpaste -s -d+ | bc
+# echo "hungry-search 16-23:"
+# egrep -r 'chain \(' "computing-results/hungry-search/16-23"
+# egrep -r 'New' "computing-results/hungry-search/16-23"
+# egrep -r 'total' "computing-results/hungry-search/16-23" | awk '{print $3}' | sort | gpaste -s -d+ | bc
 
-echo "hungry-search 15-21:"
-egrep -r 'chain \(' "computing-results/hungry-search/15-21"
-egrep -r 'New' "computing-results/hungry-search/15-21"
-egrep -r 'total' "computing-results/hungry-search/15-21" | awk '{print $3}' | sort | gpaste -s -d+ | bc
+# echo "hungry-search 15-21:"
+# egrep -r 'chain \(' "computing-results/hungry-search/15-21"
+# egrep -r 'New' "computing-results/hungry-search/15-21"
+# egrep -r 'total' "computing-results/hungry-search/15-21" | awk '{print $3}' | sort | gpaste -s -d+ | bc
 
-echo "hungry-search 15-22:"
-egrep -r 'chain \(' "computing-results/hungry-search/15-22"
-egrep -r 'New' "computing-results/hungry-search/15-22"
-egrep -r 'total' "computing-results/hungry-search/15-22" | awk '{print $3}' | sort | gpaste -s -d+ | bc
+# echo "hungry-search 15-22:"
+# egrep -r 'chain \(' "computing-results/hungry-search/15-22"
+# egrep -r 'New' "computing-results/hungry-search/15-22"
+# egrep -r 'total' "computing-results/hungry-search/15-22" | awk '{print $3}' | sort | gpaste -s -d+ | bc
 
 echo "hungry-search 16-22:"
 egrep -r 'chain \(' "computing-results/hungry-search/16-22"
 egrep -r 'New' "computing-results/hungry-search/16-22"
 egrep -r 'total' "computing-results/hungry-search/16-22" | awk '{print $3}' | sort | gpaste -s -d+ | bc
+
+echo "hungry-search 16-22-2:"
+egrep -r 'chain \(' "computing-results/hungry-search/16-22-2"
+egrep -r 'New' "computing-results/hungry-search/16-22-2"
+egrep -r 'total' "computing-results/hungry-search/16-22-2" | egrep -v 18446744073709551615 | awk '{print $3}' | sort | gpaste -s -d+ | bc

@@ -338,18 +338,18 @@ int main(int argc, char *argv[]) {
   for (size_t i = 0; i < MAX_LENGTH; i++) {
     bite_size[i] = 1;
   }
-  bite_size[4] = 10;
-  bite_size[5] = 9;
-  bite_size[6] = 8;
-  bite_size[7] = 7;
-  bite_size[8] = 6;
-  bite_size[9] = 5;
-  bite_size[10] = 4;
-  bite_size[11] = 3;
-  bite_size[12] = 3;
-  bite_size[13] = 2;
-  bite_size[14] = 2;
-  bite_size[15] = 2;
+  bite_size[4] = 15;
+  bite_size[5] = 15;
+  bite_size[6] = 13;
+  bite_size[7] = 13;
+  bite_size[8] = 10;
+  bite_size[9] = 10;
+  bite_size[10] = 8;
+  bite_size[11] = 8;
+  bite_size[12] = 6;
+  bite_size[13] = 6;
+  bite_size[14] = 3;
+  bite_size[15] = 3;
 
   atexit(on_exit);
   signal(SIGINT, signal_handler);
