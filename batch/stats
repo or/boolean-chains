@@ -19,3 +19,8 @@ echo "hungry-search 15-22:"
 egrep -r 'chain \(' "computing-results/hungry-search/15-22"
 egrep -r 'New' "computing-results/hungry-search/15-22"
 egrep -r 'total' "computing-results/hungry-search/15-22" | awk '{print $3}' | sort | gpaste -s -d+ | bc
+
+echo "hungry-search 16-22:"
+egrep -r 'chain \(' "computing-results/hungry-search/16-22"
+egrep -r 'New' "computing-results/hungry-search/16-22"
+egrep -r 'total' "computing-results/hungry-search/16-22" | awk '{print $3}' | sort | gpaste -s -d+ | bc

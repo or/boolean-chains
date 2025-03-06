@@ -35,7 +35,7 @@ using namespace std;
 #define CAPTURE_STATS_CALL
 #endif
 
-constexpr uint32_t N = 15;
+constexpr uint32_t N = 16;
 constexpr uint32_t SIZE = 1 << (N - 1);
 constexpr uint32_t MAX_LENGTH = 22;
 constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
