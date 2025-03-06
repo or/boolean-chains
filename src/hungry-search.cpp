@@ -200,6 +200,18 @@ void algorithm_l_with_footprints(const uint32_t *chain,
   for (r = 2; c > 0; ++r) {
     levels_size[r] = 0;
 
+    bool all_targets_found = true;
+    for (size_t i = 0; i < NUM_TARGETS; i++) {
+      if (costs[TARGETS[i]] == 0xffffffff) {
+        all_targets_found = false;
+        break;
+      }
+    }
+
+    if (all_targets_found) {
+      break;
+    }
+
     // U4. Loop over j = [(r-1)/2], ..., 0, k = r - 1 - j
     for (int j = (r - 1) / 2; j >= 0; --j) {
       uint32_t k = r - 1 - j;
