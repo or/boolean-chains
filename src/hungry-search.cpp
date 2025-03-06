@@ -37,7 +37,7 @@ using namespace std;
 
 constexpr uint32_t N = 15;
 constexpr uint32_t SIZE = 1 << (N - 1);
-constexpr uint32_t MAX_LENGTH = 21;
+constexpr uint32_t MAX_LENGTH = 22;
 constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
 constexpr uint32_t TARGET_1 =
     ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY;

@@ -21,7 +21,7 @@ if which == "full":
 elif which == "hungry":
     JOB_DEFINITION = "hungry-search-job-definition"
     COMMAND = "hungry-search"
-    JOB_ID = "15-21"
+    JOB_ID = "15-22"
     JOB_PARAMETER_FILE = f"../hungry-plan-{JOB_ID}.txt"
     JOB_QUEUE = f"hungry-search-queue-{JOB_ID}"
     S3_OUTPUT_PATH = f"s3://computing-results/hungry-search/{JOB_ID}"
