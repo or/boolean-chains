@@ -45,8 +45,13 @@ def stats():
     for size, count in by_size.items():
         print(size, ": ", count)
 
+    uniquely_generated = set()
     for i, chain in enumerate(chains):
         parsed_chain = parse_chain(chain)
+        fs = frozenset(parsed_chain)
+        if fs in uniquely_generated:
+            continue
+        uniquely_generated.add(fs)
         with open(f"generated-{len(parsed_chain)}-{i}.txt", "w") as f:
             f.write(chain)
 
