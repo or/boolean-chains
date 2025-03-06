@@ -1,6 +1,7 @@
 #include "bit_set_fast.h"
 #include <algorithm>
 #include <bitset>
+#include <cinttypes>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -10,6 +11,29 @@
 #include <tuple>
 #include <vector>
 using namespace std;
+
+#ifndef CAPTURE_STATS
+#define CAPTURE_STATS 1
+#endif
+
+#if CAPTURE_STATS
+#define CAPTURE_STATS_CALL                                                     \
+  {                                                                            \
+    for (size_t i = 2; i < r; i++) {                                           \
+      const auto new_expressions = levels_size[i];                             \
+      if (new_expressions < stats_min_num_expressions[i]) {                    \
+        stats_min_num_expressions[i] = new_expressions;                        \
+      }                                                                        \
+      if (new_expressions > stats_max_num_expressions[i]) {                    \
+        stats_max_num_expressions[i] = new_expressions;                        \
+      }                                                                        \
+      stats_total_num_expressions[i] += new_expressions;                       \
+      stats_num_data_points[i]++;                                              \
+    }                                                                          \
+  }
+#else
+#define CAPTURE_STATS_CALL
+#endif
 
 constexpr uint32_t N = 15;
 constexpr uint32_t SIZE = 1 << (N - 1);
@@ -36,6 +60,14 @@ constexpr uint32_t NUM_TARGETS = sizeof(TARGETS) / sizeof(uint32_t);
 
 uint32_t start_chain_length;
 uint64_t total_chains = 0;
+#if CAPTURE_STATS
+#define UNDEFINED 0xffffffff
+uint64_t stats_total_num_expressions[25] = {0};
+uint32_t stats_min_num_expressions[25] = {UNDEFINED};
+uint32_t stats_max_num_expressions[25] = {0};
+uint64_t stats_num_data_points[25] = {0};
+uint64_t stats_num_tries[25] = {0};
+#endif
 
 BitSet footprints[SIZE];
 uint32_t costs[SIZE] __attribute__((aligned(64))) = {0};
@@ -164,7 +196,8 @@ void algorithm_l_with_footprints(const uint32_t *chain,
   generate_first_expressions(chain, chain_size, c);
 
   // U3. Loop over r = 2, 3, ... while c > 0
-  for (uint32_t r = 2; c > 0; ++r) {
+  uint32_t r;
+  for (r = 2; c > 0; ++r) {
     levels_size[r] = 0;
 
     // U4. Loop over j = [(r-1)/2], ..., 0, k = r - 1 - j
@@ -179,6 +212,10 @@ void algorithm_l_with_footprints(const uint32_t *chain,
         for (size_t hi = start_hi; hi < levels_size[k]; ++hi) {
           uint32_t h = levels[k][hi];
           uint32_t not_h = ~h;
+
+#if CAPTURE_STATS
+          stats_num_tries[r]++;
+#endif
 
           BitSet v(footprints[g]);
           uint32_t u;
@@ -214,6 +251,8 @@ void algorithm_l_with_footprints(const uint32_t *chain,
       }
     }
   }
+
+  CAPTURE_STATS_CALL
 }
 
 void count_first_expressions_in_footprints(const uint32_t expressions_size) {
@@ -239,7 +278,34 @@ auto get_priority(const size_t index) {
                     -static_cast<int>(index));
 };
 
-void on_exit() { cout << "total chains: " << total_chains << endl; }
+void on_exit() {
+  cout << "total chains: " << total_chains << endl;
+
+#if CAPTURE_STATS
+  cout << "new expressions at length in algorithm L:" << endl;
+  cout << "                   n                       sum              avg     "
+          "         "
+          "min              max        avg tries"
+       << endl;
+
+  for (int i = 2; i < 10; i++) {
+    printf("%2d: %16" PRIu64 " %25" PRIu64 " %16" PRIu64 " %16" PRId32
+           " %16" PRIu32 " %16" PRIu64 "\n",
+           i, stats_num_data_points[i], stats_total_num_expressions[i],
+           stats_num_data_points[i] == 0
+               ? 0
+               : stats_total_num_expressions[i] / stats_num_data_points[i],
+           stats_min_num_expressions[i] == UNDEFINED
+               ? 0
+               : stats_min_num_expressions[i],
+           stats_max_num_expressions[i],
+           stats_num_data_points[i] == 0
+               ? 0
+               : stats_num_tries[i] / stats_num_data_points[i]);
+  }
+  cout << flush;
+#endif
+}
 
 void signal_handler(int signal) { exit(signal); }
 
@@ -277,6 +343,11 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, signal_handler);
   signal(SIGTERM, signal_handler);
 
+#if CAPTURE_STATS
+  memset(stats_min_num_expressions, UNDEFINED,
+         sizeof(stats_min_num_expressions));
+#endif
+
   for (size_t i = 0; i < NUM_TARGETS; i++) {
     target_lookup[TARGETS[i]] = 1;
   }
@@ -310,7 +381,8 @@ int main(int argc, char *argv[]) {
     stop_chain_size = start_indices_size;
   }
 
-  cout << "hungry-search: N = " << N << ", MAX_LENGTH: " << MAX_LENGTH << endl;
+  cout << "hungry-search: N = " << N << ", MAX_LENGTH: " << MAX_LENGTH
+       << ", CAPTURE_STATS: " << CAPTURE_STATS << endl;
 
   // restore progress
   if (start_indices_size > start_chain_length) {
