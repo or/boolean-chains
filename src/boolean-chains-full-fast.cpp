@@ -197,6 +197,7 @@ void find_optimal_chain(const size_t chain_size,
     i++;
     find_optimal_chain(next_chain_size, next_num_unfulfilled_targets,
                        next_expressions_size, i);
+    i += TARGET_LOOKUP[chain[chain_size]] << 16;
   }
 
   for (size_t i = expressions_size; i < next_expressions_size; i++) {
