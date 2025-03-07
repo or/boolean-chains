@@ -2,3 +2,4 @@ target
 batch/computing-results
 test-chain.svg
 logs
+generated*
