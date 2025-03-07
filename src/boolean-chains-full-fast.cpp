@@ -87,20 +87,20 @@ uint64_t stats_num_data_points[25] = {0};
                      g3 = chain[j + 3];                                        \
       const uint32_t not_g0 = ~g0, not_g1 = ~g1, not_g2 = ~g2, not_g3 = ~g3;   \
                                                                                \
-      ADD_EXPRESSION(g0 &h);                                                   \
-      ADD_EXPRESSION(g1 &h);                                                   \
-      ADD_EXPRESSION(g2 &h);                                                   \
-      ADD_EXPRESSION(g3 &h);                                                   \
+      ADD_EXPRESSION(g0 & h);                                                  \
+      ADD_EXPRESSION(g1 & h);                                                  \
+      ADD_EXPRESSION(g2 & h);                                                  \
+      ADD_EXPRESSION(g3 & h);                                                  \
                                                                                \
-      ADD_EXPRESSION(not_g0 &h);                                               \
-      ADD_EXPRESSION(not_g1 &h);                                               \
-      ADD_EXPRESSION(not_g2 &h);                                               \
-      ADD_EXPRESSION(not_g3 &h);                                               \
+      ADD_EXPRESSION(not_g0 & h);                                              \
+      ADD_EXPRESSION(not_g1 & h);                                              \
+      ADD_EXPRESSION(not_g2 & h);                                              \
+      ADD_EXPRESSION(not_g3 & h);                                              \
                                                                                \
-      ADD_EXPRESSION(g0 &not_h);                                               \
-      ADD_EXPRESSION(g1 &not_h);                                               \
-      ADD_EXPRESSION(g2 &not_h);                                               \
-      ADD_EXPRESSION(g3 &not_h);                                               \
+      ADD_EXPRESSION(g0 & not_h);                                              \
+      ADD_EXPRESSION(g1 & not_h);                                              \
+      ADD_EXPRESSION(g2 & not_h);                                              \
+      ADD_EXPRESSION(g3 & not_h);                                              \
                                                                                \
       ADD_EXPRESSION(g0 ^ h);                                                  \
       ADD_EXPRESSION(g1 ^ h);                                                  \
@@ -116,9 +116,9 @@ uint64_t stats_num_data_points[25] = {0};
     for (; j < chain_size - 1; j++) {                                          \
       const uint32_t g = chain[j];                                             \
       const uint32_t not_g = ~chain[j];                                        \
-      ADD_EXPRESSION(g &h);                                                    \
-      ADD_EXPRESSION(not_g &h);                                                \
-      ADD_EXPRESSION(g &not_h);                                                \
+      ADD_EXPRESSION(g & h);                                                   \
+      ADD_EXPRESSION(not_g & h);                                               \
+      ADD_EXPRESSION(g & not_h);                                               \
       ADD_EXPRESSION(g ^ h);                                                   \
       ADD_EXPRESSION(g | h);                                                   \
     }                                                                          \
