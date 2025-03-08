@@ -93,38 +93,117 @@ def get_all_jobs(job_queue):
         # "FAILED",
     ]:
         response = batch_client.list_jobs(jobQueue=job_queue, jobStatus=status)
-        all_jobs.extend(response.get("jobSummaryList", []))
+        while True:
+            all_jobs.extend(response.get("jobSummaryList", []))
+            next_token = response.get("nextToken")
+            if not next_token:
+                break
+            response = batch_client.list_jobs(
+                jobQueue=job_queue, jobStatus=status, nextToken=next_token
+            )
 
     return all_jobs
 
 
 print(f"Fetching jobs from queue {JOB_QUEUE}...")
 existing_jobs = get_all_jobs(JOB_QUEUE)
+duplicates = set()
 seen_jobs = set()
 for job in existing_jobs:
     job_name = job.get("jobName")
     if job_name in seen_jobs:
         print(f"duplicate: {job_name}")
+        duplicates.add(job_name)
     seen_jobs.add(job_name)
 
-print(f"Submitting jobs to queue {JOB_QUEUE}...")
-process = subprocess.Popen(
-    ["../get-random-lines.sh", JOB_PARAMETER_FILE, str(NUMBER_OF_JOBS)],
-    stdout=subprocess.PIPE,
-    text=True,
-)
 
-num_added = 0
-for args in process.stdout:
-    args = args.strip()
-    clean_args = args.replace(" ", "_")
-    job_name = f"{JOB_ID}_{clean_args}"
-    if job_name in seen_jobs:
-        print(f"Job {job_name} already exists, ignoring...")
-        continue
+def cancel_or_terminate_duplicates():
+    for job_name in duplicates:
+        jobs = [job for job in existing_jobs if job["jobName"] == job_name]
+        by_status = {}
+        for job in jobs:
+            by_status[job["status"]] = by_status.get(job["status"], []) + [job]
 
-    num_added += 1
-    print(f"Submitting job: {job_name} ({num_added})")
-    submit_batch_job(job_name, args)
+        stats = {}
+        for k, v in by_status.items():
+            stats[k] = len(v)
 
-print("Done.")
+        print(f"processing {job_name}: {stats}")
+        if "SUCCEEDED" in by_status:
+            for job in by_status.get("RUNNING", []):
+                print(f"    terminating running {job['jobName']} - {job['jobId']}")
+                batch_client.terminate_job(
+                    jobId=job["jobId"], reason="Remove duplicates"
+                )
+
+            for job in by_status.get("STARTING", []):
+                print(f"    terminating starting {job['jobName']} - {job['jobId']}")
+                batch_client.terminate_job(
+                    jobId=job["jobId"], reason="Remove duplicates"
+                )
+
+            for job in by_status.get("RUNNABLE", []):
+                print(f"    cancelling runnable {job['jobName']} - {job['jobId']}")
+                batch_client.cancel_job(jobId=job["jobId"], reason="Remove duplicates")
+
+        elif "RUNNING" in by_status:
+            for job in by_status["RUNNING"][1:]:
+                print(f"    terminating running {job['jobName']} - {job['jobId']}")
+                batch_client.terminate_job(
+                    jobId=job["jobId"], reason="Remove duplicates"
+                )
+
+            for job in by_status.get("STARTING", []):
+                print(f"    terminating starting {job['jobName']} - {job['jobId']}")
+                batch_client.terminate_job(
+                    jobId=job["jobId"], reason="Remove duplicates"
+                )
+
+            for job in by_status.get("RUNNABLE", []):
+                print(f"    cancelling runnable {job['jobName']} - {job['jobId']}")
+                batch_client.cancel_job(jobId=job["jobId"], reason="Remove duplicates")
+
+        elif "STARTING" in by_status:
+            for job in by_status["STARTING"][1:]:
+                print(f"    terminating starting {job['jobName']} - {job['jobId']}")
+                batch_client.terminate_job(
+                    jobId=job["jobId"], reason="Remove duplicates"
+                )
+
+            for job in by_status.get("RUNNABLE", []):
+                print(f"    cancelling runnable {job['jobName']} - {job['jobId']}")
+                batch_client.cancel_job(jobId=job["jobId"], reason="Remove duplicates")
+
+        elif "RUNNABLE" in by_status:
+            for job in by_status["RUNNABLE"][1:]:
+                print(f"    cancelling runnable {job['jobName']} - {job['jobId']}")
+                batch_client.cancel_job(jobId=job["jobId"], reason="Remove duplicates")
+
+
+def add_jobs():
+    print(f"Submitting jobs to queue {JOB_QUEUE}...")
+    process = subprocess.Popen(
+        ["../get-random-lines.sh", JOB_PARAMETER_FILE, str(NUMBER_OF_JOBS)],
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+
+    num_added = 0
+    for args in process.stdout:
+        args = args.strip()
+        clean_args = args.replace(" ", "_")
+        job_name = f"{JOB_ID}_{clean_args}"
+        if job_name in seen_jobs:
+            print(f"Job {job_name} already exists, ignoring...")
+            continue
+
+        num_added += 1
+        print(f"Submitting job: {job_name} ({num_added})")
+        submit_batch_job(job_name, args)
+
+    print("Done.")
+
+
+add_jobs()
+
+# cancel_or_terminate_duplicates()
