@@ -6,6 +6,10 @@
 #+html_head_extra: <link rel="icon" href="./boolean-chains-favicon.png" type="image/png">
 #+html_head_extra: <meta content="./boolean-chains-favicon.png" property="og:image">
 
+#+begin_export html
+<a href=".." style="position: fixed; top: 10px; left: 10px; background: #eee; padding: 5px 10px; border-radius: 5px; text-decoration: none;">Home</a>
+#+end_export
+
 * Boolean Chains
 :PROPERTIES:
 :CUSTOM_ID: boolean-chains
@@ -104,7 +108,8 @@ shorter than the previously shortest chain in the book:
 I then improved the runtime of the binary substantially, based on the program
 for the exhaustive search (see below), which allows bigger bites along the
 hungry search. I went with a bite size of 10 for the first step, 9 for the
-next, 8 for the next, etc.. This hungry search found a chain of length 19:
+next, 8 for the next, etc.. This hungry search found several chains of length
+19, for instance:
 
 \begin{aligned}
     x_5    &= x_3    <      x_4                   & \quad
@@ -156,8 +161,8 @@ optimizations in the code.
    picking other instructions inside the same bite would result in different
    footprints in future bites, potentially finding shorter chains, but the
    footprints are just a heuristic anyway, and it is much more likely that the
-   target function will simply come up in the next iteration again, doubling our
-   work.
+   target function would simply come up in the next iteration again, doubling
+   our work.
 
 * Searching for the optimal solution
 :PROPERTIES:
@@ -176,7 +181,8 @@ Based on this I've tried to reduce the number of /don't-cares/, finding minimal
 chains for a display for the first 11 digits ~0123456789A~, then one for the
 first 12 digits ~0123456789Ab~, etc.
 
-** Improving performance:
+** Improving performance
+:PROPERTIES:
 :CUSTOM_ID: exhaustive-search-improving-performance
 :END:
 
@@ -408,6 +414,8 @@ Number of unique optimal sets of functions: 3
 #+NAME: fig:10-digits
 [[./10-digits-segments.svg]]
 
+All 16 unique optimal chains of length 11: [[file:chains-10-15.txt]]
+
 ** Seven-segment display for 11 digits
 :PROPERTIES:
 :CUSTOM_ID: 11-digits
@@ -437,6 +445,8 @@ Number of unique optimal sets of functions: 91
 
 #+NAME: fig:11-digits
 [[./11-digits-segments.svg]]
+
+All 472 unique optimal chains of length 12: [[file:chains-11-16.txt]]
 
 ** Seven-segment display for 12 digits
 :PROPERTIES:
@@ -469,6 +479,8 @@ Number of unique optimal sets of functions: 6
 
 #+NAME: fig:12-digits
 [[./12-digits-segments.svg]]
+
+All 26 unique optimal chains of length 14: [[file:chains-12-18.txt]]
 
 ** Seven-segment display for 13 digits
 :PROPERTIES:
@@ -503,6 +515,8 @@ Number of unique optimal sets of functions: 1 (!)
 
 #+NAME: fig:13-digits
 [[./13-digits-segments.svg]]
+
+All 2 unique optimal chains of length 15: [[file:chains-13-19.txt]]
 
 ** Seven-segment display for 14 digits
 :PROPERTIES:
@@ -542,27 +556,90 @@ the ~E~. So close!
 #+NAME: fig:14-digits
 [[./14-digits-segments.svg]]
 
+All 57 unique optimal chains of length 16: [[file:chains-14-20.txt]]
+
 ** Seven-segment display for 15 digits
 :PROPERTIES:
 :CUSTOM_ID: 15-digits
 :END:
-Total chains generated: 7,507,993,123,697,303 [~11% done]
+Total chains generated: 15,553,106,242,893,335 [~27% done]
 
-Number of unique optimal sets of functions: 0 [so far]
+Number of unique optimal sets of functions of length 17: 0 [so far]
 
-I've paused this for now, as this search space exceeds the resources I have at
-the moment. I'm looking into the hungry search again for this.
+A chain of length 18 found by the hungry search:
 
-It's clear that there won't be any 16-step chains, otherwise the search for the
-14-digit display would've found them. Therefore any 15-step solution we might
-find must be optimal.
+\begin{aligned}
+    x_5    &= x_2    \oplus x_3                   & \quad
+    x_{12} &= x_7    \oplus x_{10}                & \quad
+    x_{19} &= x_{14} \land  x_{18}                & \\
+
+    x_6    &= x_1    \oplus x_2                   & \quad
+    x_{13} &= x_9    \lor   x_{12} = g            & \quad
+    x_{20} &= x_4    \oplus x_{19} = \overline{e} & \\
+
+    x_7    &= x_4    \lor   x_5                   & \quad
+    x_{14} &= x_9    \oplus x_{12}                & \quad
+    x_{21} &= x_2    \oplus x_{19}                & \\
+
+    x_8    &= x_6    <      x_7    = \overline{f} & \quad
+    x_{15} &= x_4    \oplus x_{14}                & \quad
+    x_{22} &= x_{13} \land x_{21}  = \overline{b} & \\
+
+    x_9    &= x_1    \lor   x_5                   & \quad
+    x_{16} &= x_7    \land  x_{15} = \overline{d} & \\
+
+    x_{10} &= x_4    \lor   x_6                   & \quad
+    x_{17} &= x_8    \lor   x_{15}                & \\
+
+    x_{11} &= x_9    >      x_{10} = \overline{c} & \quad
+    x_{18} &= x_3    \oplus x_{17} = \overline{a} & \\
+\end{aligned}
+
+#+NAME: fig:15-digits
+[[./15-digits-segments.svg]]
+
+1313 unique chains of length 18 that the hungry search found: [[file:chains-15-22.txt]], not
+exhaustive, not proven to be optimal.
 
 ** Seven-segment display for 16 digits
 :PROPERTIES:
 :CUSTOM_ID: 16-digits
 :END:
+A chain of length 19 found by the hungry search:
 
-?
+\begin{aligned}
+    x_5    &= x_3    <      x_4                   & \quad
+    x_{12} &= x_1    \lor   x_{11}                & \quad
+    x_{19} &= x_8    >      x_{18} = \overline{a} & \\
+
+    x_6    &= x_3    \oplus x_4                   & \quad
+    x_{13} &= x_7    \lor   x_{12} = g            & \quad
+    x_{20} &= x_4    \oplus x_{14}                & \\
+
+    x_7    &= x_2    \oplus x_3                   & \quad
+    x_{14} &= x_7    >      x_{11}                & \quad
+    x_{21} &= x_{16} <      x_{20} = \overline{e} & \\
+
+    x_8    &= x_5    \lor   x_7                   & \quad
+    x_{15} &= x_2    \oplus x_{14}                & \quad
+    x_{22} &= x_{19} \oplus x_{20}                & \\
+
+    x_9    &= x_1    \oplus x_2                   & \quad
+    x_{16} &= x_9    <      x_{15} = \overline{c} & \quad
+    x_{23} &= x_8    \oplus x_{22} = \overline{d} & \\
+
+    x_{10} &= x_8    >      x_9    = \overline{f} & \quad
+    x_{17} &= x_{12} \land  x_{15} = \overline{b} & \\
+
+    x_{11} &= x_6    \oplus x_{10}                & \quad
+    x_{18} &= x_{11} \oplus x_{16}                & \\
+\end{aligned}
+
+10 unique chains of length 19 that the hungry search found: [[file:chains-16-23.txt]], not
+exhaustive, not proven to be optimal.
+
+#+NAME: fig:16-digits
+[[./16-digits-segments.svg]]
 
 ** Exercise 7.1.2-54
 :PROPERTIES:

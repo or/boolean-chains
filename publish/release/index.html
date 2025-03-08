@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2025-03-08 Sat 10:41 -->
+<!-- 2025-03-08 Sat 21:19 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Boolean Chains</title>
@@ -245,7 +245,7 @@ tcolvec: ["\\left(\\begin{matrix} #1 \\\\ #2 \\ #3 \\end{matrix}\\right)", 3]
 </li>
 <li><a href="#exhaustive-search">2. Searching for the optimal solution</a>
 <ul>
-<li><a href="#orga500400">2.1. Improving performance:</a></li>
+<li><a href="#exhaustive-search-improving-performance">2.1. Improving performance</a></li>
 <li><a href="#algorithm-s">2.2. Algorithm S</a></li>
 <li><a href="#algorithm-a">2.3. Algorithm A</a></li>
 <li><a href="#performance">2.4. Performance</a></li>
@@ -268,6 +268,7 @@ tcolvec: ["\\left(\\begin{matrix} #1 \\\\ #2 \\ #3 \\end{matrix}\\right)", 3]
 </ul>
 </div>
 </div>
+<a href=".." style="position: fixed; top: 10px; left: 10px; background: #eee; padding: 5px 10px; border-radius: 5px; text-decoration: none;">Home</a>
 <div id="outline-container-boolean-chains" class="outline-2">
 <h2 id="boolean-chains"><span class="section-number-2">1.</span> Boolean Chains</h2>
 <div class="outline-text-2" id="text-boolean-chains">
@@ -384,7 +385,8 @@ shorter than the previously shortest chain in the book:
 I then improved the runtime of the binary substantially, based on the program
 for the exhaustive search (see below), which allows bigger bites along the
 hungry search. I went with a bite size of 10 for the first step, 9 for the
-next, 8 for the next, etc.. This hungry search found a chain of length 19:
+next, 8 for the next, etc.. This hungry search found several chains of length
+19, for instance:
 </p>
 
 \begin{aligned}
@@ -440,8 +442,8 @@ some point anyway, so it might as well be now. There is a small chance that
 picking other instructions inside the same bite would result in different
 footprints in future bites, potentially finding shorter chains, but the
 footprints are just a heuristic anyway, and it is much more likely that the
-target function will simply come up in the next iteration again, doubling our
-work.</li>
+target function would simply come up in the next iteration again, doubling
+our work.</li>
 </ol>
 </div>
 </div>
@@ -467,14 +469,9 @@ chains for a display for the first 11 digits <code>0123456789A</code>, then one 
 first 12 digits <code>0123456789Ab</code>, etc.
 </p>
 </div>
-<div id="outline-container-orga500400" class="outline-3">
-<h3 id="orga500400"><span class="section-number-3">2.1.</span> Improving performance:</h3>
-<div class="outline-text-3" id="text-2-1">
-<p>
-:CUSTOM_ID: exhaustive-search-improving-performance
-:END:
-</p>
-
+<div id="outline-container-exhaustive-search-improving-performance" class="outline-3">
+<h3 id="exhaustive-search-improving-performance"><span class="section-number-3">2.1.</span> Improving performance</h3>
+<div class="outline-text-3" id="text-exhaustive-search-improving-performance">
 <p>
 The search space for these chains grows rather quickly, but we can reduce it in
 a few ways:
@@ -924,10 +921,14 @@ Number of unique optimal sets of functions: 3
 \end{aligned}
 
 
-<div id="org0e42325" class="figure">
+<div id="orged2745c" class="figure">
 <p><img src="./10-digits-segments.svg" alt="10-digits-segments.svg" class="org-svg" />
 </p>
 </div>
+
+<p>
+All 16 unique optimal chains of length 11: <a href="chains-10-15.txt">chains-10-15.txt</a>
+</p>
 </div>
 </div>
 <div id="outline-container-11-digits" class="outline-3">
@@ -961,10 +962,14 @@ Number of unique optimal sets of functions: 91
 \end{aligned}
 
 
-<div id="org0b0e54e" class="figure">
+<div id="orge26aec7" class="figure">
 <p><img src="./11-digits-segments.svg" alt="11-digits-segments.svg" class="org-svg" />
 </p>
 </div>
+
+<p>
+All 472 unique optimal chains of length 12: <a href="chains-11-16.txt">chains-11-16.txt</a>
+</p>
 </div>
 </div>
 <div id="outline-container-12-digits" class="outline-3">
@@ -1000,10 +1005,14 @@ Number of unique optimal sets of functions: 6
 \end{aligned}
 
 
-<div id="org3050d17" class="figure">
+<div id="org8fc51db" class="figure">
 <p><img src="./12-digits-segments.svg" alt="12-digits-segments.svg" class="org-svg" />
 </p>
 </div>
+
+<p>
+All 26 unique optimal chains of length 14: <a href="chains-12-18.txt">chains-12-18.txt</a>
+</p>
 </div>
 </div>
 <div id="outline-container-13-digits" class="outline-3">
@@ -1041,10 +1050,14 @@ Number of unique optimal sets of functions: 1 (!)
 \end{aligned}
 
 
-<div id="org6a7eb47" class="figure">
+<div id="orgf27e6fa" class="figure">
 <p><img src="./13-digits-segments.svg" alt="13-digits-segments.svg" class="org-svg" />
 </p>
 </div>
+
+<p>
+All 2 unique optimal chains of length 15: <a href="chains-13-19.txt">chains-13-19.txt</a>
+</p>
 </div>
 </div>
 <div id="outline-container-14-digits" class="outline-3">
@@ -1088,32 +1101,67 @@ the <code>E</code>. So close!
 </p>
 
 
-<div id="org38710b8" class="figure">
+<div id="org5910757" class="figure">
 <p><img src="./14-digits-segments.svg" alt="14-digits-segments.svg" class="org-svg" />
 </p>
 </div>
+
+<p>
+All 57 unique optimal chains of length 16: <a href="chains-14-20.txt">chains-14-20.txt</a>
+</p>
 </div>
 </div>
 <div id="outline-container-15-digits" class="outline-3">
 <h3 id="15-digits"><span class="section-number-3">3.6.</span> Seven-segment display for 15 digits</h3>
 <div class="outline-text-3" id="text-15-digits">
 <p>
-Total chains generated: 7,507,993,123,697,303 [~11% done]
+Total chains generated: 15,553,106,242,893,335 [~27% done]
 </p>
 
 <p>
-Number of unique optimal sets of functions: 0 [so far]
+Number of unique optimal sets of functions of length 17: 0 [so far]
 </p>
 
 <p>
-I&rsquo;ve paused this for now, as this search space exceeds the resources I have at
-the moment. I&rsquo;m looking into the hungry search again for this.
+A chain of length 18 found by the hungry search:
 </p>
 
+\begin{aligned}
+    x_5    &= x_2    \oplus x_3                   & \quad
+    x_{12} &= x_7    \oplus x_{10}                & \quad
+    x_{19} &= x_{14} \land  x_{18}                & \\
+
+    x_6    &= x_1    \oplus x_2                   & \quad
+    x_{13} &= x_9    \lor   x_{12} = g            & \quad
+    x_{20} &= x_4    \oplus x_{19} = \overline{e} & \\
+
+    x_7    &= x_4    \lor   x_5                   & \quad
+    x_{14} &= x_9    \oplus x_{12}                & \quad
+    x_{21} &= x_2    \oplus x_{19}                & \\
+
+    x_8    &= x_6    <      x_7    = \overline{f} & \quad
+    x_{15} &= x_4    \oplus x_{14}                & \quad
+    x_{22} &= x_{13} \land x_{21}  = \overline{b} & \\
+
+    x_9    &= x_1    \lor   x_5                   & \quad
+    x_{16} &= x_7    \land  x_{15} = \overline{d} & \\
+
+    x_{10} &= x_4    \lor   x_6                   & \quad
+    x_{17} &= x_8    \lor   x_{15}                & \\
+
+    x_{11} &= x_9    >      x_{10} = \overline{c} & \quad
+    x_{18} &= x_3    \oplus x_{17} = \overline{a} & \\
+\end{aligned}
+
+
+<div id="orgc56cc56" class="figure">
+<p><img src="./15-digits-segments.svg" alt="15-digits-segments.svg" class="org-svg" />
+</p>
+</div>
+
 <p>
-It&rsquo;s clear that there won&rsquo;t be any 16-step chains, otherwise the search for the
-14-digit display would&rsquo;ve found them. Therefore any 15-step solution we might
-find must be optimal.
+1313 unique chains of length 18 that the hungry search found: <a href="chains-15-22.txt">chains-15-22.txt</a>, not
+exhaustive, not proven to be optimal.
 </p>
 </div>
 </div>
@@ -1121,8 +1169,47 @@ find must be optimal.
 <h3 id="16-digits"><span class="section-number-3">3.7.</span> Seven-segment display for 16 digits</h3>
 <div class="outline-text-3" id="text-16-digits">
 <p>
-?
+A chain of length 19 found by the hungry search:
 </p>
+
+\begin{aligned}
+    x_5    &= x_3    <      x_4                   & \quad
+    x_{12} &= x_1    \lor   x_{11}                & \quad
+    x_{19} &= x_8    >      x_{18} = \overline{a} & \\
+
+    x_6    &= x_3    \oplus x_4                   & \quad
+    x_{13} &= x_7    \lor   x_{12} = g            & \quad
+    x_{20} &= x_4    \oplus x_{14}                & \\
+
+    x_7    &= x_2    \oplus x_3                   & \quad
+    x_{14} &= x_7    >      x_{11}                & \quad
+    x_{21} &= x_{16} <      x_{20} = \overline{e} & \\
+
+    x_8    &= x_5    \lor   x_7                   & \quad
+    x_{15} &= x_2    \oplus x_{14}                & \quad
+    x_{22} &= x_{19} \oplus x_{20}                & \\
+
+    x_9    &= x_1    \oplus x_2                   & \quad
+    x_{16} &= x_9    <      x_{15} = \overline{c} & \quad
+    x_{23} &= x_8    \oplus x_{22} = \overline{d} & \\
+
+    x_{10} &= x_8    >      x_9    = \overline{f} & \quad
+    x_{17} &= x_{12} \land  x_{15} = \overline{b} & \\
+
+    x_{11} &= x_6    \oplus x_{10}                & \quad
+    x_{18} &= x_{11} \oplus x_{16}                & \\
+\end{aligned}
+
+<p>
+10 unique chains of length 19 that the hungry search found: <a href="chains-16-23.txt">chains-16-23.txt</a>, not
+exhaustive, not proven to be optimal.
+</p>
+
+
+<div id="org6d2be34" class="figure">
+<p><img src="./16-digits-segments.svg" alt="16-digits-segments.svg" class="org-svg" />
+</p>
+</div>
 </div>
 </div>
 <div id="outline-container-7.1.2-54" class="outline-3">
@@ -1201,7 +1288,7 @@ better than me.
 <div id="postamble" class="status">
 <p class="date">Date: 2025-03-01 Sat 00:00</p>
 <p class="author">Author: Oliver Runge</p>
-<p class="date">Created: 2025-03-08 Sat 10:41</p>
+<p class="date">Created: 2025-03-08 Sat 21:19</p>
 </div>
 </body>
 </html>
