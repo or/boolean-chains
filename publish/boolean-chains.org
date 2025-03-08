@@ -14,13 +14,37 @@
 :PROPERTIES:
 :CUSTOM_ID: introduction
 :END:
-- TAOCP 7.1.2
+In section 7.1.2 [[https://www.informit.com/store/art-of-computer-programming-volume-4a-combinatorial-9780201038040][The Art of Computer Programming Volume 4A]] Knuth describes and
+analyzes  boolean chains, which are defined for functions of $n$ variables $x_1,
+x_2, ...  x_n$ as a sequence of operations $x_i = x_{j(i)} \circ_i x_{k(i)}$ for
+$n+1 \leq i \leq n + r$, with $1 \leq j(i) < i, 1 \leq k(i)$ and $\circ_i$ being
+any binary operation. He shows that it is sufficient to consider the binary
+operations $\land$, $\lor$, $\oplus$, $<$ (bitwise), $>$ (bitwise).
+
+In *Synthesizing a good chain* he discusses finding short boolean chains for
+given target functions, using the example of a 7-segment display for decimal
+digits; each segment is controlled by a boolean functions of the four inputs of
+a 4-bit decimal digit.
+
 ** Starting point
 :PROPERTIES:
 :CUSTOM_ID: starting-point
 :END:
-- footprint heuristic
-- greedy algorithm
+In order to find a reasonably short boolean chain Knuth describes Algorithm L
+and Algorithm U, an extension of Algorithm L, which tracks a /footprint/ for
+each possible function. The footprint is a set of "first operations" that can be
+achieved with $n$ input variables and that are part of the shortest chains
+generating a target function. This footprint can used as a heuristic to greedily
+pick the next operation. The resulting chain including the new operation can be
+used as an input for Algorithm U again, resulting in the next operation to pick,
+etc., until the chain contains all target functions.
+
+This approach generates a boolean chain of length 22 for the 7-segment decimal
+digit display. Knuth also mentions that David Stevenson found a 21-step chain by
+picking $x_{10}$ non-greedily.
+
+I was interested in trying to find an even shorter chain for the display.
+
 ** Hungry search
 :PROPERTIES:
 :CUSTOM_ID: hungry-search
@@ -29,7 +53,7 @@ I started by using Algorithm L and Algorithm U from exercise 7.1.2-11, but
 instead of taking the best instruction based on the footprint heuristic, I tried
 the top $k_l$ instructions recursively for chain lengths $l$. With $k_l = 5$ for
 $4 \leq l < 9$, $k_l = 3$ for $9 \leq l < 13$, and $k_l = 1$ for $k \geq 13$.
-I'll call this /hungry search/, as it starts taking big bites, then smaller and
+I call this /hungry search/, as it starts taking big bites, then smaller and
 smaller bites until it is done.
 
 The idea is that the first few instructions are less likely to be optimal when
@@ -79,7 +103,7 @@ shorter than the previously shortest chain in the book:
 
 I then improved the runtime of the binary substantially, based on the program
 for the exhaustive search (see below), which allows bigger bites along the
-hungry search. I went with 10 choices for the first step, 9 for the
+hungry search. I went with a bite size of 10 for the first step, 9 for the
 next, 8 for the next, etc.. This hungry search found a chain of length 19:
 
 \begin{aligned}
@@ -109,6 +133,31 @@ next, 8 for the next, etc.. This hungry search found a chain of length 19:
     x_{11} &= x_6    \oplus x_{10}                & \quad
     x_{18} &= x_{11} \oplus x_{16}                & \\
 \end{aligned}
+*** Improving performance
+:PROPERTIES:
+:CUSTOM_ID: hungry-search-improving-performance
+:END:
+The bigger search with bite sizes 10, 9, 8, etc. was possible due to a few
+optimizations in the code.
+
+1. Let $t = 7$ be the number of target functions and $w$ the number of target
+   functions not yet contained in the chain we're currently looking at, then as
+   soon as we see a chain of length $c$ with $c + w = m$ we know every next step
+   must generate a target function. This means we don't have to run Algorithm U
+   again, we simply pick the first target function in the available instructions
+   and so on. Since the last few iterations are a big part of the computation,
+   this reduces the overall effort by a factor of about 2-4, well worth the
+   extra branching required for the check.
+
+2. If we encounter a target function at any length, then we can pick this
+   instruction and move on with the hungry search, but once we backtrack to the
+   original length we can stop this branch. The function needs to be picked at
+   some point anyway, so it might as well be now. There is a small chance that
+   picking other instructions inside the same bite would result in different
+   footprints in future bites, potentially finding shorter chains, but the
+   footprints are just a heuristic anyway, and it is much more likely that the
+   target function will simply come up in the next iteration again, doubling our
+   work.
 
 * Searching for the optimal solution
 :PROPERTIES:
@@ -126,6 +175,10 @@ but I didn't care about that.)
 Based on this I've tried to reduce the number of /don't-cares/, finding minimal
 chains for a display for the first 11 digits ~0123456789A~, then one for the
 first 12 digits ~0123456789Ab~, etc.
+
+** Improving performance:
+:CUSTOM_ID: exhaustive-search-improving-performance
+:END:
 
 The search space for these chains grows rather quickly, but we can reduce it in
 a few ways:
@@ -181,6 +234,12 @@ a few ways:
    To ignore those duplicates we can maintain a bit set of all the functions
    we've already seen in the chain up to that point, and it turns out this can
    be the same set we use for 3. to avoid revisiting functions down the line.
+
+5. If we encounter a target function at any length, then we can try that one and
+   recurse, but after that the entire branch for that length can be culled. The
+   reason is that the target function we tried in the last loop now can't ever
+   be used again in other chains along this branch, making a complete chain
+   impossible. This is due to point 3.
 
 ** Algorithm S
 :PROPERTIES:
