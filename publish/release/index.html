@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2025-03-09 Sun 13:31 -->
+<!-- 2025-03-09 Sun 14:17 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Boolean Chains</title>
@@ -196,17 +196,1247 @@
 <style>body {font-size: large;}</style>
 <link rel="icon" href="./boolean-chains-favicon.png" type="image/png">
 <meta content="./boolean-chains-favicon.png" property="og:image">
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        displayAlign: "center",
+        displayIndent: "0em",
+
+        "HTML-CSS": { scale: 1.0,
+                        linebreaks: { automatic: "%LINEBREAKS" },
+                        webFont: "mathjax-modern"
+                       },
+        SVG: {scale: 1.0,
+              linebreaks: { automatic: "%LINEBREAKS" },
+              font: "mathjax-modern"},
+        NativeMML: {scale: 1.0},
+        TeX: {  Macros: {
+N: "\\mathbb{N}",
+Z: "\\mathbb{Z}",
+vector: "\\overrightarrow",
+dcolvec: ["\\left(\\begin{matrix} #1 \\\\ #2 \\end{matrix}\\right)", 2],
+tcolvec: ["\\left(\\begin{matrix} #1 \\\\ #2 \\ #3 \\end{matrix}\\right)", 3]
+ }, equationNumbers: {autoNumber: "%AUTONUMBER"},
+               MultLineWidth: "85%",
+               TagSide: "right",
+               TagIndent: ".8em"
+             }
+});
+</script>
+<script type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
 <div id="content" class="content">
 <h1 class="title">Boolean Chains</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#boolean-chains">1. Boolean Chains</a>
+<ul>
+<li><a href="#introduction">1.1. Introduction</a></li>
+<li><a href="#starting-point">1.2. Starting point</a></li>
+<li><a href="#hungry-search">1.3. Hungry search</a>
+<ul>
+<li><a href="#hungry-search-improving-performance">1.3.1. Improving performance</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#exhaustive-search">2. Searching for the optimal solution</a>
+<ul>
+<li><a href="#exhaustive-search-improving-performance">2.1. Improving performance</a></li>
+<li><a href="#algorithm-s">2.2. Algorithm S</a></li>
+<li><a href="#algorithm-a">2.3. Algorithm A</a></li>
+<li><a href="#performance">2.4. Performance</a></li>
+</ul>
+</li>
+<li><a href="#results">3. Results</a>
+<ul>
+<li><a href="#results-full">3.1. Full search</a></li>
+<li><a href="#results-hungry">3.2. Hungry search</a></li>
+<li><a href="#results-branching">3.3. Branching</a></li>
+</ul>
+</li>
+<li><a href="#best-chains">4. Best chains</a>
+<ul>
+<li><a href="#10-digits">4.1. Seven-segment display for 10 digits</a></li>
+<li><a href="#11-digits">4.2. Seven-segment display for 11 digits</a></li>
+<li><a href="#12-digits">4.3. Seven-segment display for 12 digits</a></li>
+<li><a href="#13-digits">4.4. Seven-segment display for 13 digits</a></li>
+<li><a href="#14-digits">4.5. Seven-segment display for 14 digits</a></li>
+<li><a href="#15-digits">4.6. Seven-segment display for 15 digits</a></li>
+<li><a href="#16-digits">4.7. Seven-segment display for 16 digits</a></li>
+<li><a href="#7.1.2-54">4.8. Exercise 7.1.2-54</a></li>
+<li><a href="#7.1.2-59">4.9. Exercise 7.1.2-59</a></li>
+</ul>
+</li>
+<li><a href="#source-code">5. Source code</a></li>
+</ul>
+</div>
+</div>
+<a href=".." style="position: fixed; top: 10px; left: 10px; background: #eee; padding: 5px 10px; border-radius: 5px; text-decoration: none;">Home</a>
+<div id="outline-container-boolean-chains" class="outline-2">
+<h2 id="boolean-chains"><span class="section-number-2">1.</span> Boolean Chains</h2>
+<div class="outline-text-2" id="text-boolean-chains">
+</div>
+<div id="outline-container-introduction" class="outline-3">
+<h3 id="introduction"><span class="section-number-3">1.1.</span> Introduction</h3>
+<div class="outline-text-3" id="text-introduction">
 <p>
-_</p>
+In section 7.1.2 <a href="https://www.informit.com/store/art-of-computer-programming-volume-4a-combinatorial-9780201038040">The Art of Computer Programming Volume 4A</a> Knuth describes and
+analyzes  boolean chains, which are defined for functions of \(n\) variables \(x_1,
+x_2, ...  x_n\) as a sequence of operations \(x_i = x_{j(i)} \circ_i x_{k(i)}\) for
+\(n+1 \leq i \leq n + r\), with \(1 \leq j(i) < i, 1 \leq k(i)\) and \(\circ_i\) being
+any binary operation. He shows that it is sufficient to consider the binary
+operations \(\land\), \(\lor\), \(\oplus\), \(<\) (bitwise), \(>\) (bitwise).
+</p>
+
+<p>
+In <b>Synthesizing a good chain</b> he discusses finding short boolean chains for
+given target functions, using the example of a 7-segment display for decimal
+digits; each segment is controlled by a boolean functions of the four inputs of
+a 4-bit decimal digit.
+</p>
+</div>
+</div>
+<div id="outline-container-starting-point" class="outline-3">
+<h3 id="starting-point"><span class="section-number-3">1.2.</span> Starting point</h3>
+<div class="outline-text-3" id="text-starting-point">
+<p>
+In order to find a reasonably short boolean chain Knuth describes Algorithm L
+and Algorithm U, an extension of Algorithm L, which tracks a <i>footprint</i> for
+each possible function. The footprint is a set of &ldquo;first operations&rdquo; that can be
+achieved with \(n\) input variables and that are part of the shortest chains
+generating a target function. This footprint can used as a heuristic to greedily
+pick the next operation. The resulting chain including the new operation can be
+used as an input for Algorithm U again, resulting in the next operation to pick,
+etc., until the chain contains all target functions.
+</p>
+
+<p>
+This approach generates a boolean chain of length 22 for the 7-segment decimal
+digit display. Knuth also mentions that David Stevenson found a 21-step chain by
+picking \(x_{10}\) non-greedily.
+</p>
+
+<p>
+I was interested in trying to find an even shorter chain for the display.
+</p>
+</div>
+</div>
+<div id="outline-container-hungry-search" class="outline-3">
+<h3 id="hungry-search"><span class="section-number-3">1.3.</span> Hungry search</h3>
+<div class="outline-text-3" id="text-hungry-search">
+<p>
+I started by using Algorithm L and Algorithm U from exercise 7.1.2-11, but
+instead of taking the best instruction based on the footprint heuristic, I tried
+the top \(k_l\) instructions recursively for chain lengths \(l\). With \(k_l = 5\) for
+\(4 \leq l < 9\), \(k_l = 3\) for \(9 \leq l < 13\), and \(k_l = 1\) for \(k \geq 13\).
+I call this <i>hungry search</i>, as it starts taking big bites, then smaller and
+smaller bites until it is done.
+</p>
+
+<p>
+The idea is that the first few instructions are less likely to be optimal when
+chosen greedily, so we want to try more of them. But as the chain gets longer
+the greedy algorithm does a good job of identifying the best next steps, so we
+try fewer and fewer options. This makes the search space manageable.
+</p>
+
+<p>
+I experimented with the order of the instructions in order to decide which top
+\(k\) to pick. The book greedily picks the instruction that appears in most target
+footprints, preferring a lower minimal cost. I tried out the opposite: ordering
+by minimal cost first and then prefer a higher number of matching footprints. To
+break ties I also ordered by the negative of the index of generated
+instructions. That index depends on the order in which the instructions are
+generated; so this criterion really only makes the order deterministic.
+</p>
+
+<p>
+This approach generated several chains of length 20, one step
+shorter than the previously shortest chain in the book:
+</p>
+
+\begin{aligned}
+    x_5    &= x_2    \oplus x_3                   & \quad
+    x_{12} &= x_5    \lor   x_9                   & \quad
+    x_{19} &= x_1    \land  x_{14}                & \\
+
+    x_6    &= x_1    \lor   x_5                   & \quad
+    x_{13} &= x_{11} <      x_{12} = \overline{f} & \quad
+    x_{20} &= x_9    \oplus x_{19} = \overline{a} & \\
+
+    x_7    &= x_4    \oplus x_5                   & \quad
+    x_{14} &= x_4    \land  x_{12}                & \quad
+    x_{21} &= x_{10} \oplus x_{20}                & \\
+
+    x_8    &= x_2    >      x_7                   & \quad
+    x_{15} &= x_{13} \oplus x_{14}                & \quad
+    x_{22} &= x_{17} >      x_{21}                & \\
+
+    x_9    &= x_3    <      x_7                   & \quad
+    x_{16} &= x_7    >      x_{15} = \overline{d} & \quad
+    x_{23} &= x_{14} \oplus x_{22} = \overline{e} & \\
+
+    x_{10} &= x_6    \lor   x_8    = g            & \quad
+    x_{17} &= x_{11} \lor   x_{14}                & \quad
+    x_{24} &= x_2    \oplus x_{22} = \overline{b} & \\
+
+    x_{11} &= x_1    \oplus x_2                   & \quad
+    x_{18} &= x_6    >      x_{17} = \overline{c} & \\
+\end{aligned}
+
+<p>
+I then improved the runtime of the binary substantially, based on the program
+for the exhaustive search (see below), which allows bigger bites along the
+hungry search. I went with a bite size of 10 for the first step, 9 for the
+next, 8 for the next, etc.. This hungry search found several chains of length
+19, for instance:
+</p>
+
+\begin{aligned}
+    x_5    &= x_3    <      x_4                   & \quad
+    x_{12} &= x_1    \lor   x_{11}                & \quad
+    x_{19} &= x_8    >      x_{18} = \overline{a} & \\
+
+    x_6    &= x_3    \oplus x_4                   & \quad
+    x_{13} &= x_7    \lor   x_{12} = g            & \quad
+    x_{20} &= x_4    \oplus x_{14}                & \\
+
+    x_7    &= x_2    \oplus x_3                   & \quad
+    x_{14} &= x_7    >      x_{11}                & \quad
+    x_{21} &= x_{16} <      x_{20} = \overline{e} & \\
+
+    x_8    &= x_5    \lor   x_7                   & \quad
+    x_{15} &= x_2    \oplus x_{14}                & \quad
+    x_{22} &= x_{19} \oplus x_{20}                & \\
+
+    x_9    &= x_1    \oplus x_2                   & \quad
+    x_{16} &= x_9    <      x_{15} = \overline{c} & \quad
+    x_{23} &= x_8    \oplus x_{22} = \overline{d} & \\
+
+    x_{10} &= x_8    >      x_9    = \overline{f} & \quad
+    x_{17} &= x_{12} \land  x_{15} = \overline{b} & \\
+
+    x_{11} &= x_6    \oplus x_{10}                & \quad
+    x_{18} &= x_{11} \oplus x_{16}                & \\
+\end{aligned}
+</div>
+<div id="outline-container-hungry-search-improving-performance" class="outline-4">
+<h4 id="hungry-search-improving-performance"><span class="section-number-4">1.3.1.</span> Improving performance</h4>
+<div class="outline-text-4" id="text-hungry-search-improving-performance">
+<p>
+The bigger search with bite sizes 10, 9, 8, etc. was possible due to a few
+optimizations in the code.
+</p>
+
+<ol class="org-ol">
+<li>Let \(t = 7\) be the number of target functions and \(w\) the number of target
+functions not yet contained in the chain we&rsquo;re currently looking at, then as
+soon as we see a chain of length \(c\) with \(c + w = m\) we know every next step
+must generate a target function. This means we don&rsquo;t have to run Algorithm U
+again, we simply pick the first target function in the available instructions
+and so on. Since the last few iterations are a big part of the computation,
+this reduces the overall effort by a factor of about 2-4, well worth the
+extra branching required for the check.</li>
+
+<li>If we encounter a target function at any length, then we can pick this
+instruction and move on with the hungry search, but once we backtrack to the
+original length we can stop this branch. The function needs to be picked at
+some point anyway, so it might as well be now. There is a small chance that
+picking other instructions inside the same bite would result in different
+footprints in future bites, potentially finding shorter chains, but the
+footprints are just a heuristic anyway, and it is much more likely that the
+target function would simply come up in the next iteration again, doubling
+our work.</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-exhaustive-search" class="outline-2">
+<h2 id="exhaustive-search"><span class="section-number-2">2.</span> Searching for the optimal solution</h2>
+<div class="outline-text-2" id="text-exhaustive-search">
+<p>
+For the decimal display 7.1.2-(44) I noticed that these chains are short enough
+to search the entire space of all possible chains up to length 11, as a solution
+of that length exists (7.1.2-(45)). It turns out 11 is the optimum, and it
+only can be reached if the single stray <i>don&rsquo;t-care</i> is 1. (From here on I
+assume that single <i>don&rsquo;t-care</i> is actually a 1, because that&rsquo;s the case in the
+initial problem and the shortest chain with 0 is 11 steps long. It&rsquo;s possible
+that for 12 digits, 13 digits, etc. a shorter chain exists with 0 in that place,
+but I didn&rsquo;t care about that.)
+</p>
+
+<p>
+Based on this I&rsquo;ve tried to reduce the number of <i>don&rsquo;t-cares</i>, finding minimal
+chains for a display for the first 11 digits <code>0123456789A</code>, then one for the
+first 12 digits <code>0123456789Ab</code>, etc.
+</p>
+</div>
+<div id="outline-container-exhaustive-search-improving-performance" class="outline-3">
+<h3 id="exhaustive-search-improving-performance"><span class="section-number-3">2.1.</span> Improving performance</h3>
+<div class="outline-text-3" id="text-exhaustive-search-improving-performance">
+<p>
+The search space for these chains grows rather quickly, but we can reduce it in
+a few ways:
+</p>
+
+<ol class="org-ol">
+<li>We estimate the length of the minimal chain to be just one or two more than
+the best chain we already found for the display with one less digit; call
+this maximal length \(m\).</li>
+
+<li>Let \(t = 7\) be the number of target functions and \(w\) the number of target
+functions not yet contained in the chain we&rsquo;re currently looking at, then as
+soon as we see a chain of length \(c\) with \(c + w > m\) we can stop pursuing
+this branch, because any chain fulfilling the remaining targets would exceed
+length \(m\).</li>
+
+<li><p>
+A lot of equivalent chains can be found in different orders, which wastes a
+lot of computation. I consider two chains equivalent if the set of the
+functions they generate are equal. There are chains for which one or more
+functions can be derived with two or more instructions based on previous
+functions, but those variants can easily be generated from the set of
+functions.
+</p>
+
+<p>
+It is sufficient to apply every function \(f\) only at the shortest length it is
+found in the current branch. That means if we are at \(c = 3\) and encounter,
+say, \(f =\) 0110 1001 0110 1010 for the first time, then we apply it and
+recurse to \(c + 1\).  If we afterwards pick a different function at the same
+length \(c\) and  down the line \(f\) reappears, then we ignore it. Even if the
+function results from a different instruction at that time, we could&rsquo;ve just
+chosen \(f\) at length \(c\) and done the same steps afterwards for the same
+complete chain length.
+</p>
+
+<p>
+Once we backtrack to length \(c-1\), however, we must forget about all \(f\)
+we&rsquo;ve applied at that length in this branch, because they might re-appear in
+a different branch for the first time (in that branch) and there result in
+different chains.
+</p>
+
+<p>
+This property makes it very easy to maintain all new instructions in a single,
+shared array, to which we only ever add at each level of recursion and then
+move the length back on backtracking. We also can simply start at the
+instruction following the last instruction applied at the previous recursion
+level, automatically ensuring that we&rsquo;re not duplicating work.
+</p>
+
+<p>
+A side effect of this is that the number of relevant branches at every chain
+length usually goes down as we try more and more instructions at that length.
+This is a minor challenge in trying to generate roughly equal chunks for
+parallelization.
+</p></li>
+
+<li><p>
+Newly generated instructions at every length will still duplicate some functions
+we&rsquo;ve seen before, e.g. if we chose \(x_4 = x_1 \oplus x_2\), then \(x_4 \oplus
+   x_1\) and \(x_4 \oplus x_2\) would be new instructions at the next length, but
+they&rsquo;d duplicate \(x_2\) and \(x_1\) respectively. The same is true for any
+function derived on a different path in the previous chain.
+</p>
+
+<p>
+To ignore those duplicates we can maintain a bit set of all the functions
+we&rsquo;ve already seen in the chain up to that point, and it turns out this can
+be the same set we use for 3. to avoid revisiting functions down the line.
+</p></li>
+
+<li>If we encounter a target function at any length, then we can try that one and
+recurse, but after that the entire branch for that length can be culled. The
+reason is that the target function we tried in the last loop now can&rsquo;t ever
+be used again in other chains along this branch, making a complete chain
+impossible. This is due to point 3.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-algorithm-s" class="outline-3">
+<h3 id="algorithm-s"><span class="section-number-3">2.2.</span> Algorithm S</h3>
+<div class="outline-text-3" id="text-algorithm-s">
+<p>
+This algorithm generates all unique boolean chains for inputs \(x_k\), \(1 \leq k
+\leq n\), \(n \geq 2\) up to a maximum length of \(m\) in order to find boolean chains that
+contain target functions \(f_k\), \(1 \leq k \leq t\).
+Let the inputs be distinct from the target functions, otherwise just remove them
+from the target functions.
+</p>
+
+<p>
+The algorithm generates all relevant boolean chains in depth-first manner, but
+all the data can be shared across the different lengths of the chain.
+</p>
+
+<p>
+Let \(c\) be the length of the current chain at any time, including the \(n\)
+inputs.
+</p>
+
+<p>
+\(I(c)\) is a 0-based array of available functions that can be generated with the
+instructions based on the functions in the chain so far for the current chain of
+length \(c\). \(N(c)\) is the relevant length of that array.
+</p>
+
+<p>
+\(C(i)\) is a 0-based array of indexes into \(I\), for each step
+\(0 \leq i < c\) of the current chain of length \(c\). Therefore
+\(I(C(0))\), \(I(C(1))\), \(I(C(2))\), &#x2026; is the actual chain.
+</p>
+
+<p>
+\(S\) is a set of functions we&rsquo;ve seen already and don&rsquo;t need to try again in this
+branch.
+</p>
+
+<p>
+\(F = \{f_k \, | \, 1 \leq k \leq t\}\) is the set of target functions.
+</p>
+
+<p>
+Finally, \(w(c)\) is the number of target functions not yet in the current chain of
+length \(c\).
+</p>
+
+<p>
+<b>S1.</b> [Initialize.] Set \(c \leftarrow n\) and \(w(c) \leftarrow |F|\) to count all
+the target functions we have yet to discover. Also set \(I(k) \leftarrow
+x_{k+1}\), and \(C(k) \leftarrow k\) for \(0 \leq k < n\).
+</p>
+
+<p>
+Build possible instructions of all combinations of the first \(n-1\) inputs.
+The instructions involving the \(n\text{-th}\) input will be added by the main loop.
+First we set \(S \leftarrow \emptyset\) and \(N(0) \leftarrow n\) then for \(1 \leq k
+< n\) we add new instructions with Algorithm <b>A</b> with input \(k\).
+</p>
+
+<p>
+<b>S2.</b> [Cull search?] If \(c + w > m\) we can&rsquo;t win anymore, stop this branch and
+go to <b>S8</b>.
+</p>
+
+<p>
+<b>S3.</b> [Found solution?] If \(w(c) = 0\) we have found a solution, print it. Go to <b>S8</b>.
+</p>
+
+<p>
+<b>S4.</b> [Add new possible instructions.] Run Algorithm <b>A</b> with input \(c\).
+</p>
+
+<p>
+<b>S5.</b> [Prepare looping on the next instruction.] Set \(C(c) \leftarrow C(c-1)\),
+because we don&rsquo;t need to try any instructions we already tried during the last step.
+</p>
+
+<p>
+<b>S6.</b> [Pick the next instruction.] Set \(C(c) \leftarrow C(c) + 1\). If \(C(c) \geq
+N(c)\) go to <b>S7</b>. Otherwise if \(C(c) \in F\) then we have found a new target
+function, set \(w(c+1) \leftarrow w(c) - 1\) otherwise \(w(c+1) \leftarrow w(c)\).
+Finally set \(c \leftarrow c + 1\) and go to <b>S2</b>.
+</p>
+
+<p>
+<b>S7.</b> [Clean up function set.] Set \(S \leftarrow S - \{ I(j) \, | \, N(c-1) \leq j <
+N(c)\}\) to forget about all the functions we&rsquo;ve seen at this chain length in this
+branch.
+</p>
+
+<p>
+<b>S8.</b> [Backtrack.] Set \(c \leftarrow c - 1\). If \(c < n\) terminate the algorithm,
+otherwise go to <b>S6</b>.
+</p>
+</div>
+</div>
+<div id="outline-container-algorithm-a" class="outline-3">
+<h3 id="algorithm-a"><span class="section-number-3">2.3.</span> Algorithm A</h3>
+<div class="outline-text-3" id="text-algorithm-a">
+<p>
+This adds new possible instructions to the array \(I\) for a given chain \(C\) with
+length \(l\), which is the input to the algorithm, given all the arrays set up in
+Algorithm S.
+</p>
+
+<p>
+<b>A1.</b> [Initialize.] Set \(N(l) \leftarrow N(l-1)\).
+</p>
+
+<p>
+<b>A2.</b> [Loop on instructions.] Set \(h \leftarrow I(C(l))\) and for \(0 \leq j < l\),
+set \(g \leftarrow I(C(j))\) and do step <b>A3</b> for \(f = g \, \& \, h\), \(f = g \, |
+\, h\), \(f = g \oplus h\), \(f = \overline{g} \, \& \, h\), and \(f = g \, \& \,
+\overline{h}\).
+</p>
+
+<p>
+<b>A3.</b> [Add instruction if new.] If \(f \not\in S\) set \(S \leftarrow S \cup \{f\}\),
+\(I(N(l)) \leftarrow f\), and \(N(l) \leftarrow N(l) + 1\).
+</p>
+</div>
+</div>
+<div id="outline-container-performance" class="outline-3">
+<h3 id="performance"><span class="section-number-3">2.4.</span> Performance</h3>
+<div class="outline-text-3" id="text-performance">
+<p>
+My latest version of this program processes around 510-530 million chains per
+second on my MacBook Air 15" (M2, 2023). On AWS Batch with Fargate capacity on 1
+vCPU it processes around 200-230 million chains per second; so about 51-59
+thousand million chains per second across 256 jobs.
+</p>
+
+<p>
+The program might be suitable for the GPU, but I have no experience with GPU
+programming.
+</p>
+
+<p>
+I wrote that original program with a class-based style, some templating, naive
+sets, etc. &#x2013; all very slow compared to the latest version of exhaustive search.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-results" class="outline-2">
+<h2 id="results"><span class="section-number-2">3.</span> Results</h2>
+<div class="outline-text-2" id="text-results">
+</div>
+<div id="outline-container-results-full" class="outline-3">
+<h3 id="results-full"><span class="section-number-3">3.1.</span> Full search</h3>
+<div class="outline-text-3" id="text-results-full">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">&#xa0;</th>
+<th scope="col" class="org-right">optimal length</th>
+<th scope="col" class="org-right">number of optimal function sets</th>
+<th scope="col" class="org-right">number of chains generated</th>
+<th scope="col" class="org-right">computation time</th>
+<th scope="col" class="org-right">computing</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">10 digits</td>
+<td class="org-right">11</td>
+<td class="org-right">3</td>
+<td class="org-right">7,461,658</td>
+<td class="org-right">0.03 secs</td>
+<td class="org-right">MacBook Air 15" (M2, 2023)</td>
+</tr>
+
+<tr>
+<td class="org-left">11 digits</td>
+<td class="org-right">12</td>
+<td class="org-right">91</td>
+<td class="org-right">344,252,541</td>
+<td class="org-right">0.78 secs</td>
+<td class="org-right">MacBook Air 15" (M2, 2023)</td>
+</tr>
+
+<tr>
+<td class="org-left">12 digits</td>
+<td class="org-right">14</td>
+<td class="org-right">6</td>
+<td class="org-right">263,675,232,692</td>
+<td class="org-right">9 mins</td>
+<td class="org-right">MacBook Air 15" (M2, 2023)</td>
+</tr>
+
+<tr>
+<td class="org-left">13 digits</td>
+<td class="org-right">15</td>
+<td class="org-right">1</td>
+<td class="org-right">15,586,512,093,540</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-right">MacBook Air 15" (M2, 2023)</td>
+</tr>
+
+<tr>
+<td class="org-left">14 digits</td>
+<td class="org-right">16</td>
+<td class="org-right">35</td>
+<td class="org-right">1,172,393,232,657,510</td>
+<td class="org-right">156 days</td>
+<td class="org-right">AWS ECS, 1 vCPU/job</td>
+</tr>
+
+<tr>
+<td class="org-left">15 digits</td>
+<td class="org-right">17</td>
+<td class="org-right">[known so far] 1</td>
+<td class="org-right">[41%]        24,626,476,491,872,918</td>
+<td class="org-right">[41%]     1002 days</td>
+<td class="org-right">AWS ECS, 1 vCPU/job</td>
+</tr>
+</tbody>
+</table>
+<p>
+Note: those times and numbers are based on the full search version that didn&rsquo;t
+yet stop the branch after finding a target function; the number of chains to
+generate then reduces to about 56-59% of the figures here.
+An exception is the 15-digit run, which started with the old version for the
+first 10%, then switched to the new version to save time.
+</p>
+</div>
+</div>
+<div id="outline-container-results-hungry" class="outline-3">
+<h3 id="results-hungry"><span class="section-number-3">3.2.</span> Hungry search</h3>
+<div class="outline-text-3" id="text-results-hungry">
+<p>
+With bite sizes 15, 14, 13, &#x2026;
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">&#xa0;</th>
+<th scope="col" class="org-right">length</th>
+<th scope="col" class="org-right">number of chains found</th>
+<th scope="col" class="org-right">number of chains generated</th>
+<th scope="col" class="org-right">computation time</th>
+<th scope="col" class="org-right">computing</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">10 digits</td>
+<td class="org-right">12</td>
+<td class="org-right">1387</td>
+<td class="org-right">200,246</td>
+<td class="org-right">3.11 secs</td>
+<td class="org-right">MacBook Air 15" (M2, 2023)</td>
+</tr>
+
+<tr>
+<td class="org-left">11 digits</td>
+<td class="org-right">12</td>
+<td class="org-right">192</td>
+<td class="org-right">221,833</td>
+<td class="org-right">7.55 secs</td>
+<td class="org-right">MacBook 15" Air (M2, 2023)</td>
+</tr>
+
+<tr>
+<td class="org-left">12 digits</td>
+<td class="org-right">14</td>
+<td class="org-right">3</td>
+<td class="org-right">6,182,486</td>
+<td class="org-right">15 mins</td>
+<td class="org-right">MacBook 15" Air (M2, 2023)</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+With bite sizes 10, 9, 8, &#x2026;
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">&#xa0;</th>
+<th scope="col" class="org-right">length</th>
+<th scope="col" class="org-right">number of chains found</th>
+<th scope="col" class="org-right">number of chains generated</th>
+<th scope="col" class="org-right">computation time</th>
+<th scope="col" class="org-right">computing</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">15 digits</td>
+<td class="org-right">18</td>
+<td class="org-right">493</td>
+<td class="org-right">11,237,970</td>
+<td class="org-right">14 hours</td>
+<td class="org-right">AWS ECS, 1 vCPU/job</td>
+</tr>
+
+<tr>
+<td class="org-left">16 digits</td>
+<td class="org-right">19</td>
+<td class="org-right">34</td>
+<td class="org-right">31,163,144</td>
+<td class="org-right">98 days</td>
+<td class="org-right">AWS ECS, 1 vCPU/job</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-results-branching" class="outline-3">
+<h3 id="results-branching"><span class="section-number-3">3.3.</span> Branching</h3>
+<div class="outline-text-3" id="text-results-branching">
+<p>
+I tracked some statistics on the number of new instructions encountered at
+different lengths and the number of chains generated. For the decimal display
+for 13 digits, searching to a maximal length of \(m=19\) the program looked at
+15,586,512,093,540 chains,
+The exact number depends on the order in which instructions are generated, and
+the following table provides some statistics on the number of newly added
+instructions at every length.
+</p>
+
+<p>
+The main takeaway is that the branching factor doesn&rsquo;t grow much as the chains
+get longer, because so many instructions result in the same functions and we
+ignore different orders of the same set of functions. The table is slightly
+misleading, however, as the number of actual branches will be roughly the sum of
+these newly added instructions up to that length, e.g. at length 8 on average
+\(30+8+10+11+12 = 71\).
+</p>
+
+<p>
+That the numbers go down again after length 12 is due to the algorithm stopping
+at a max length of 19 and bailing out once a chain has no hope of generating all
+7 target functions by length 10 anymore (12 = 19 - 7 target functions). So fewer
+and fewer branches make it to those higher lengths.
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-right">c</th>
+<th scope="col" class="org-right">chains</th>
+<th scope="col" class="org-right">sum new instructions</th>
+<th scope="col" class="org-right">avg</th>
+<th scope="col" class="org-right">min</th>
+<th scope="col" class="org-right">max</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-right">4</td>
+<td class="org-right">1</td>
+<td class="org-right">30</td>
+<td class="org-right">30</td>
+<td class="org-right">30</td>
+<td class="org-right">30</td>
+</tr>
+
+<tr>
+<td class="org-right">5</td>
+<td class="org-right">30</td>
+<td class="org-right">252</td>
+<td class="org-right">8</td>
+<td class="org-right">2</td>
+<td class="org-right">10</td>
+</tr>
+
+<tr>
+<td class="org-right">6</td>
+<td class="org-right">687</td>
+<td class="org-right">6881</td>
+<td class="org-right">10</td>
+<td class="org-right">3</td>
+<td class="org-right">15</td>
+</tr>
+
+<tr>
+<td class="org-right">7</td>
+<td class="org-right">15349</td>
+<td class="org-right">170840</td>
+<td class="org-right">11</td>
+<td class="org-right">2</td>
+<td class="org-right">20</td>
+</tr>
+
+<tr>
+<td class="org-right">8</td>
+<td class="org-right">362425</td>
+<td class="org-right">4448336</td>
+<td class="org-right">12</td>
+<td class="org-right">1</td>
+<td class="org-right">25</td>
+</tr>
+
+<tr>
+<td class="org-right">9</td>
+<td class="org-right">9341932</td>
+<td class="org-right">127672810</td>
+<td class="org-right">13</td>
+<td class="org-right">1</td>
+<td class="org-right">30</td>
+</tr>
+
+<tr>
+<td class="org-right">10</td>
+<td class="org-right">266485149</td>
+<td class="org-right">4055025721</td>
+<td class="org-right">15</td>
+<td class="org-right">0</td>
+<td class="org-right">33</td>
+</tr>
+
+<tr>
+<td class="org-right">11</td>
+<td class="org-right">8442288161</td>
+<td class="org-right">141892395181</td>
+<td class="org-right">16</td>
+<td class="org-right">0</td>
+<td class="org-right">38</td>
+</tr>
+
+<tr>
+<td class="org-right">12</td>
+<td class="org-right">296360074644</td>
+<td class="org-right">5451011054514</td>
+<td class="org-right">18</td>
+<td class="org-right">0</td>
+<td class="org-right">43</td>
+</tr>
+
+<tr>
+<td class="org-right">13</td>
+<td class="org-right">67539256837</td>
+<td class="org-right">1281813235039</td>
+<td class="org-right">18</td>
+<td class="org-right">0</td>
+<td class="org-right">46</td>
+</tr>
+
+<tr>
+<td class="org-right">14</td>
+<td class="org-right">29625227652</td>
+<td class="org-right">564173170164</td>
+<td class="org-right">19</td>
+<td class="org-right">0</td>
+<td class="org-right">51</td>
+</tr>
+
+<tr>
+<td class="org-right">15</td>
+<td class="org-right">1038462604</td>
+<td class="org-right">23435424999</td>
+<td class="org-right">22</td>
+<td class="org-right">0</td>
+<td class="org-right">53</td>
+</tr>
+
+<tr>
+<td class="org-right">16</td>
+<td class="org-right">27930118</td>
+<td class="org-right">762860238</td>
+<td class="org-right">27</td>
+<td class="org-right">2</td>
+<td class="org-right">54</td>
+</tr>
+
+<tr>
+<td class="org-right">17</td>
+<td class="org-right">255268</td>
+<td class="org-right">7328660</td>
+<td class="org-right">28</td>
+<td class="org-right">5</td>
+<td class="org-right">51</td>
+</tr>
+
+<tr>
+<td class="org-right">18</td>
+<td class="org-right">1282</td>
+<td class="org-right">39984</td>
+<td class="org-right">31</td>
+<td class="org-right">16</td>
+<td class="org-right">45</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="outline-container-best-chains" class="outline-2">
+<h2 id="best-chains"><span class="section-number-2">4.</span> Best chains</h2>
+<div class="outline-text-2" id="text-best-chains">
+</div>
+<div id="outline-container-10-digits" class="outline-3">
+<h3 id="10-digits"><span class="section-number-3">4.1.</span> Seven-segment display for 10 digits</h3>
+<div class="outline-text-3" id="text-10-digits">
+\begin{aligned}
+    x_5    &= x_1  \lor   x_2                   & \quad
+    x_9    &= x_5  <      x_8    = \overline{f} & \quad
+    x_{13} &= x_3  <      x_{10} = \overline{a} & \\
+
+    x_6    &= x_3  \oplus x_5                   & \quad
+    x_{10} &= x_6  \oplus x_8    = \overline{d} & \quad
+    x_{14} &= x_4  \lor   x_{10} = \overline{e} & \\
+
+    x_7    &= x_2  <      x_6                   & \quad
+    x_{11} &= x_4  <      x_9    = \overline{c} & \quad
+    x_{15} &= x_6  \lor   x_{12} = g            & \\
+
+    x_8    &= x_4  \lor   x_7                   & \quad
+    x_{12} &= x_2  >      x_{10} = \overline{b} & \\
+\end{aligned}
+
+
+<div id="orgd75f3ae" class="figure">
+<p><img src="./10-digits-segments.svg" alt="10-digits-segments.svg" class="org-svg" />
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-11-digits" class="outline-3">
+<h3 id="11-digits"><span class="section-number-3">4.2.</span> Seven-segment display for 11 digits</h3>
+<div class="outline-text-3" id="text-11-digits">
+\begin{aligned}
+    x_5    &= x_1    \lor   x_2                   & \quad
+    x_9    &= x_3    \oplus x_7                   & \quad
+    x_{13} &= x_9    \oplus x_{10} = \overline{d} & \\
+
+    x_6    &= x_1    \oplus x_3                   & \quad
+    x_{10} &= x_5    <      x_8    = \overline{f} & \quad
+    x_{14} &= x_3    <      x_{13} = \overline{a} & \\
+
+    x_7    &= x_2    >      x_4                   & \quad
+    x_{11} &= x_2    >      x_9    = \overline{b} & \quad
+    x_{15} &= x_8    \oplus x_{13} = g            & \\
+
+    x_8    &= x_4    \lor   x_6                   & \quad
+    x_{12} &= x_4    <      x_{10} = \overline{c} & \quad
+    x_{16} &= x_4    \lor   x_{14} = \overline{e} & \\
+
+\end{aligned}
+
+
+<div id="org8a70770" class="figure">
+<p><img src="./11-digits-segments.svg" alt="11-digits-segments.svg" class="org-svg" />
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-12-digits" class="outline-3">
+<h3 id="12-digits"><span class="section-number-3">4.3.</span> Seven-segment display for 12 digits</h3>
+<div class="outline-text-3" id="text-12-digits">
+\begin{aligned}
+    x_5    &= x_1    \oplus x_3                   & \quad
+    x_{10} &= x_3    \oplus x_9                   & \quad
+    x_{15} &= x_7    \lor   x_{13} = g            & \\
+
+    x_6    &= x_3    \oplus x_4                   & \quad
+    x_{11} &= x_5    <      x_{10} = \overline{a} & \quad
+    x_{16} &= x_9    <      x_{13} = \overline{b} & \\
+
+    x_7    &= x_2    <      x_5                   & \quad
+    x_{12} &= x_6    \lor   x_{11}                & \quad
+    x_{17} &= x_{10} >      x_{13} = \overline{f} & \\
+
+    x_8    &= x_6    >      x_7                   & \quad
+    x_{13} &= x_8    \oplus x_{11}                & \quad
+    x_{18} &= x_4    <      x_{17} = \overline{c} & \\
+
+    x_9    &= x_2    \oplus x_8    = \overline{d} & \quad
+    x_{14} &= x_3    \oplus x_{12} = \overline{e} & \\
+\end{aligned}
+
+
+<div id="org412da24" class="figure">
+<p><img src="./12-digits-segments.svg" alt="12-digits-segments.svg" class="org-svg" />
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-13-digits" class="outline-3">
+<h3 id="13-digits"><span class="section-number-3">4.4.</span> Seven-segment display for 13 digits</h3>
+<div class="outline-text-3" id="text-13-digits">
+\begin{aligned}
+    x_5    &= x_2    \oplus x_3                   & \quad
+    x_{10} &= x_5    \lor   x_9    = g            & \quad
+    x_{15} &= x_6    \land  x_{14} = \overline{a} & \\
+
+    x_6    &= x_2    \oplus x_4                   & \quad
+    x_{11} &= x_7    >      x_9    = \overline{f} & \quad
+    x_{16} &= x_9    \land  x_{15}                & \\
+
+    x_7    &= x_5    \lor   x_6                   & \quad
+    x_{12} &= x_4    <      x_{11} = \overline{c} & \quad
+    x_{17} &= x_4    \oplus x_{16} = \overline{e} & \\
+
+    x_8    &= x_2    \land  x_7                   & \quad
+    x_{13} &= x_8    \lor   x_{11}                & \quad
+    x_{18} &= x_8    \oplus x_{16} = \overline{b} & \\
+
+    x_9    &= x_1    \oplus x_8                   & \quad
+    x_{14} &= x_3    \oplus x_{13}                & \quad
+    x_{19} &= x_{14} >      x_{18} = \overline{d} & \\
+
+\end{aligned}
+
+
+<div id="orgbd6ef31" class="figure">
+<p><img src="./13-digits-segments.svg" alt="13-digits-segments.svg" class="org-svg" />
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-14-digits" class="outline-3">
+<h3 id="14-digits"><span class="section-number-3">4.5.</span> Seven-segment display for 14 digits</h3>
+<div class="outline-text-3" id="text-14-digits">
+\begin{aligned}
+    x_5    &= x_1    \oplus x_2                   & \quad
+    x_{11} &= x_5    <      x_9    = \overline{f} & \quad
+    x_{17} &= x_1    \oplus x_{15} = \overline{e} & \\
+
+    x_6    &= x_1    \oplus x_4                   & \quad
+    x_{12} &= x_8    \oplus x_9    = \overline{a} & \quad
+    x_{18} &= x_{13} <      x_{15} = \overline{d} & \\
+
+    x_7    &= x_3    \oplus x_4                   & \quad
+    x_{13} &= x_2    \oplus x_{10}                & \quad
+    x_{19} &= x_{13} \land  x_{16} = \overline{b} & \\
+
+    x_8    &= x_3    \lor   x_5                   & \quad
+    x_{14} &= x_4    <      x_{11} = \overline{c} & \quad
+    x_{20} &= x_{13} \lor   x_{16} = g            & \\
+
+    x_9    &= x_6    \lor   x_7                   & \quad
+    x_{15} &= x_6    \lor   x_{12}                & \\
+
+    x_{10} &= x_7    <      x_8                   & \quad
+    x_{16} &= x_7    \oplus x_{12}                & \\
+\end{aligned}
+
+<p>
+This chain almost solves the 15 digit case, with one segment missing from
+the <code>E</code>. So close!
+</p>
+
+
+<div id="org0ccd69f" class="figure">
+<p><img src="./14-digits-segments.svg" alt="14-digits-segments.svg" class="org-svg" />
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-15-digits" class="outline-3">
+<h3 id="15-digits"><span class="section-number-3">4.6.</span> Seven-segment display for 15 digits</h3>
+<div class="outline-text-3" id="text-15-digits">
+\begin{aligned}
+    x_5    &= x_2    \land  x_3                   & \quad
+    x_{12} &= x_7    <      x_{10} = \overline{d} & \quad
+    x_{19} &= x_8    \lor   x_{16}                & \\
+
+    x_6    &= x_1    \lor   x_5                   & \quad
+    x_{13} &= x_2    \oplus x_{11}                & \quad
+    x_{20} &= x_6    \oplus x_{19} = \overline{e} & \\
+
+    x_7    &= x_3    \oplus x_6                   & \quad
+    x_{14} &= x_{11} \oplus x_{12} = g            & \quad
+    x_{21} &= x_{10} <      x_{19} = \overline{b} & \\
+
+    x_8    &= x_4    \oplus x_6                   & \quad
+    x_{15} &= x_1    \oplus x_{13}                & \\
+
+    x_9    &= x_4    \lor   x_7                   & \quad
+    x_{16} &= x_7    \oplus x_{13} = \overline{a} & \\
+
+    x_{10} &= x_2    \oplus x_8                   & \quad
+    x_{17} &= x_9    \land  x_{15} = \overline{f} & \\
+
+    x_{11} &= x_5    \lor   x_9                   & \quad
+    x_{18} &= x_{10} <      x_{15} = \overline{c} & \\
+\end{aligned}
+
+
+<div id="org0a8ba46" class="figure">
+<p><img src="./15-digits-segments.svg" alt="15-digits-segments.svg" class="org-svg" />
+</p>
+</div>
+
+<p>
+1 unique optimal set of functions of length 17: <a href="chains-15-21.txt">chains-15-21.txt</a>
+</p>
+</div>
+</div>
+<div id="outline-container-16-digits" class="outline-3">
+<h3 id="16-digits"><span class="section-number-3">4.7.</span> Seven-segment display for 16 digits</h3>
+<div class="outline-text-3" id="text-16-digits">
+<p>
+A chain of length 19 found by the hungry search:
+</p>
+
+\begin{aligned}
+    x_5    &= x_3    <      x_4                   & \quad
+    x_{12} &= x_1    \lor   x_{11}                & \quad
+    x_{19} &= x_8    >      x_{18} = \overline{a} & \\
+
+    x_6    &= x_3    \oplus x_4                   & \quad
+    x_{13} &= x_7    \lor   x_{12} = g            & \quad
+    x_{20} &= x_4    \oplus x_{14}                & \\
+
+    x_7    &= x_2    \oplus x_3                   & \quad
+    x_{14} &= x_7    >      x_{11}                & \quad
+    x_{21} &= x_{16} <      x_{20} = \overline{e} & \\
+
+    x_8    &= x_5    \lor   x_7                   & \quad
+    x_{15} &= x_2    \oplus x_{14}                & \quad
+    x_{22} &= x_{19} \oplus x_{20}                & \\
+
+    x_9    &= x_1    \oplus x_2                   & \quad
+    x_{16} &= x_9    <      x_{15} = \overline{c} & \quad
+    x_{23} &= x_8    \oplus x_{22} = \overline{d} & \\
+
+    x_{10} &= x_8    >      x_9    = \overline{f} & \quad
+    x_{17} &= x_{12} \land  x_{15} = \overline{b} & \\
+
+    x_{11} &= x_6    \oplus x_{10}                & \quad
+    x_{18} &= x_{11} \oplus x_{16}                & \\
+\end{aligned}
+
+<p>
+10 unique chains of length 19 that the hungry search found: <a href="chains-16-23.txt">chains-16-23.txt</a>, not
+exhaustive, not proven to be optimal.
+</p>
+
+
+<div id="orga3749da" class="figure">
+<p><img src="./16-digits-segments.svg" alt="16-digits-segments.svg" class="org-svg" />
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-7.1.2-54" class="outline-3">
+<h3 id="7.1.2-54"><span class="section-number-3">4.8.</span> Exercise 7.1.2-54</h3>
+<div class="outline-text-3" id="text-7.1.2-54">
+<p>
+Total chains generated: 934,236,665,700
+</p>
+
+<p>
+Number of unique optimal sets of functions: 1270
+</p>
+
+<p>
+The minimal length is 13, one step shorter than the solution known in the book.
+</p>
+
+<p>
+Here is the first one found:
+</p>
+
+\begin{aligned}
+    x_5    &= x_1    \land  x_2          & \quad
+    x_{10} &= x_4    >      x_7          & \quad
+    x_{15} &= x_7    \land  x_{11} = f_1 & \\
+
+    x_6    &= x_1    \oplus x_3          & \quad
+    x_{11} &= x_6    \oplus x_8          & \quad
+    x_{16} &= x_9    >      x_{13} = f_3 & \\
+
+    x_7    &= x_2    \oplus x_3          & \quad
+    x_{12} &= x_5    \land  x_9    = f_5 & \quad
+    x_{17} &= x_4    \land  x_{15} = f_6 & \\
+
+    x_8    &= x_4    \lor   x_5          & \quad
+    x_{13} &= x_1    \land  x_{10} = f_4 & \\
+
+    x_9    &= x_4    \land  x_6          & \quad
+    x_{14} &= x_6    <      x_{10} = f_2 & \\
+\end{aligned}
+</div>
+</div>
+<div id="outline-container-7.1.2-59" class="outline-3">
+<h3 id="7.1.2-59"><span class="section-number-3">4.9.</span> Exercise 7.1.2-59</h3>
+<div class="outline-text-3" id="text-7.1.2-59">
+<p>
+Total chains generated: 29,104,454,427,931
+</p>
+
+<p>
+Number of unique optimal sets of functions of length 16 or fewer: 0
+</p>
+
+<p>
+Therefore the chain of length 17 presented in the book is optimal.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-source-code" class="outline-2">
+<h2 id="source-code"><span class="section-number-2">5.</span> Source code</h2>
+<div class="outline-text-2" id="text-source-code">
+<p>
+The code can be found on GitHub: <a href="https://github.com/or/boolean-chains">https://github.com/or/boolean-chains</a>
+</p>
+
+<p>
+Initially I used this to learn a bit of Rust, then re-implemented it in C++,
+then switched over to C++ completely as I made better progress. I wonder whether
+it could be even faster in Rust, however, if written by someone who knows Rust
+better than me.
+</p>
+</div>
+</div>
 </div>
 <div id="postamble" class="status">
 <p class="date">Date: 2025-03-01 Sat 00:00</p>
 <p class="author">Author: Oliver Runge</p>
-<p class="date">Created: 2025-03-09 Sun 13:31</p>
+<p class="date">Created: 2025-03-09 Sun 14:17</p>
 </div>
 </body>
 </html>

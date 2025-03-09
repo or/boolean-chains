@@ -7,7 +7,6 @@ N = 11, MAX_LENGTH: 16, CAPTURE_STATS: 1
   01011101010
   01110000000
   00111110111
-New best chain found (16):
 chain (16):
 x1 = 00000000111
 x2 = 00001111000
@@ -1304,7 +1303,6 @@ x14 = x3 < x12 = 01001000000 [target]
 x15 = x6 | x13 = 00111110111 [target]
 x16 = x4 | x14 = 01011101010 [target]
 
-13, 31, 38, 45, 61, 73, 75, 87, 122, 152 [best: 16] 268435456
 chain (16):
 x1 = 00000000111
 x2 = 00001111000
@@ -1650,7 +1648,7 @@ x16 = x3 < x14 = 01001000000 [target]
 total chains: 344252541
 new expressions at chain length:
                    n                       sum              avg              min              max
- 4:                1                        15               15               15               15
+ 4:                1                        26               26               26               26
  5:               26                       180                6                2               10
  6:              505                      4234                8                2               15
  7:             9532                     90325                9                1               18
@@ -1662,3 +1660,4 @@ new expressions at chain length:
 13:           193706                   2704388               13                0               33
 14:            34241                    563831               16                2               32
 15:             6060                    112446               18                3               33
+target/boolean-chains-full-fast  0.78s user 0.00s system 99% cpu 0.785 total

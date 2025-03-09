@@ -333,21 +333,60 @@ $I(N(l)) \leftarrow f$, and $N(l) \leftarrow N(l) + 1$.
 :CUSTOM_ID: performance
 :END:
 My latest version of this program processes around 510-530 million chains per
-second on my MacBook Air (M2, 2023). On AWS Batch with Fargate capacity on 1
+second on my MacBook Air 15" (M2, 2023). On AWS Batch with Fargate capacity on 1
 vCPU it processes around 200-230 million chains per second; so about 51-59
 thousand million chains per second across 256 jobs.
 
 The program might be suitable for the GPU, but I have no experience with GPU
-programming. I'll try to investigate this.
+programming.
 
-I also plan to use some of the tricks I've learnt optimizing the full search for
-the original approach with Algorithm U and a wider search space. I wrote that
-original program with a class-based style, some templating, naive sets, etc. -
-all very slow compared to the latest version of exhaustive search.
+I wrote that original program with a class-based style, some templating, naive
+sets, etc. -- all very slow compared to the latest version of exhaustive search.
 
 * Results
 :PROPERTIES:
 :CUSTOM_ID: results
+:END:
+** Full search
+:PROPERTIES:
+:CUSTOM_ID: results-full
+:END:
+|           | optimal length | number of optimal function sets |          number of chains generated |    computation time |                  computing |
+|           |            <r> |                             <r> |                                 <r> |                 <r> |                        <r> |
+|-----------+----------------+---------------------------------+-------------------------------------+---------------------+----------------------------|
+| 10 digits |             11 |                               3 |                           7,461,658 |           0.03 secs | MacBook Air 15" (M2, 2023) |
+| 11 digits |             12 |                              91 |                         344,252,541 |           0.78 secs | MacBook Air 15" (M2, 2023) |
+| 12 digits |             14 |                               6 |                     263,675,232,692 |              9 mins | MacBook Air 15" (M2, 2023) |
+| 13 digits |             15 |                               1 |                  15,586,512,093,540 |                     | MacBook Air 15" (M2, 2023) |
+| 14 digits |             16 |                              35 |               1,172,393,232,657,510 |            156 days |        AWS ECS, 1 vCPU/job |
+| 15 digits |             17 |                [known so far] 1 | [41%]        24,626,476,491,872,918 | [41%]     1002 days |        AWS ECS, 1 vCPU/job |
+Note: those times and numbers are based on the full search version that didn't
+yet stop the branch after finding a target function; the number of chains to
+generate then reduces to about 56-59% of the figures here.
+An exception is the 15-digit run, which started with the old version for the
+first 10%, then switched to the new version to save time.
+
+** Hungry search
+:PROPERTIES:
+:CUSTOM_ID: results-hungry
+:END:
+With bite sizes 15, 14, 13, ...
+|           | length | number of chains found | number of chains generated | computation time |                  computing |
+|           |    <r> |                    <r> |                        <r> |              <r> |                        <r> |
+|-----------+--------+------------------------+----------------------------+------------------+----------------------------|
+| 10 digits |     12 |                   1387 |                    200,246 |        3.11 secs | MacBook Air 15" (M2, 2023) |
+| 11 digits |     12 |                    192 |                    221,833 |        7.55 secs | MacBook 15" Air (M2, 2023) |
+| 12 digits |     14 |                      3 |                  6,182,486 |          15 mins | MacBook 15" Air (M2, 2023) |
+
+With bite sizes 10, 9, 8, ...
+|           | length | number of chains found | number of chains generated | computation time |           computing |
+|           |    <r> |                    <r> |                        <r> |              <r> |                 <r> |
+|-----------+--------+------------------------+----------------------------+------------------+---------------------|
+| 15 digits |     18 |                    493 |                 11,237,970 |         14 hours | AWS ECS, 1 vCPU/job |
+| 16 digits |     19 |                     34 |                 31,163,144 |          98 days | AWS ECS, 1 vCPU/job |
+** Branching
+:PROPERTIES:
+:CUSTOM_ID: results-branching
 :END:
 I tracked some statistics on the number of new instructions encountered at
 different lengths and the number of chains generated. For the decimal display
@@ -386,14 +425,15 @@ and fewer branches make it to those higher lengths.
 | 16 |     27930118 |            762860238 |  27 |   2 |  54 |
 | 17 |       255268 |              7328660 |  28 |   5 |  51 |
 | 18 |         1282 |                39984 |  31 |  16 |  45 |
+
+* Best chains
+:PROPERTIES:
+:CUSTOM_ID: best-chains
+:END:
 ** Seven-segment display for 10 digits
 :PROPERTIES:
 :CUSTOM_ID: 10-digits
 :END:
-Total chains generated: 7,461,658
-
-Number of unique optimal sets of functions: 3
-
 \begin{aligned}
     x_5    &= x_1  \lor   x_2                   & \quad
     x_9    &= x_5  <      x_8    = \overline{f} & \quad
@@ -418,10 +458,6 @@ Number of unique optimal sets of functions: 3
 :PROPERTIES:
 :CUSTOM_ID: 11-digits
 :END:
-Total chains generated: 344,252,541
-
-Number of unique optimal sets of functions: 91
-
 \begin{aligned}
     x_5    &= x_1    \lor   x_2                   & \quad
     x_9    &= x_3    \oplus x_7                   & \quad
@@ -448,10 +484,6 @@ Number of unique optimal sets of functions: 91
 :PROPERTIES:
 :CUSTOM_ID: 12-digits
 :END:
-Total chains generated: 263,675,232,692
-
-Number of unique optimal sets of functions: 6
-
 \begin{aligned}
     x_5    &= x_1    \oplus x_3                   & \quad
     x_{10} &= x_3    \oplus x_9                   & \quad
@@ -480,10 +512,6 @@ Number of unique optimal sets of functions: 6
 :PROPERTIES:
 :CUSTOM_ID: 13-digits
 :END:
-Total chains generated: 15,586,512,093,540
-
-Number of unique optimal sets of functions: 1 (!)
-
 \begin{aligned}
     x_5    &= x_2    \oplus x_3                   & \quad
     x_{10} &= x_5    \lor   x_9    = g            & \quad
@@ -514,10 +542,6 @@ Number of unique optimal sets of functions: 1 (!)
 :PROPERTIES:
 :CUSTOM_ID: 14-digits
 :END:
-Total chains generated: 1,172,393,232,657,510
-
-Number of unique optimal sets of functions: 35
-
 \begin{aligned}
     x_5    &= x_1    \oplus x_2                   & \quad
     x_{11} &= x_5    <      x_9    = \overline{f} & \quad
@@ -552,10 +576,6 @@ the ~E~. So close!
 :PROPERTIES:
 :CUSTOM_ID: 15-digits
 :END:
-Total chains generated: 22,471,749,755,050,052 [~38% done]
-
-Number of unique optimal sets of functions of length 17: 1 [so far]
-
 \begin{aligned}
     x_5    &= x_2    \land  x_3                   & \quad
     x_{12} &= x_7    <      x_{10} = \overline{d} & \quad
