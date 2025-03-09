@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2025-03-08 Sat 21:19 -->
+<!-- 2025-03-09 Sun 09:27 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Boolean Chains</title>
@@ -921,7 +921,7 @@ Number of unique optimal sets of functions: 3
 \end{aligned}
 
 
-<div id="orged2745c" class="figure">
+<div id="org32d956e" class="figure">
 <p><img src="./10-digits-segments.svg" alt="10-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -962,7 +962,7 @@ Number of unique optimal sets of functions: 91
 \end{aligned}
 
 
-<div id="orge26aec7" class="figure">
+<div id="org691b521" class="figure">
 <p><img src="./11-digits-segments.svg" alt="11-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1005,7 +1005,7 @@ Number of unique optimal sets of functions: 6
 \end{aligned}
 
 
-<div id="org8fc51db" class="figure">
+<div id="orga342ef6" class="figure">
 <p><img src="./12-digits-segments.svg" alt="12-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1050,7 +1050,7 @@ Number of unique optimal sets of functions: 1 (!)
 \end{aligned}
 
 
-<div id="orgf27e6fa" class="figure">
+<div id="orgbc0e11d" class="figure">
 <p><img src="./13-digits-segments.svg" alt="13-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1101,7 +1101,7 @@ the <code>E</code>. So close!
 </p>
 
 
-<div id="org5910757" class="figure">
+<div id="orgc0026fc" class="figure">
 <p><img src="./14-digits-segments.svg" alt="14-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1115,53 +1115,51 @@ All 57 unique optimal chains of length 16: <a href="chains-14-20.txt">chains-14-
 <h3 id="15-digits"><span class="section-number-3">3.6.</span> Seven-segment display for 15 digits</h3>
 <div class="outline-text-3" id="text-15-digits">
 <p>
-Total chains generated: 15,553,106,242,893,335 [~27% done]
+Total chains generated: 22,471,749,755,050,052 [~38% done]
 </p>
 
 <p>
-Number of unique optimal sets of functions of length 17: 0 [so far]
-</p>
-
-<p>
-A chain of length 18 found by the hungry search:
+Number of unique optimal sets of functions of length 17: 1 [so far]
 </p>
 
 \begin{aligned}
-    x_5    &= x_2    \oplus x_3                   & \quad
-    x_{12} &= x_7    \oplus x_{10}                & \quad
-    x_{19} &= x_{14} \land  x_{18}                & \\
+    x_5    &= x_2    \land  x_3                   & \quad
+    x_{12} &= x_7    <      x_{10} = \overline{d} & \quad
+    x_{19} &= x_8    \lor   x_{16}                & \\
 
-    x_6    &= x_1    \oplus x_2                   & \quad
-    x_{13} &= x_9    \lor   x_{12} = g            & \quad
-    x_{20} &= x_4    \oplus x_{19} = \overline{e} & \\
+    x_6    &= x_1    \lor   x_5                   & \quad
+    x_{13} &= x_2    \oplus x_{11}                & \quad
+    x_{20} &= x_6    \oplus x_{19} = \overline{e} & \\
 
-    x_7    &= x_4    \lor   x_5                   & \quad
-    x_{14} &= x_9    \oplus x_{12}                & \quad
-    x_{21} &= x_2    \oplus x_{19}                & \\
+    x_7    &= x_3    \oplus x_6                   & \quad
+    x_{14} &= x_{11} \oplus x_{12} = g            & \quad
+    x_{21} &= x_{10} <      x_{19} = \overline{b} & \\
 
-    x_8    &= x_6    <      x_7    = \overline{f} & \quad
-    x_{15} &= x_4    \oplus x_{14}                & \quad
-    x_{22} &= x_{13} \land x_{21}  = \overline{b} & \\
+    x_8    &= x_4    \oplus x_6                   & \quad
+    x_{15} &= x_1    \oplus x_{13}                & \\
 
-    x_9    &= x_1    \lor   x_5                   & \quad
-    x_{16} &= x_7    \land  x_{15} = \overline{d} & \\
+    x_9    &= x_4    \lor   x_7                   & \quad
+    x_{16} &= x_7    \oplus x_{13} = \overline{a} & \\
 
-    x_{10} &= x_4    \lor   x_6                   & \quad
-    x_{17} &= x_8    \lor   x_{15}                & \\
+    x_{10} &= x_2    \oplus x_8                   & \quad
+    x_{17} &= x_9    \land  x_{15} = \overline{f} & \\
 
-    x_{11} &= x_9    >      x_{10} = \overline{c} & \quad
-    x_{18} &= x_3    \oplus x_{17} = \overline{a} & \\
+    x_{11} &= x_5    \lor   x_9                   & \quad
+    x_{18} &= x_{10} <      x_{15} = \overline{c} & \\
 \end{aligned}
 
 
-<div id="orgc56cc56" class="figure">
+<div id="org6d89506" class="figure">
 <p><img src="./15-digits-segments.svg" alt="15-digits-segments.svg" class="org-svg" />
 </p>
 </div>
 
 <p>
-1313 unique chains of length 18 that the hungry search found: <a href="chains-15-22.txt">chains-15-22.txt</a>, not
-exhaustive, not proven to be optimal.
+1 unique optimal set of functions of length 17: <a href="chains-15-21.txt">chains-15-21.txt</a>
+</p>
+
+<p>
+1313 unique chains of length 18 that the hungry search found: <a href="chains-15-22.txt">chains-15-22.txt</a>.
 </p>
 </div>
 </div>
@@ -1206,7 +1204,7 @@ exhaustive, not proven to be optimal.
 </p>
 
 
-<div id="org6d2be34" class="figure">
+<div id="org24347c4" class="figure">
 <p><img src="./16-digits-segments.svg" alt="16-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1288,7 +1286,7 @@ better than me.
 <div id="postamble" class="status">
 <p class="date">Date: 2025-03-01 Sat 00:00</p>
 <p class="author">Author: Oliver Runge</p>
-<p class="date">Created: 2025-03-08 Sat 21:19</p>
+<p class="date">Created: 2025-03-09 Sun 09:27</p>
 </div>
 </body>
 </html>
