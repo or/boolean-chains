@@ -11,9 +11,18 @@ def cancel_runnable_jobs(queue_name):
     batch_client = boto3.client("batch")
 
     # List all RUNNABLE jobs in the specified queue
+    jobs = []
     response = batch_client.list_jobs(jobQueue=queue_name, jobStatus="RUNNABLE")
+    while True:
+        jobs.extend(response.get("jobSummaryList", []))
+        next_token = response.get("nextToken")
+        if not next_token:
+            break
+        response = batch_client.list_jobs(
+            jobQueue=queue_name, jobStatus="RUNNABLE", nextToken=next_token
+        )
 
-    job_ids = [job["jobId"] for job in response.get("jobSummaryList", [])]
+    job_ids = [job["jobId"] for job in jobs]
 
     if not job_ids:
         print(f"No RUNNABLE jobs found in queue {queue_name}")

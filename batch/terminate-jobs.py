@@ -11,9 +11,18 @@ def terminate_running_jobs(queue_name):
     batch_client = boto3.client("batch")
 
     # List all RUNNING jobs in the specified queue
+    jobs = []
     response = batch_client.list_jobs(jobQueue=queue_name, jobStatus="RUNNING")
+    while True:
+        jobs.extend(response.get("jobSummaryList", []))
+        next_token = response.get("nextToken")
+        if not next_token:
+            break
+        response = batch_client.list_jobs(
+            jobQueue=queue_name, jobStatus="RUNNING", nextToken=next_token
+        )
 
-    job_ids = [job["jobId"] for job in response.get("jobSummaryList", [])]
+    job_ids = [job["jobId"] for job in jobs]
 
     if not job_ids:
         print(f"No RUNNING jobs found in queue {queue_name}")
