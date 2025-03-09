@@ -351,15 +351,15 @@ sets, etc. -- all very slow compared to the latest version of exhaustive search.
 :PROPERTIES:
 :CUSTOM_ID: results-full
 :END:
-|           | optimal length | number of optimal function sets |          number of chains generated |    computation time |                  computing |
-|           |            <r> |                             <r> |                                 <r> |                 <r> |                        <r> |
-|-----------+----------------+---------------------------------+-------------------------------------+---------------------+----------------------------|
-| 10 digits |             11 |                               3 |                           7,461,658 |           0.03 secs | MacBook Air 15" (M2, 2023) |
-| 11 digits |             12 |                              91 |                         344,252,541 |           0.78 secs | MacBook Air 15" (M2, 2023) |
-| 12 digits |             14 |                               6 |                     263,675,232,692 |              9 mins | MacBook Air 15" (M2, 2023) |
-| 13 digits |             15 |                               1 |                  15,586,512,093,540 |                     | MacBook Air 15" (M2, 2023) |
-| 14 digits |             16 |                              35 |               1,172,393,232,657,510 |            156 days |        AWS ECS, 1 vCPU/job |
-| 15 digits |             17 |                [known so far] 1 | [41%]        24,626,476,491,872,918 | [41%]     1002 days |        AWS ECS, 1 vCPU/job |
+|           | optimal length | optimal function sets | unique chains |                    chains generated |    computation time |                  computing |
+|           |            <r> |                   <r> |           <r> |                                 <r> |                 <r> |                        <r> |
+|-----------+----------------+-----------------------+---------------+-------------------------------------+---------------------+----------------------------|
+| 10 digits |             11 |                     3 |            40 |                           7,461,658 |           0.03 secs | MacBook Air 15" (M2, 2023) |
+| 11 digits |             12 |                    91 |         1,079 |                         344,252,541 |           0.78 secs | MacBook Air 15" (M2, 2023) |
+| 12 digits |             14 |                     6 |            75 |                     263,675,232,692 |              9 mins | MacBook Air 15" (M2, 2023) |
+| 13 digits |             15 |                     1 |             4 |                  15,586,512,093,540 |                     | MacBook Air 15" (M2, 2023) |
+| 14 digits |             16 |                    35 |            71 |               1,172,393,232,657,510 |            156 days |        AWS ECS, 1 vCPU/job |
+| 15 digits |             17 |      [known so far] 1 |             1 | [41%]        24,626,476,491,872,918 | [41%]     1002 days |        AWS ECS, 1 vCPU/job |
 Note: those times and numbers are based on the full search version that didn't
 yet stop the branch after finding a target function; the number of chains to
 generate then reduces to about 56-59% of the figures here.
@@ -371,19 +371,19 @@ first 10%, then switched to the new version to save time.
 :CUSTOM_ID: results-hungry
 :END:
 With bite sizes 15, 14, 13, ...
-|           | length | number of chains found | number of chains generated | computation time |                  computing |
-|           |    <r> |                    <r> |                        <r> |              <r> |                        <r> |
-|-----------+--------+------------------------+----------------------------+------------------+----------------------------|
-| 10 digits |     12 |                   1387 |                    200,246 |        3.11 secs | MacBook Air 15" (M2, 2023) |
-| 11 digits |     12 |                    192 |                    221,833 |        7.55 secs | MacBook 15" Air (M2, 2023) |
-| 12 digits |     14 |                      3 |                  6,182,486 |          15 mins | MacBook 15" Air (M2, 2023) |
+|           | length | chains found | unique chains | chains generated | computation time |                  computing |
+|           |    <r> |          <r> |           <r> |              <r> |              <r> |                        <r> |
+|-----------+--------+--------------+---------------+------------------+------------------+----------------------------+
+| 10 digits |     12 |        1,387 |        78,595 |          200,246 |        3.11 secs | MacBook Air 15" (M2, 2023) |
+| 11 digits |     12 |          192 |           578 |          221,833 |        7.55 secs | MacBook 15" Air (M2, 2023) |
+| 12 digits |     14 |            3 |            19 |        6,182,486 |          15 mins | MacBook 15" Air (M2, 2023) |
 
 With bite sizes 10, 9, 8, ...
-|           | length | number of chains found | number of chains generated | computation time |           computing |
-|           |    <r> |                    <r> |                        <r> |              <r> |                 <r> |
-|-----------+--------+------------------------+----------------------------+------------------+---------------------|
-| 15 digits |     18 |                    493 |                 11,237,970 |         14 hours | AWS ECS, 1 vCPU/job |
-| 16 digits |     19 |                     34 |                 31,163,144 |          98 days | AWS ECS, 1 vCPU/job |
+|           | length | chains found | unique chains | chains generated | computation time |           computing |
+|           |    <r> |          <r> |           <r> |              <r> |              <r> |                 <r> |
+|-----------+--------+--------------+---------------+------------------+------------------+---------------------+
+| 15 digits |     18 |          493 |           428 |       11,237,970 |         14 hours | AWS ECS, 1 vCPU/job |
+| 16 digits |     19 |           34 |            11 |       31,163,144 |          98 days | AWS ECS, 1 vCPU/job |
 ** Branching
 :PROPERTIES:
 :CUSTOM_ID: results-branching

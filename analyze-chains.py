@@ -23,92 +23,150 @@ def find_chains(data):
 
 
 def apply_operation(op, g, h):
-    g = int(g, 2)
-    h = int(h, 2)
     if op == "&":
-        r = g & h
-    elif op == "|":
-        r = g | h
-    elif op == "^":
-        r = g ^ h
-    elif op == "<":
-        r = (~g) & h
-    elif op == ">":
-        r = g & (~h)
+        return g & h
 
-    return bin(r)[2:].rjust(16, "0")
+    if op == "|":
+        return g | h
+
+    if op == "^":
+        return g ^ h
+
+    if op == "<":
+        return (~g) & h
+
+    if op == ">":
+        return g & (~h)
 
 
-def extract_possible_chains(chain, so_far=None, used=None):
+def extract_possible_chains(
+    chain,
+    so_far=None,
+    remaining=None,
+    expressions=None,
+    expressions_index=None,
+    seen=None,
+):
     result = []
 
+    if not seen:
+        seen = set()
+
     if so_far is None:
+        chain = [int(x, 2) for x in chain]
         so_far = [
-            (0, None, None, None, chain[0], "0000000011111111"),
-            (1, None, None, None, chain[1], "0000111100001111"),
-            (2, None, None, None, chain[2], "0011001100110011"),
-            (3, None, None, None, chain[3], "0101010101010101"),
+            (None, None, None, chain[0], int("0000000011111111", 2)),
+            (None, None, None, chain[1], int("0000111100001111", 2)),
+            (None, None, None, chain[2], int("0011001100110011", 2)),
+            (None, None, None, chain[3], int("0101010101010101", 2)),
         ]
 
-    if used is None:
-        used = set()
+    if remaining is None:
+        remaining = {chain[i] for i in range(4, len(chain))}
 
-    if len(used) == len(chain) - 4:
+    if not remaining:
         return [so_far]
 
-    for i in range(len(so_far), len(chain)):
-        if chain[i] in used:
+    if not expressions:
+        expressions = []
+        expressions_index = 0
+        for k in range(1, len(so_far)):
+            h = so_far[k][3]
+            full_h = so_far[k][4]
+            for j in range(0, k):
+                g = so_far[j][3]
+                full_g = so_far[j][4]
+
+                f = g & h
+                full_f = full_g & full_h
+                if f in remaining and full_f not in seen:
+                    expressions.append((j, "&", k, f, full_f))
+
+                f = g | h
+                full_f = full_g | full_h
+                if f in remaining and full_f not in seen:
+                    expressions.append((j, "|", k, f, full_f))
+
+                f = g ^ h
+                full_f = full_g ^ full_h
+                if f in remaining and full_f not in seen:
+                    expressions.append((j, "^", k, f, full_f))
+
+                f = (~g) & h
+                full_f = (~full_g) & full_h
+                if f in remaining and full_f not in seen:
+                    expressions.append((j, "<", k, f, full_f))
+
+                f = g & (~h)
+                full_f = full_g & (~full_h)
+                if f in remaining and full_f not in seen:
+                    expressions.append((j, ">", k, f, full_f))
+
+    else:
+        expressions = expressions[:]
+        k = len(so_far) - 1
+        h = so_far[k][3]
+        full_h = so_far[k][4]
+        for j in range(0, k):
+            g = so_far[j][3]
+            full_g = so_far[j][4]
+
+            f = g & h
+            full_f = full_g & full_h
+            if f in remaining and full_f not in seen:
+                expressions.append((j, "&", k, f, full_f))
+
+            f = g | h
+            full_f = full_g | full_h
+            if f in remaining and full_f not in seen:
+                expressions.append((j, "|", k, f, full_f))
+
+            f = g ^ h
+            full_f = full_g ^ full_h
+            if f in remaining and full_f not in seen:
+                expressions.append((j, "^", k, f, full_f))
+
+            f = (~g) & h
+            full_f = (~full_g) & full_h
+            if f in remaining and full_f not in seen:
+                expressions.append((j, "<", k, f, full_f))
+
+            f = g & (~h)
+            full_f = full_g & (~full_h)
+            if f in remaining and full_f not in seen:
+                expressions.append((j, ">", k, f, full_f))
+
+    for i in range(expressions_index, len(expressions)):
+        j, op, k, f, full_f = expressions[i]
+        if f not in remaining:
             continue
-
-        f = int(chain[i], 2)
-
-        next_steps = []
-        for j in range(len(so_far)):
-            g = int(chain[j], 2)
-            for k in range(j + 1, len(so_far)):
-                h = int(chain[k], 2)
-                ops = []
-                if g & h == f:
-                    ops.append("&")
-
-                if g | h == f:
-                    ops.append("|")
-
-                if g ^ h == f:
-                    ops.append("^")
-
-                if (~g) & h == f:
-                    ops.append("<")
-
-                if g & (~h) == f:
-                    ops.append(">")
-
-                if ops:
-                    for op in ops:
-                        full_function = apply_operation(op, so_far[j][5], so_far[k][5])
-                        next_steps.append((i, op, j, k, chain[i], full_function))
-
-        for step in next_steps:
-            result += extract_possible_chains(
-                chain, so_far=so_far + [step], used=used | {chain[i]}
-            )
+        next_remaining = remaining - {f}
+        next_seen = seen | {full_f}
+        result += extract_possible_chains(
+            chain,
+            so_far=so_far + [expressions[i]],
+            remaining=next_remaining,
+            expressions=expressions,
+            expressions_index=i + 1,
+            seen=next_seen,
+        )
 
     return result
 
 
 def extracted_chain_to_steps(extracted_chain):
     steps = []
-    for i, op, j, k, result, full_result in extracted_chain:
+    for i, (j, op, k, f, full_f) in enumerate(extracted_chain):
         s = f"x{i + 1}"
         if op:
             s += f" = x{j + 1} {op} x{k + 1}"
 
-        s += f" = {result}"
-        if len(result) != len(full_result):
-            s += f" [{full_result}]"
+        s += f" = {f}"
+        if len(f) != len(full_f):
+            s += f" [{full_f}]"
 
         for [target_bits, target] in TARGETS:
-            if target_bits.startswith(result):
+            if target_bits.startswith(f):
                 s += f" = {target}"
                 break
 
@@ -176,27 +234,41 @@ def extract_chains():
     chains = find_chains(data)
     parsed_chains = [parse_chain(chain) for chain in chains]
 
-    for pc in parsed_chains:
-        print(list(sorted(set(pc))))
-
     min_size = min(len(x) for x in parsed_chains)
+    num_bits = len(parsed_chains[0][0])
 
     parsed_chains = [x for x in parsed_chains if len(x) == min_size]
 
-    extracted_chains = []
+    raw_extracted_chains = []
     for parsed_chain in parsed_chains:
-        extracted_chains += extract_possible_chains(parsed_chain)
+        raw_extracted_chains += extract_possible_chains(parsed_chain)
+
+    extracted_chains = []
+    for chain in raw_extracted_chains:
+        new_chain = []
+        for j, op, k, f, full_f in chain:
+            new_chain.append(
+                (
+                    j,
+                    op,
+                    k,
+                    bin(f)[2:].rjust(num_bits, "0"),
+                    bin(full_f)[2:].rjust(16, "0"),
+                )
+            )
+
+        extracted_chains.append(new_chain)
 
     grouped_by_full_output_sets = {}
     for extracted_chain in extracted_chains:
         full_output = tuple(
-            sorted(frozenset(x[5] for x in extracted_chain if is_target(x[4])))
+            sorted(frozenset(x[4] for x in extracted_chain if is_target(x[3])))
         )
         if full_output not in grouped_by_full_output_sets:
             grouped_by_full_output_sets[full_output] = {}
 
         unique_operations_set = frozenset(
-            extracted_chain[x[2]][5] + x[1] + extracted_chain[x[3]][5]
+            extracted_chain[x[0]][4] + x[1] + extracted_chain[x[2]][4]
             for x in extracted_chain
             if x[1]
         )
@@ -211,7 +283,7 @@ def extract_chains():
             )
 
     N = len(parsed_chains[0][0])
-    filename = f"publish/release/chains-{N}-{min_size}-new.txt"
+    filename = f"publish/release/chains-{N}-{min_size}.txt"
     print(f"writing to {filename}")
     with open(filename, "w") as f:
         for group_id, key in enumerate(sorted(grouped_by_full_output_sets.keys())):
