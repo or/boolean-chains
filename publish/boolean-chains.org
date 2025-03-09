@@ -582,8 +582,9 @@ All 4 unique optimal chains of length 15: [[file:chains-13-19.txt]]
     x_{16} &= x_1    \oplus x_{14} = \overline{e} & \\
 \end{aligned}
 
-This chain almost solves the 15 or even 16 digit case, with one segment missing from
-the ~E~ and the top-left segment of the ~F~ slipped to the right. So close!
+This chain almost solves the 15 or even 16 digit case, with the top-left segment
+missing from the ~E~ and the top segment of the ~F~ slipped to the top-right. So
+close!
 
 #+name: fig:14-digits
 #+attr_html: :width 550px
