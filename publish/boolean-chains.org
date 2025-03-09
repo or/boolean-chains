@@ -414,8 +414,6 @@ Number of unique optimal sets of functions: 3
 #+NAME: fig:10-digits
 [[./10-digits-segments.svg]]
 
-All 16 unique optimal chains of length 11: [[file:chains-10-15.txt]]
-
 ** Seven-segment display for 11 digits
 :PROPERTIES:
 :CUSTOM_ID: 11-digits
@@ -445,8 +443,6 @@ Number of unique optimal sets of functions: 91
 
 #+NAME: fig:11-digits
 [[./11-digits-segments.svg]]
-
-All 472 unique optimal chains of length 12: [[file:chains-11-16.txt]]
 
 ** Seven-segment display for 12 digits
 :PROPERTIES:
@@ -479,8 +475,6 @@ Number of unique optimal sets of functions: 6
 
 #+NAME: fig:12-digits
 [[./12-digits-segments.svg]]
-
-All 26 unique optimal chains of length 14: [[file:chains-12-18.txt]]
 
 ** Seven-segment display for 13 digits
 :PROPERTIES:
@@ -515,8 +509,6 @@ Number of unique optimal sets of functions: 1 (!)
 
 #+NAME: fig:13-digits
 [[./13-digits-segments.svg]]
-
-All 2 unique optimal chains of length 15: [[file:chains-13-19.txt]]
 
 ** Seven-segment display for 14 digits
 :PROPERTIES:
@@ -556,8 +548,6 @@ the ~E~. So close!
 #+NAME: fig:14-digits
 [[./14-digits-segments.svg]]
 
-All 57 unique optimal chains of length 16: [[file:chains-14-20.txt]]
-
 ** Seven-segment display for 15 digits
 :PROPERTIES:
 :CUSTOM_ID: 15-digits
@@ -596,8 +586,6 @@ Number of unique optimal sets of functions of length 17: 1 [so far]
 [[./15-digits-segments.svg]]
 
 1 unique optimal set of functions of length 17: [[file:chains-15-21.txt]]
-
-1313 unique chains of length 18 that the hungry search found: [[file:chains-15-22.txt]].
 
 ** Seven-segment display for 16 digits
 :PROPERTIES:
