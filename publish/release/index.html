@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2025-03-09 Sun 16:51 -->
+<!-- 2025-03-09 Sun 18:29 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Boolean Chains</title>
@@ -871,6 +871,16 @@ With bite sizes 15, 14, 13, &#x2026;
 <td class="org-right">15 mins</td>
 <td class="org-right">MacBook 15" Air (M2, 2023)</td>
 </tr>
+
+<tr>
+<td class="org-left">16 digits</td>
+<td class="org-right">22</td>
+<td class="org-right">0</td>
+<td class="org-right">0</td>
+<td class="org-right">956,653,260</td>
+<td class="org-right">302 days</td>
+<td class="org-right">AWS ECS, 1 vCPU/job</td>
+</tr>
 </tbody>
 </table>
 
@@ -909,6 +919,16 @@ With bite sizes 10, 9, 8, &#x2026;
 <tbody>
 <tr>
 <td class="org-left">15 digits</td>
+<td class="org-right">17</td>
+<td class="org-right">0</td>
+<td class="org-right">0</td>
+<td class="org-right">8,231,903</td>
+<td class="org-right">7 days</td>
+<td class="org-right">AWS ECS, 1 vCPU/job</td>
+</tr>
+
+<tr>
+<td class="org-left">15 digits</td>
 <td class="org-right">18</td>
 <td class="org-right">493</td>
 <td class="org-right">428</td>
@@ -928,6 +948,11 @@ With bite sizes 10, 9, 8, &#x2026;
 </tr>
 </tbody>
 </table>
+<p>
+Note: the 15 digits search for length 18 is noticeably faster than the one for
+length 17, this is because the one for length 18 already employed the
+optimization of avoiding Algorithm U if the next step must be a target function.
+</p>
 </div>
 </div>
 <div id="outline-container-results-branching" class="outline-3">
@@ -1150,7 +1175,7 @@ and fewer branches make it to those higher lengths.
 \end{aligned}
 
 
-<div id="org6812f93" class="figure">
+<div id="org6ef896d" class="figure">
 <p><img src="./10-digits-segments.svg" alt="10-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1183,7 +1208,7 @@ All 40 unique optimal chains of length 11: <a href="chains-10-15.txt">chains-10-
 \end{aligned}
 
 
-<div id="org75f4814" class="figure">
+<div id="orgf4282f3" class="figure">
 <p><img src="./11-digits-segments.svg" alt="11-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1218,7 +1243,7 @@ All 1,079 unique optimal chains of length 12: <a href="chains-11-16.txt">chains-
 \end{aligned}
 
 
-<div id="org3dc0eba" class="figure">
+<div id="org2b49949" class="figure">
 <p><img src="./12-digits-segments.svg" alt="12-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1255,7 +1280,7 @@ All 75 unique optimal chains of length 14: <a href="chains-12-18.txt">chains-12-
 \end{aligned}
 
 
-<div id="org1740cce" class="figure">
+<div id="org38a6234" class="figure">
 <p><img src="./13-digits-segments.svg" alt="13-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1298,7 +1323,7 @@ the <code>E</code>. So close!
 </p>
 
 
-<div id="orgbaae71e" class="figure">
+<div id="org69376e5" class="figure">
 <p><img src="./14-digits-segments.svg" alt="14-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1338,7 +1363,7 @@ All 71 unique optimal chains of length 16: <a href="chains-14-20.txt">chains-14-
 \end{aligned}
 
 
-<div id="org06a3870" class="figure">
+<div id="org4645d5d" class="figure">
 <p><img src="./15-digits-segments.svg" alt="15-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1393,7 +1418,7 @@ exhaustive, not proven to be optimal.
 </p>
 
 
-<div id="org28d16c5" class="figure">
+<div id="org4fcdd8f" class="figure">
 <p><img src="./16-digits-segments.svg" alt="16-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1475,7 +1500,7 @@ better than me.
 <div id="postamble" class="status">
 <p class="date">Date: 2025-03-01 Sat 00:00</p>
 <p class="author">Author: Oliver Runge</p>
-<p class="date">Created: 2025-03-09 Sun 16:51</p>
+<p class="date">Created: 2025-03-09 Sun 18:29</p>
 </div>
 </body>
 </html>

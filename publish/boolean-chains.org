@@ -370,17 +370,23 @@ first 10%, then switched to the new version to save time.
 With bite sizes 15, 14, 13, ...
 |           | length | chains found | unique chains | chains generated | computation time |                  computing |
 |           |    <r> |          <r> |           <r> |              <r> |              <r> |                        <r> |
-|-----------+--------+--------------+---------------+------------------+------------------+----------------------------+
+|-----------+--------+--------------+---------------+------------------+------------------+----------------------------|
 | 10 digits |     12 |        1,387 |        78,595 |          200,246 |        3.11 secs | MacBook Air 15" (M2, 2023) |
 | 11 digits |     12 |          192 |           578 |          221,833 |        7.55 secs | MacBook 15" Air (M2, 2023) |
 | 12 digits |     14 |            3 |            19 |        6,182,486 |          15 mins | MacBook 15" Air (M2, 2023) |
+| 16 digits |     22 |            0 |             0 |      956,653,260 |         302 days |        AWS ECS, 1 vCPU/job |
 
 With bite sizes 10, 9, 8, ...
 |           | length | chains found | unique chains | chains generated | computation time |           computing |
 |           |    <r> |          <r> |           <r> |              <r> |              <r> |                 <r> |
-|-----------+--------+--------------+---------------+------------------+------------------+---------------------+
+|-----------+--------+--------------+---------------+------------------+------------------+---------------------|
+| 15 digits |     17 |            0 |             0 |        8,231,903 |           7 days | AWS ECS, 1 vCPU/job |
 | 15 digits |     18 |          493 |           428 |       11,237,970 |         14 hours | AWS ECS, 1 vCPU/job |
 | 16 digits |     19 |           34 |            11 |       31,163,144 |          98 days | AWS ECS, 1 vCPU/job |
+Note: the 15 digits search for length 18 is noticeably faster than the one for
+length 17, this is because the one for length 18 already employed the
+optimization of avoiding Algorithm U if the next step must be a target function.
+
 ** Branching
 :PROPERTIES:
 :CUSTOM_ID: results-branching
