@@ -556,29 +556,29 @@ All 4 unique optimal chains of length 15: [[file:chains-13-19.txt]]
 \begin{aligned}
     x_5    &= x_1    \oplus x_2                   & \quad
     x_{11} &= x_5    <      x_9    = \overline{f} & \quad
-    x_{17} &= x_1    \oplus x_{15} = \overline{e} & \\
+    x_{17} &= x_{13} <      x_{14} = \overline{d} & \\
 
     x_6    &= x_1    \oplus x_4                   & \quad
     x_{12} &= x_8    \oplus x_9    = \overline{a} & \quad
-    x_{18} &= x_{13} <      x_{15} = \overline{d} & \\
+    x_{18} &= x_5    <      x_{15} = \overline{c} & \\
 
     x_7    &= x_3    \oplus x_4                   & \quad
     x_{13} &= x_2    \oplus x_{10}                & \quad
-    x_{19} &= x_{13} \land  x_{16} = \overline{b} & \\
+    x_{19} &= x_{13} \land  x_{15} = \overline{b} & \\
 
     x_8    &= x_3    \lor   x_5                   & \quad
-    x_{14} &= x_4    <      x_{11} = \overline{c} & \quad
-    x_{20} &= x_{13} \lor   x_{16} = g            & \\
+    x_{14} &= x_6    \lor   x_{12}                & \quad
+    x_{20} &= x_{13} \lor   x_{15} = g            & \\
 
     x_9    &= x_6    \lor   x_7                   & \quad
-    x_{15} &= x_6    \lor   x_{12}                & \\
+    x_{15} &= x_7    \oplus x_{12}                & \\
 
     x_{10} &= x_7    <      x_8                   & \quad
-    x_{16} &= x_7    \oplus x_{12}                & \\
+    x_{16} &= x_1    \oplus x_{14} = \overline{e} & \\
 \end{aligned}
 
-This chain almost solves the 15 digit case, with one segment missing from
-the ~E~. So close!
+This chain almost solves the 15 or even 16 digit case, with one segment missing from
+the ~E~ and the top-left segment of the ~F~ slipped to the right. So close!
 
 #+NAME: fig:14-digits
 [[./14-digits-segments.svg]]

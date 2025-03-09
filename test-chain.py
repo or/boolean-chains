@@ -59,7 +59,7 @@ if __name__ == "__main__":
     chain = open(sys.argv[1]).read().splitlines()
 
     svg_data = """<svg
-   viewBox="0 0 250 30"
+   viewBox="0 0 200 27.5"
    version="1.1"
    xml:space="preserve"
    xmlns="http://www.w3.org/2000/svg"
