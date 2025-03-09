@@ -454,7 +454,8 @@ and fewer branches make it to those higher lengths.
     x_{12} &= x_2  >      x_{10} = \overline{b} & \\
 \end{aligned}
 
-#+NAME: fig:10-digits
+#+name: fig:10-digits
+#+attr_html: :width 550px
 [[./10-digits-segments.svg]]
 
 All 40 unique optimal chains of length 11: [[file:chains-10-15.txt]]
@@ -482,7 +483,8 @@ All 40 unique optimal chains of length 11: [[file:chains-10-15.txt]]
 
 \end{aligned}
 
-#+NAME: fig:11-digits
+#+name: fig:11-digits
+#+attr_html: :width 550px
 [[./11-digits-segments.svg]]
 
 All 1,079 unique optimal chains of length 12: [[file:chains-11-16.txt]]
@@ -512,7 +514,8 @@ All 1,079 unique optimal chains of length 12: [[file:chains-11-16.txt]]
     x_{14} &= x_3    \oplus x_{12} = \overline{e} & \\
 \end{aligned}
 
-#+NAME: fig:12-digits
+#+name: fig:12-digits
+#+attr_html: :width 550px
 [[./12-digits-segments.svg]]
 
 All 75 unique optimal chains of length 14: [[file:chains-12-18.txt]]
@@ -544,7 +547,8 @@ All 75 unique optimal chains of length 14: [[file:chains-12-18.txt]]
 
 \end{aligned}
 
-#+NAME: fig:13-digits
+#+name: fig:13-digits
+#+attr_html: :width 550px
 [[./13-digits-segments.svg]]
 
 All 4 unique optimal chains of length 15: [[file:chains-13-19.txt]]
@@ -580,7 +584,8 @@ All 4 unique optimal chains of length 15: [[file:chains-13-19.txt]]
 This chain almost solves the 15 or even 16 digit case, with one segment missing from
 the ~E~ and the top-left segment of the ~F~ slipped to the right. So close!
 
-#+NAME: fig:14-digits
+#+name: fig:14-digits
+#+attr_html: :width 550px
 [[./14-digits-segments.svg]]
 
 All 71 unique optimal chains of length 16: [[file:chains-14-20.txt]]
@@ -615,7 +620,8 @@ All 71 unique optimal chains of length 16: [[file:chains-14-20.txt]]
     x_{18} &= x_{10} <      x_{15} = \overline{c} & \\
 \end{aligned}
 
-#+NAME: fig:15-digits
+#+name: fig:15-digits
+#+attr_html: :width 550px
 [[./15-digits-segments.svg]]
 
 1 unique optimal set of functions of length 17: [[file:chains-15-21.txt]]
@@ -659,7 +665,8 @@ A chain of length 19 found by the hungry search:
 11 unique chains of length 19 that the hungry search found: [[file:chains-16-23.txt]], not
 exhaustive, not proven to be optimal.
 
-#+NAME: fig:16-digits
+#+name: fig:16-digits
+#+attr_html: :width 550px
 [[./16-digits-segments.svg]]
 
 ** Exercise 7.1.2-54
