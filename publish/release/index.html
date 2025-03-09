@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2025-03-09 Sun 16:47 -->
+<!-- 2025-03-09 Sun 16:51 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Boolean Chains</title>
@@ -686,20 +686,15 @@ set \(g \leftarrow I(C(j))\) and do step <b>A3</b> for \(f = g \, \& \, h\), \(f
 <h3 id="performance"><span class="section-number-3">2.4.</span> Performance</h3>
 <div class="outline-text-3" id="text-performance">
 <p>
-My latest version of this program processes around 510-530 million chains per
+The latest version of this program generates around 510-530 million chains per
 second on my MacBook Air 15" (M2, 2023). On AWS Batch with Fargate capacity on 1
-vCPU it processes around 200-230 million chains per second; so about 51-59
+vCPU it generates around 200-230 million chains per second; so about 51-59
 thousand million chains per second across 256 jobs.
 </p>
 
 <p>
 The program might be suitable for the GPU, but I have no experience with GPU
 programming.
-</p>
-
-<p>
-I wrote that original program with a class-based style, some templating, naive
-sets, etc. &#x2013; all very slow compared to the latest version of exhaustive search.
 </p>
 </div>
 </div>
@@ -1155,7 +1150,7 @@ and fewer branches make it to those higher lengths.
 \end{aligned}
 
 
-<div id="orga52503f" class="figure">
+<div id="org6812f93" class="figure">
 <p><img src="./10-digits-segments.svg" alt="10-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1188,7 +1183,7 @@ All 40 unique optimal chains of length 11: <a href="chains-10-15.txt">chains-10-
 \end{aligned}
 
 
-<div id="org5d7e7a5" class="figure">
+<div id="org75f4814" class="figure">
 <p><img src="./11-digits-segments.svg" alt="11-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1223,7 +1218,7 @@ All 1,079 unique optimal chains of length 12: <a href="chains-11-16.txt">chains-
 \end{aligned}
 
 
-<div id="orgb798433" class="figure">
+<div id="org3dc0eba" class="figure">
 <p><img src="./12-digits-segments.svg" alt="12-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1260,7 +1255,7 @@ All 75 unique optimal chains of length 14: <a href="chains-12-18.txt">chains-12-
 \end{aligned}
 
 
-<div id="orgf858f41" class="figure">
+<div id="org1740cce" class="figure">
 <p><img src="./13-digits-segments.svg" alt="13-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1303,7 +1298,7 @@ the <code>E</code>. So close!
 </p>
 
 
-<div id="org952c6c2" class="figure">
+<div id="orgbaae71e" class="figure">
 <p><img src="./14-digits-segments.svg" alt="14-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1343,7 +1338,7 @@ All 71 unique optimal chains of length 16: <a href="chains-14-20.txt">chains-14-
 \end{aligned}
 
 
-<div id="org723ba55" class="figure">
+<div id="org06a3870" class="figure">
 <p><img src="./15-digits-segments.svg" alt="15-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1398,7 +1393,7 @@ exhaustive, not proven to be optimal.
 </p>
 
 
-<div id="orgdccdab0" class="figure">
+<div id="org28d16c5" class="figure">
 <p><img src="./16-digits-segments.svg" alt="16-digits-segments.svg" class="org-svg" />
 </p>
 </div>
@@ -1480,7 +1475,7 @@ better than me.
 <div id="postamble" class="status">
 <p class="date">Date: 2025-03-01 Sat 00:00</p>
 <p class="author">Author: Oliver Runge</p>
-<p class="date">Created: 2025-03-09 Sun 16:47</p>
+<p class="date">Created: 2025-03-09 Sun 16:51</p>
 </div>
 </body>
 </html>

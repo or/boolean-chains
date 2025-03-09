@@ -332,16 +332,13 @@ $I(N(l)) \leftarrow f$, and $N(l) \leftarrow N(l) + 1$.
 :PROPERTIES:
 :CUSTOM_ID: performance
 :END:
-My latest version of this program processes around 510-530 million chains per
+The latest version of this program generates around 510-530 million chains per
 second on my MacBook Air 15" (M2, 2023). On AWS Batch with Fargate capacity on 1
-vCPU it processes around 200-230 million chains per second; so about 51-59
+vCPU it generates around 200-230 million chains per second; so about 51-59
 thousand million chains per second across 256 jobs.
 
 The program might be suitable for the GPU, but I have no experience with GPU
 programming.
-
-I wrote that original program with a class-based style, some templating, naive
-sets, etc. -- all very slow compared to the latest version of exhaustive search.
 
 * Results
 :PROPERTIES:
