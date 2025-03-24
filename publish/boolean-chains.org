@@ -54,27 +54,67 @@ I was interested in trying to find an even shorter chain for the display.
 :CUSTOM_ID: hungry-search
 :END:
 I started by using Algorithm L and Algorithm U from exercise 7.1.2-11, but
-instead of taking the best instruction based on the footprint heuristic, I tried
-the top $k_l$ instructions recursively for chain lengths $l$. With $k_l = 5$ for
-$4 \leq l < 9$, $k_l = 3$ for $9 \leq l < 13$, and $k_l = 1$ for $k \geq 13$.
-I call this /hungry search/, as it starts taking big bites, then smaller and
-smaller bites until it is done.
+instead of greedily picking the best instruction according to the footprint
+heuristic for a given chain of length $l$, I consider the top $k_l$ best
+instructions and recurse for each of them in a depth-first search with a
+maximal depth. As the chain length grows, $k_l$ becomes gradually smaller.
+I call this /hungry search/, because it starts taking big bites, then smaller
+and smaller bites until it is done.
 
 The idea is that the first few instructions are less likely to be optimal when
 chosen greedily, so we want to try more of them. But as the chain gets longer
-the greedy algorithm does a good job of identifying the best next steps, so we
-try fewer and fewer options. This makes the search space manageable.
+the greedy algorithm does a good job of identifying the best next step, so we
+try fewer and fewer alternatives at every length. This makes the search space
+manageable.
 
-I experimented with the order of the instructions in order to decide which top
-$k$ to pick. The book greedily picks the instruction that appears in most target
-footprints, preferring a lower minimal cost. I tried out the opposite: ordering
-by minimal cost first and then prefer a higher number of matching footprints. To
-break ties I also ordered by the negative of the index of generated
+The question then becomes: how do we sort the instructions at every step to
+determine the "top $k_l$" ones to try? I've considered three criteria in order
+of relevance:
+1. The minimal cost of all target functions containing the instruction in the
+   footprint. Lower is better, assume infinity if the instruction is not part of
+   the footprint for any target function.
+2. The number of target function footprints that contain the instruction. Higher
+   is better.
+3. The index of the instruction based on the order Algorithm U generated them
+   in. Some generation orders might be better than others, this could be a
+   heuristic in its own right, but I haven' investigated this. I've used the
+   order from Algorithm U in the book.
+
+The book greedily picks the instruction that appears in most target
+footprints, preferring a lower minimal cost. I experimented with ordering
+by minimal cost first and then prefer a higher number of matching footprints.
+To break ties I also ordered by the negative of the index of generated
 instructions. That index depends on the order in which the instructions are
 generated; so this criterion really only makes the order deterministic.
 
-This approach generated several chains of length 20, one step
-shorter than the previously shortest chain in the book:
+Here's pythonesque pseudo-code to illustrate the general approach. The
+~complete()~ function yields True if all target functions are fulfilled. And the
+~sort()~ function orders the instructions as outlined above.
+
+#+begin_src python
+# the first 4 are irrelevant, as x1, x2, x3, x4 are given
+BYTE_SIZE = [0, 0, 0, 0, 5, 5, 5, 5, 5, 3, 3, 3, 3, 1, 1, 1, ...]
+
+def hungry_search(chain):
+    if complete(chain):
+        print(chain)
+        return
+
+    next_instructions, footprints, minimal_costs = algorithm_U(chain)
+    sort(next_instructions, footprints, minimal_costs)
+    for i in range(BITE_SIZE[len(chain)]):
+         hungry_search(chain + [next_instructions[i]])
+
+hungry_search([x1, x2, x3, x4])
+#+end_src
+
+There are some ways to reduce the search space further, namely by providing a
+maximal length and bailing out whenever it becomes clear that a solution can't
+be found on the path we're on, but those are orthogonal improvements.
+
+With bite sizes 5, 5, 5, 5, 5, 3, 3, 3, 3, 1, 1, ... this approach generated
+several chains of length 20, one step shorter than the previously shortest chain
+in the book, the first one:
 
 \begin{aligned}
     x_5    &= x_2    \oplus x_3                   & \quad
@@ -105,11 +145,350 @@ shorter than the previously shortest chain in the book:
     x_{18} &= x_6    >      x_{17} = \overline{c} & \\
 \end{aligned}
 
-I then improved the runtime of the binary substantially, based on the program
-for the exhaustive search (see below), which allows bigger bites along the
-hungry search. I went with a bite size of 10 for the first step, 9 for the
-next, 8 for the next, etc.. This hungry search found several chains of length
-19, for instance:
+Let's use that chain as an example for the algorithm:
+
+For the first step the following instructions are possible and ordered as
+described, the top 10 are shown. The numbers in brackets are:
+1. minimal cost of target functions containing the instruction in their
+   footprint
+2. number of target footprints containing the instruction
+3. the index in the array of all generated next instructions
+
+#+begin_src
+  * x5 = x2 ^ x3 = 0011110000111100 [4 4 19]
+    x5 = x3 > x4 = 0010001000100010 [4 2 27]
+    x5 = x2 > x4 = 0000101000001010 [4 2 22]
+    x5 = x1 ^ x3 = 0011001111001100 [5 4 9]
+    x5 = x2 & x3 = 0000001100000011 [5 3 15]
+    --- bite size ---
+    x5 = x1 < x4 = 0101010100000000 [5 3 11]
+    x5 = x3 < x4 = 0100010001000100 [5 2 26]
+    x5 = x2 < x4 = 0101000001010000 [5 2 21]
+    x5 = x2 | x3 = 0011111100111111 [5 2 18]
+    x5 = x1 ^ x4 = 0101010110101010 [5 2 14]
+    ...
+#+end_src
+
+Of that list we'll consider the top 5, because 5 is the bite size for that
+chain length. The top instruction has a minimal cost of 4, and of the
+instructions that have minimal cost of 4 it also appears in 4 target function
+footprints. In this case is the greedy algorithm also picks the same
+instruction, because in its ordering it also ends up on top.
+
+Having chosen the first instruction (indicated by the ~*~) we recurse and
+enumerate the next possible instructions, ordering them as before.
+
+#+begin_src
+  * x6 = x1 | x5 = 0011110011111111 [3 3 18]
+    x6 = x3 > x4 = 0010001000100010 [3 1 31]
+    x6 = x2 > x4 = 0000101000001010 [3 1 26]
+    x6 = x1 < x4 = 0101010100000000 [4 4 11]
+    x6 = x2 < x4 = 0101000001010000 [4 2 25]
+    --- bite size ---
+    x6 = x1 ^ x2 = 0000111111110000 [4 2 4]
+    x6 = x3 < x4 = 0100010001000100 [4 1 30]
+    x6 = x4 ^ x5 = 0110100101101001 [5 3 38]
+    x6 = x4 & x5 = 0001010000010100 [5 3 34]
+    x6 = x2 ^ x4 = 0101101001011010 [5 3 28]
+    ...
+#+end_src
+
+Here we already see the hungry search diverge from the greedy search due to
+different ordering. The greedy search would have chosen the 4th instruction $x_6
+= x_1 < x_4$, because it appears in 4 target footprints, in fact it's the only
+one. However, three instructions beat it on the minimal cost, so in this
+heuristic we'll look at them first.
+
+We take the first one again and recurse.
+
+#+begin_src
+    x7 = x3 > x4 = 0010001000100010 [2 2 35]
+    x7 = x2 > x4 = 0000101000001010 [2 2 25]
+  * x7 = x4 ^ x5 = 0110100101101001 [4 3 45]
+    x7 = x4 & x5 = 0001010000010100 [4 3 41]
+    x7 = x1 < x4 = 0101010100000000 [4 3 11]
+    --- bite size ---
+    x7 = x1 ^ x3 = 0011001111001100 [4 3 9]
+    x7 = x3 & x6 = 0011000000110011 [4 2 38]
+    x7 = x2 < x6 = 0011000011110000 [4 2 29]
+    x7 = x2 < x4 = 0101000001010000 [4 2 24]
+    x7 = x1 ^ x2 = 0000111111110000 [4 2 4]
+    ...
+#+end_src
+
+Here we again picked the first one, recursed, searched for solutions, at some
+point came back to this point, tried the second instruction, and finally picked
+the third instruction, which turned out to be the one in which we found the
+solution, so let's pick that one and move on to the next step.
+
+#+begin_src
+    x8 = x3 > x7 = 0001001000010010 [2 3 52]
+    x8 = x3 > x4 = 0010001000100010 [2 2 45]
+  * x8 = x2 > x7 = 0000011000000110 [2 2 40]
+    x8 = x2 > x4 = 0000101000001010 [2 1 30]
+    x8 = x3 & x6 = 0011000000110011 [3 1 47]
+    --- bite size ---
+    x8 = x1 ^ x3 = 0011001111001100 [3 1 9]
+    x8 = x3 < x7 = 0100100001001000 [4 3 51]
+    x8 = x3 & x7 = 0010000100100001 [4 3 50]
+    x8 = x2 < x7 = 0110000001100000 [4 3 39]
+    x8 = x1 < x4 = 0101010100000000 [4 3 11]
+    ...
+#+end_src
+
+Again we try the first two, find nothing, try the third, and so on. Here are the
+lists at every chosen step that lead to the given solution. I've also added
+~[target]~ whenever the result is a target function. It's interesting that the
+first instruction of the next step would've been a target function, but it was
+not the step that yielded the solution, likely because it the instruction chosen
+here would've been outside of the bite size window in the next step, which drops
+to 3 after this step. [Note: this chain would not have been found with the
+culling after target functions, see under improvements. Which is a data point
+against that optimization.]
+
+#+begin_src
+    x9 = x6 | x8 = 0011111011111111 [1 1 84] [target]
+    x9 = x3 & x6 = 0011000000110011 [3 1 51]
+    x9 = x1 ^ x3 = 0011001111001100 [3 1 9]
+  * x9 = x3 < x7 = 0100100001001000 [4 3 55]
+    x9 = x3 & x7 = 0010000100100001 [4 3 54]
+    --- bite size ----
+    x9 = x1 < x4 = 0101010100000000 [4 3 11]
+    x9 = x1 ^ x2 = 0000111111110000 [4 3 4]
+    x9 = x6 & x7 = 0010100001101001 [4 2 78]
+    x9 = x3 > x7 = 0001001000010010 [4 2 56]
+    x9 = x2 < x7 = 0110000001100000 [4 2 44]
+    ...
+#+end_src
+
+As mentioned, the bite size drops to 3 at this point.
+
+#+begin_src
+  * x10 = x6 | x8 = 0011111011111111 [1 1 99] [target]
+    x10 = x1 ^ x2 = 0000111111110000 [3 3 4]
+    x10 = x5 | x9 = 0111110001111100 [3 2 91]
+    --- bite size ---
+    x10 = x4 ^ x9 = 0001110100011101 [3 2 86]
+    x10 = x1 ^ x9 = 0100100010110111 [3 2 33]
+    x10 = x6 > x9 = 0011010010110111 [3 1 103]
+    x10 = x3 & x6 = 0011000000110011 [3 1 61]
+    x10 = x1 ^ x3 = 0011001111001100 [3 1 9]
+    x10 = x1 < x4 = 0101010100000000 [4 2 11]
+    x10 = x5 ^ x9 = 0111010001110100 [4 1 92]
+    ...
+#+end_src
+
+#+begin_src
+  * x11 = x1 ^  x2 = 0000111111110000 [3 3 4]
+    x11 = x5 |  x9 = 0111110001111100 [3 2 100]
+    x11 = x4 ^  x9 = 0001110100011101 [3 2 92]
+    --- bite size ---
+    x11 = x1 ^  x9 = 0100100010110111 [3 2 33]
+    x11 = x9 < x10 = 0011011010110111 [3 1 118]
+    x11 = x6 >  x9 = 0011010010110111 [3 1 112]
+    x11 = x3 & x10 = 0011001000110011 [3 1 76]
+    x11 = x3 &  x6 = 0011000000110011 [3 1 65]
+    x11 = x1 ^  x3 = 0011001111001100 [3 1 9]
+    x11 = x1 <  x4 = 0101010100000000 [4 2 11]
+    ...
+#+end_src
+
+#+begin_src
+  * x12 =  x5 |  x9 = 0111110001111100 [2 2 108]
+    x12 = x10 & x11 = 0000111011110000 [3 2 149]
+    x12 =  x6 & x11 = 0000110011110000 [3 2 127]
+    --- bite size ---
+    x12 =  x1 <  x4 = 0101010100000000 [3 2 10]
+    x12 =  x9 & x11 = 0000100001000000 [3 1 144]
+    x12 =  x9 < x10 = 0011011010110111 [3 1 141]
+    x12 =  x6 > x11 = 0011000000001111 [3 1 128]
+    x12 =  x6 >  x9 = 0011010010110111 [3 1 124]
+    x12 =  x4 ^ x11 = 0101101010100101 [3 1 103]
+    x12 =  x4 ^  x9 = 0001110100011101 [3 1 95]
+    ...
+#+end_src
+
+#+begin_src
+  * x13 = x11 < x12 = 0111000000001100 [1 1 170] [target]
+    x13 =  x4 & x12 = 0101010001010100 [3 2 113]
+    x13 = x11 & x12 = 0000110001110000 [3 1 169]
+    --- bite size ---
+    x13 = x10 & x11 = 0000111011110000 [3 1 165]
+    x13 =  x9 & x11 = 0000100001000000 [3 1 160]
+    x13 =  x9 < x10 = 0011011010110111 [3 1 157]
+    x13 =  x8 | x12 = 0111111001111110 [3 1 155]
+    x13 =  x7 > x11 = 0110000000001001 [3 1 146]
+    x13 =  x6 > x11 = 0011000000001111 [3 1 138]
+    x13 =  x6 & x11 = 0000110011110000 [3 1 137]
+#+end_src
+
+#+begin_src
+  * x14 =  x4 & x12 = 0101010001010100 [3 3 126]
+    --- bite size ---
+    x14 = x11 & x12 = 0000110001110000 [3 1 206]
+    x14 = x10 & x11 = 0000111011110000 [3 1 200]
+    x14 =  x9 & x11 = 0000100001000000 [3 1 192]
+    x14 =  x9 < x10 = 0011011010110111 [3 1 189]
+    x14 =  x8 | x13 = 0111011000001110 [3 1 187]
+    x14 =  x8 | x12 = 0111111001111110 [3 1 182]
+    x14 =  x7 > x13 = 0000100101100001 [3 1 174]
+    x14 =  x7 < x13 = 0001000000000100 [3 1 173]
+    x14 =  x7 & x13 = 0110000000001000 [3 1 172]
+    ...
+#+end_src
+
+#+begin_src
+  * x15 = x13 ^ x14 = 0010010001011000 [2 1 234]
+    --- bite size ---
+    x15 = x11 | x14 = 0101111111110100 [2 1 231]
+    x15 = x10 > x14 = 0010101010101011 [2 1 223]
+    x15 =  x6 > x14 = 0010100010101011 [2 1 175]
+    x15 =  x6 > x11 = 0011000000001111 [2 1 168]
+    x15 =  x1 & x14 = 0000000001010100 [2 1 44]
+    x15 =  x9 & x11 = 0000100001000000 [3 1 207]
+    x15 =  x4 ^  x9 = 0001110100011101 [3 1 127]
+    x15 =  x1 <  x4 = 0101010100000000 [3 1 10]
+    x15 = x13 | x14 = 0111010001011100 [infinity 0 233]
+#+end_src
+
+#+begin_src
+  * x16 =  x7 > x15 = 0100100100100001 [1 1 215] [target]
+    --- bite size ---
+    x16 = x11 | x14 = 0101111111110100 [2 1 267]
+    x16 = x10 > x14 = 0010101010101011 [2 1 259]
+    x16 =  x6 > x14 = 0010100010101011 [2 1 197]
+    x16 =  x6 > x11 = 0011000000001111 [2 1 191]
+    x16 =  x1 & x14 = 0000000001010100 [2 1 44]
+    x16 =  x9 & x11 = 0000100001000000 [3 1 240]
+    x16 =  x4 ^  x9 = 0001110100011101 [3 1 142]
+    x16 =  x1 <  x4 = 0101010100000000 [3 1 10]
+    x16 = x13 | x14 = 0111010001011100 [infinity 0 272]
+    ...
+#+end_src
+
+#+begin_src
+  * x17 = x11 | x14 = 0101111111110100 [2 1 295]
+    --- bite size ---
+    x17 = x10 > x14 = 0010101010101011 [2 1 285]
+    x17 =  x6 > x14 = 0010100010101011 [2 1 218]
+    x17 =  x6 > x11 = 0011000000001111 [2 1 213]
+    x17 =  x1 & x14 = 0000000001010100 [2 1 44]
+    x17 =  x9 & x11 = 0000100001000000 [3 1 264]
+    x17 =  x5 ^ x16 = 0111010100011101 [3 1 201]
+    x17 =  x4 | x16 = 0101110101110101 [3 1 178]
+    x17 =  x4 ^  x9 = 0001110100011101 [3 1 156]
+    x17 =  x1 >  x9 = 0000000010110111 [3 1 30]
+#+end_src
+
+#+begin_src
+  * x18 =  x6 > x17 = 0010000000001011 [1 1 246] [target]
+    --- bite size ---
+    x18 =  x1 & x14 = 0000000001010100 [2 1 44]
+    x18 =  x9 & x17 = 0100100001000000 [3 1 313]
+    x18 =  x9 & x11 = 0000100001000000 [3 1 298]
+    x18 =  x5 ^ x16 = 0111010100011101 [3 1 217]
+    x18 =  x4 | x16 = 0101110101110101 [3 1 191]
+    x18 =  x4 ^  x9 = 0001110100011101 [3 1 169]
+    x18 =  x1 >  x9 = 0000000010110111 [3 1 30]
+    x18 =  x1 <  x4 = 0101010100000000 [3 1 10]
+    x18 = x16 ^ x17 = 0001011011010101 [infinity 0 357]
+    ...
+#+end_src
+
+#+begin_src
+  * x19 =  x1 & x14 = 0000000001010100 [2 1 44]
+    --- bite size ---
+    x19 =  x9 & x17 = 0100100001000000 [3 1 330]
+    x19 =  x9 & x11 = 0000100001000000 [3 1 315]
+    x19 =  x5 ^ x16 = 0111010100011101 [3 1 228]
+    x19 =  x4 | x16 = 0101110101110101 [3 1 199]
+    x19 =  x4 ^  x9 = 0001110100011101 [3 1 177]
+    x19 =  x1 >  x9 = 0000000010110111 [3 1 30]
+    x19 =  x1 <  x4 = 0101010100000000 [3 1 10]
+    x19 = x16 ^ x18 = 0110100100101010 [infinity 0 385]
+    x19 = x16 | x18 = 0110100100101011 [infinity 0 384]
+    ...
+#+end_src
+
+#+begin_src
+  * x20 = x9 ^ x19 = 0100100000011100 [1 1 356] [target]
+    --- bite size ---
+    x20 = x9 & x17 = 0100100001000000 [3 1 348]
+    x20 = x9 & x11 = 0000100001000000 [3 1 333]
+    x20 = x7 & x17 = 0100100101100000 [3 1 292]
+    x20 = x7 & x11 = 0000100101100000 [3 1 277]
+    x20 = x5 ^ x16 = 0111010100011101 [3 1 238]
+    x20 = x4 > x19 = 0101010100000001 [3 1 216]
+    x20 = x4 | x16 = 0101110101110101 [3 1 208]
+    x20 = x4 ^  x9 = 0001110100011101 [3 1 186]
+    x20 = x2 ^ x19 = 0000111101011011 [3 1 120]
+    ...
+#+end_src
+
+#+begin_src
+  * x21 = x10 ^ x20 = 0111011011100011 [3 2 395]
+    --- bite size ---
+    x21 = x17 & x20 = 0100100000010100 [3 1 460]
+    x21 = x16 ^ x20 = 0000000100111101 [3 1 458]
+    x21 = x14 ^ x20 = 0001110001001000 [3 1 439]
+    x21 = x14 > x20 = 0001010001000000 [3 1 438]
+    x21 = x12 > x20 = 0011010001100000 [3 1 425]
+    x21 = x12 ^ x16 = 0011010101011101 [3 1 419]
+    x21 = x10 ^ x14 = 0110101010101011 [3 1 387]
+    x21 =  x9 & x17 = 0100100001000000 [3 1 373]
+    x21 =  x9 & x11 = 0000100001000000 [3 1 358]
+    ...
+#+end_src
+
+#+begin_src
+  * x22 = x17 > x21 = 0000100100010100 [2 2 517]
+    --- bite size ---
+    x22 = x14 ^ x21 = 0010001010110111 [2 1 484]
+    x22 = x19 < x21 = 0111011010100011 [infinity 0 524]
+    x22 = x18 ^ x21 = 0101011011101000 [infinity 0 523]
+    x22 = x18 | x21 = 0111011011101011 [infinity 0 522]
+    x22 = x18 ^ x20 = 0110100000010111 [infinity 0 521]
+    x22 = x18 | x20 = 0110100000011111 [infinity 0 520]
+    x22 = x18 | x19 = 0010000001011111 [infinity 0 519]
+    x22 = x17 ^ x21 = 0010100100010111 [infinity 0 518]
+    x22 = x17 & x21 = 0101011011100000 [infinity 0 516]
+    ...
+#+end_src
+
+#+begin_src
+  * x23 = x14 ^ x22 = 0101110101000000 [1 1 522] [target]
+    --- bite size ---
+    x23 =  x2 ^ x22 = 0000011000011011 [1 1 146] [target]
+    x23 = x20 ^ x22 = 0100000100001000 [infinity 0 570]
+    x23 = x20 | x22 = 0100100100011100 [infinity 0 569]
+    x23 = x19 ^ x22 = 0000100101000000 [infinity 0 568]
+    x23 = x19 | x22 = 0000100101010100 [infinity 0 567]
+    x23 = x19 < x21 = 0111011010100011 [infinity 0 566]
+    x23 = x18 | x22 = 0010100100011111 [infinity 0 565]
+    x23 = x18 ^ x21 = 0101011011101000 [infinity 0 564]
+    x23 = x18 | x21 = 0111011011101011 [infinity 0 563]
+    ...
+#+end_src
+
+#+begin_src
+  * x24 =  x2 ^ x22 = 0000011000011011 [1 1 151] [target]
+    --- bite size ---
+    x24 = x21 ^ x23 = 0010101110100011 [infinity 0 628]
+    x24 = x20 ^ x23 = 0001010101011100 [infinity 0 627]
+    x24 = x20 | x23 = 0101110101011100 [infinity 0 626]
+    x24 = x20 < x23 = 0001010101000000 [infinity 0 625]
+    x24 = x20 ^ x22 = 0100000100001000 [infinity 0 624]
+    x24 = x20 | x22 = 0100100100011100 [infinity 0 623]
+    x24 = x19 ^ x23 = 0101110100010100 [infinity 0 622]
+    x24 = x19 ^ x22 = 0000100101000000 [infinity 0 621]
+    x24 = x19 | x22 = 0000100101010100 [infinity 0 620]
+    ...
+#+end_src
+
+After some more optimizations of the code, based on the program for the
+exhaustive search (see below), bigger bite sizes were feasible. The hungry
+search with bite sizes 10, 9, 8, 7, 6, 5, ... found several chains of length 19.
+The first solution of that kind was:
 
 \begin{aligned}
     x_5    &= x_3    <      x_4                   & \quad
@@ -138,31 +517,55 @@ next, 8 for the next, etc.. This hungry search found several chains of length
     x_{11} &= x_6    \oplus x_{10}                & \quad
     x_{18} &= x_{11} \oplus x_{16}                & \\
 \end{aligned}
+
+The instruction $x_5 = x_3 < x_4$ is the 7th instruction in the order of the heuristic
+heuristic, that's why it wasn't considered for a bite size of 5. This illustrates that
+good solutions can easily be missed, if the "right" instruction is just outside
+of the bite size window, which can happen at any chain length in the hungry
+search.
+
+With infinite bite sizes at every step the hungry search would become an
+exhaustive search and find all optimal solutions. But as the bite sizes
+increase, the search space increases rapidly, which in combination with the
+expensive Algorithm U makes large bite sizes computationally infeasible.
+
+A faster exhaustive search is described below, it doesn't use any heuristic,
+because it looks at all relevant instructions anyway. That allows it to traverse
+much larger search spaces.
+
 *** Improving performance
 :PROPERTIES:
 :CUSTOM_ID: hungry-search-improving-performance
 :END:
 The bigger search with bite sizes 10, 9, 8, etc. was possible due to a few
-optimizations in the code.
+optimizations in the code. In particular these two strategies avoid large parts
+of the search tree. The first is safe, the second runs the risk of missing
+solutions.
 
-1. Let $t = 7$ be the number of target functions and $w$ the number of target
-   functions not yet contained in the chain we're currently looking at, then as
-   soon as we see a chain of length $c$ with $c + w = m$ we know every next step
-   must generate a target function. This means we don't have to run Algorithm U
-   again, we simply pick the first target function in the available instructions
-   and so on. Since the last few iterations are a big part of the computation,
-   this reduces the overall effort by a factor of about 2-4, well worth the
-   extra branching required for the check.
+- Cull based on unfulfilled targets ::
+  Let $t = 7$ be the number of target functions and $w$ the number of target
+  functions not yet contained in the chain we're currently looking at, then as
+  soon as we see a chain of length $c$ with $c + w = m$ we know every next step
+  must generate a target function. This means we don't have to run Algorithm U
+  again, we simply pick the first target function in the available instructions
+  and so on. Since the last few iterations are a big part of the computation,
+  this reduces the overall effort by a factor of about 2-4, well worth the extra
+  branching required for the check.
 
-2. If we encounter a target function at any length, then we can pick this
-   instruction and move on with the hungry search, but once we backtrack to the
-   original length we can stop this branch. The function needs to be picked at
-   some point anyway, so it might as well be now. There is a small chance that
-   picking other instructions inside the same bite would result in different
-   footprints in future bites, potentially finding shorter chains, but the
-   footprints are just a heuristic anyway, and it is much more likely that the
-   target function would simply come up in the next iteration again, doubling
-   our work.
+
+- Cull after target function ::
+  If we encounter a target function at any length, then we can pick this
+  instruction and move on with the hungry search, but once we backtrack to the
+  original length we can stop this branch. The function needs to be picked at
+  some point anyway, so it might as well be now. There is a chance that picking
+  other instructions inside the same bite would result in different footprints
+  in future bites, potentially finding shorter chains, but the footprints are
+  just a heuristic anyway, and it is much more likely that the target function
+  would simply come up in the next iteration again, doubling our work.
+  $x_9$ is an example where this optimization would've missed a solution,
+  because we'd have stopped after trying the first instruction, which was a
+  target function.
+
 
 * Searching for the optimal solution
 :PROPERTIES:
@@ -246,6 +649,9 @@ a few ways:
    reason is that the target function we tried in the last loop now can't ever
    be used again in other chains along this branch, making a complete chain
    impossible. This is due to point 3.
+
+   Note: this optimization is dangerous for hungry search, because of the bite
+   sizes, but for the exhaustive search it is safe.
 
 ** Algorithm S
 :PROPERTIES:
@@ -707,12 +1113,32 @@ Here is the first one found:
 :PROPERTIES:
 :CUSTOM_ID: 7.1.2-59
 :END:
-Total chains generated: 29,104,454,427,931
+Hungry search found chains of length 15, two steps shorter than the one in the
+book, but no guarantees that it is minimal.
 
-Number of unique optimal sets of functions of length 16 or fewer: 0
+Here is the first one found:
 
-Therefore the chain of length 17 presented in the book is optimal.
+\begin{aligned}
+    x_5    &= x_2    \oplus x_4          & \quad
+    x_{10} &= x_6    <      x_9          & \quad
+    x_{15} &= x_1    >      x_{14}       & \\
 
+    x_6    &= x_2    \oplus x_3          & \quad
+    x_{11} &= x_7    \oplus x_{10} = f_3 & \quad
+    x_{16} &= x_6    >      x_{15}       & \\
+
+    x_7    &= x_1    \oplus x_5          & \quad
+    x_{12} &= x_3    \land  x_7          & \quad
+    x_{17} &= x_{12} \lor   x_{16} = f_4 & \\
+
+    x_8    &= x_4    <      x_7          & \quad
+    x_{13} &= x_5    \lor   x_{12}       & \quad
+    x_{18} &= x_{12} \oplus x_{16}       & \\
+
+    x_9    &= x_3    \oplus x_8          & \quad
+    x_{14} &= x_9    \oplus x_{13} = f_2 & \quad
+    x_{19} &= x_9    \oplus x_{18} = f_1 & \\
+\end{aligned}
 * Source code
 :PROPERTIES:
 :CUSTOM_ID: source-code
