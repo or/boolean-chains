@@ -114,3 +114,4 @@ if __name__ == "__main__":
             or (t in ["10", "11"] and result["6"] == 1)
         )
         print(f"{k}, {k:06b}, {t}, {s}:", is_prime_raw, is_prime)
+        assert is_prime_raw == is_prime
