@@ -1,0 +1,6 @@
+FROM debian
+
+WORKDIR /app
+
+ENV ARGS ""
+CMD ./main.sh $ARGS
