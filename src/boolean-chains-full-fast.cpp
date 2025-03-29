@@ -206,9 +206,11 @@ int main(int argc, char *argv[]) {
   uint32_t expressions[600] __attribute__((aligned(64)));
   uint32_t expressions_size[25] __attribute__((aligned(64)));
 
+#if !PLAN_MODE
   atexit(on_exit);
   signal(SIGINT, signal_handler);
   signal(SIGTERM, signal_handler);
+#endif
 
   chain[0] = 0b0000000011111111 >> (16 - N);
   chain[1] = 0b0000111100001111 >> (16 - N);
