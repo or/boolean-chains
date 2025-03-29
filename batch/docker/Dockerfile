@@ -8,10 +8,10 @@ COPY Makefile .
 COPY src src
 
 RUN mkdir target
-RUN make target/boolean-chains-full-fast
+RUN make target/full-search
 
 FROM amazonlinux:2023 AS final
 
 RUN yum install -y aws-cli && yum clean all
 
-COPY --from=build target/boolean-chains-full-fast .
+COPY --from=build target/full-search .

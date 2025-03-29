@@ -12,7 +12,7 @@ which = sys.argv[1]
 
 if which == "full":
     JOB_DEFINITION = "boolean-chains-job-definition"
-    COMMAND = "boolean-chains-full-fast"
+    COMMAND = "full-search"
     JOB_ID = "15-21"
     JOB_PARAMETER_FILE = f"../full-plan-{JOB_ID}.txt"
     JOB_QUEUE = f"boolean-chains-queue-{JOB_ID}"
