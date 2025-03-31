@@ -38,11 +38,11 @@ constexpr uint32_t SIZE = 1 << (N - 1);
 constexpr uint32_t MAX_LENGTH = 12;
 constexpr uint32_t TAUTOLOGY = (1 << 10) - 1;
 constexpr uint32_t TARGET_1 =
-    (((uint32_t)0b0001011001) >> (16 - N)) & TAUTOLOGY;
+    (((uint32_t)0b0001001000) >> (16 - N)) & TAUTOLOGY;
 constexpr uint32_t TARGET_2 =
     (((uint32_t)0b0000010001) >> (16 - N)) & TAUTOLOGY;
 constexpr uint32_t TARGET_3 =
-    (((uint32_t)0b0111010110) >> (16 - N)) & TAUTOLOGY;
+    (((uint32_t)0b0100010100) >> (16 - N)) & TAUTOLOGY;
 constexpr uint32_t TARGET_4 =
     (((uint32_t)0b0011000010) >> (16 - N)) & TAUTOLOGY;
 constexpr uint32_t TARGET_5 =
@@ -212,8 +212,8 @@ int main(int argc, char *argv[]) {
 
   chain[0] = 0b0010100101 >> (16 - N);
   chain[1] = 0b0000010011 >> (16 - N);
-  chain[2] = 0b0110001111 >> (16 - N);
-  chain[3] = 0b0001111111 >> (16 - N);
+  chain[2] = 0b0100101010 >> (16 - N);
+  chain[3] = 0b0001001100 >> (16 - N);
   size_t chain_size = 4;
   start_chain_length = chain_size;
 
