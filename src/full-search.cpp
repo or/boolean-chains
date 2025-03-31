@@ -33,24 +33,18 @@ using namespace std;
 #define CAPTURE_STATS_CALL
 #endif
 
-constexpr uint32_t N = 16;
-constexpr uint32_t SIZE = 1 << (N - 1);
-constexpr uint32_t MAX_LENGTH = 12;
-constexpr uint32_t TAUTOLOGY = (1 << 10) - 1;
+constexpr uint32_t N = 27;
+constexpr uint32_t SIZE = 1 << N;
+constexpr uint32_t MAX_LENGTH = 16;
+constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
 constexpr uint32_t TARGET_1 =
-    (((uint32_t)0b0001001000) >> (16 - N)) & TAUTOLOGY;
+    (((uint32_t)0b000000000000000001000001011)) & TAUTOLOGY;
 constexpr uint32_t TARGET_2 =
-    (((uint32_t)0b0000010001) >> (16 - N)) & TAUTOLOGY;
+    (((uint32_t)0b110100000100000000000000000)) & TAUTOLOGY;
 constexpr uint32_t TARGET_3 =
-    (((uint32_t)0b0100010100) >> (16 - N)) & TAUTOLOGY;
+    (((uint32_t)0b010100001100001010001010100)) & TAUTOLOGY;
 constexpr uint32_t TARGET_4 =
-    (((uint32_t)0b0011000010) >> (16 - N)) & TAUTOLOGY;
-constexpr uint32_t TARGET_5 =
-    (((uint32_t)0b1010001010111111) >> (16 - N)) & TAUTOLOGY;
-constexpr uint32_t TARGET_6 =
-    (((uint32_t)0b1000111111110011) >> (16 - N)) & TAUTOLOGY;
-constexpr uint32_t TARGET_7 =
-    (((uint32_t)0b0011111011111111) >> (16 - N)) & TAUTOLOGY;
+    (((uint32_t)0b001010100010100001100001010)) & TAUTOLOGY;
 constexpr uint32_t TARGETS[] = {TARGET_1, TARGET_2, TARGET_3, TARGET_4};
 constexpr uint32_t NUM_TARGETS = sizeof(TARGETS) / sizeof(uint32_t);
 
@@ -147,7 +141,7 @@ void print_chain(const uint32_t *chain, const uint32_t *target_lookup,
         cout << " = " << "x" << j + 1 << " " << op << " x" << k + 1;
       }
     }
-    cout << " = " << bitset<10>(chain[i]).to_string();
+    cout << " = " << bitset<N>(chain[i]).to_string();
     if (target_lookup[chain[i]]) {
       cout << " [target]";
     }
@@ -198,10 +192,12 @@ int main(int argc, char *argv[]) {
   size_t start_indices_size __attribute__((aligned(64))) = 0;
   uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
   uint32_t choices[30] __attribute__((aligned(64)));
-  uint32_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
-  uint32_t seen[SIZE] __attribute__((aligned(64)));
+  // uint32_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
+  // uint32_t seen[SIZE] __attribute__((aligned(64)));
+  uint32_t *target_lookup = new uint32_t[SIZE];
+  uint32_t *seen = new uint32_t[SIZE];
   uint32_t chain[25] __attribute__((aligned(64)));
-  uint32_t expressions[600] __attribute__((aligned(64)));
+  uint32_t expressions[2000] __attribute__((aligned(64)));
   uint32_t expressions_size[25] __attribute__((aligned(64)));
 
 #if !PLAN_MODE
@@ -210,11 +206,13 @@ int main(int argc, char *argv[]) {
   signal(SIGTERM, signal_handler);
 #endif
 
-  chain[0] = 0b0010100101 >> (16 - N);
-  chain[1] = 0b0000010011 >> (16 - N);
-  chain[2] = 0b0100101010 >> (16 - N);
-  chain[3] = 0b0001001100 >> (16 - N);
-  size_t chain_size = 4;
+  chain[0] = 0b000000000000000000111111111;
+  chain[1] = 0b111111111000000000000000000;
+  chain[2] = 0b000000111000000111000000111;
+  chain[3] = 0b111000000111000000111000000;
+  chain[4] = 0b001001001001001001001001001;
+  chain[5] = 0b100100100100100100100100100;
+  size_t chain_size = 6;
   start_chain_length = chain_size;
 
 #if PLAN_MODE
@@ -255,7 +253,7 @@ int main(int argc, char *argv[]) {
        << ", CAPTURE_STATS: " << CAPTURE_STATS << endl;
   cout << NUM_TARGETS << " targets:" << endl;
   for (size_t i = 0; i < NUM_TARGETS; i++) {
-    cout << "  " << bitset<10>(TARGETS[i]).to_string() << endl;
+    cout << "  " << bitset<N>(TARGETS[i]).to_string() << endl;
   }
 #endif
 
