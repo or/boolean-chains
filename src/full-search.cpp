@@ -33,27 +33,25 @@ using namespace std;
 #define CAPTURE_STATS_CALL
 #endif
 
-constexpr uint32_t N = 12;
+constexpr uint32_t N = 16;
 constexpr uint32_t SIZE = 1 << (N - 1);
-constexpr uint32_t MAX_LENGTH = 18;
-constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
+constexpr uint32_t MAX_LENGTH = 12;
+constexpr uint32_t TAUTOLOGY = (1 << 10) - 1;
 constexpr uint32_t TARGET_1 =
-    ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY;
+    (((uint32_t)0b0001001000) >> (16 - N)) & TAUTOLOGY;
 constexpr uint32_t TARGET_2 =
-    ((~(uint32_t)0b1111100111100100) >> (16 - N)) & TAUTOLOGY;
+    (((uint32_t)0b0000010001) >> (16 - N)) & TAUTOLOGY;
 constexpr uint32_t TARGET_3 =
-    ((~(uint32_t)0b1101111111110100) >> (16 - N)) & TAUTOLOGY;
+    (((uint32_t)0b0100010100) >> (16 - N)) & TAUTOLOGY;
 constexpr uint32_t TARGET_4 =
-    ((~(uint32_t)0b1011011011011110) >> (16 - N)) & TAUTOLOGY;
+    (((uint32_t)0b0011000010) >> (16 - N)) & TAUTOLOGY;
 constexpr uint32_t TARGET_5 =
-    ((~(uint32_t)0b1010001010111111) >> (16 - N)) & TAUTOLOGY;
+    (((uint32_t)0b1010001010111111) >> (16 - N)) & TAUTOLOGY;
 constexpr uint32_t TARGET_6 =
-    ((~(uint32_t)0b1000111111110011) >> (16 - N)) & TAUTOLOGY;
+    (((uint32_t)0b1000111111110011) >> (16 - N)) & TAUTOLOGY;
 constexpr uint32_t TARGET_7 =
     (((uint32_t)0b0011111011111111) >> (16 - N)) & TAUTOLOGY;
-constexpr uint32_t TARGETS[] = {
-    TARGET_1, TARGET_2, TARGET_3, TARGET_4, TARGET_5, TARGET_6, TARGET_7,
-};
+constexpr uint32_t TARGETS[] = {TARGET_1, TARGET_2, TARGET_3, TARGET_4};
 constexpr uint32_t NUM_TARGETS = sizeof(TARGETS) / sizeof(uint32_t);
 
 #if PLAN_MODE
@@ -149,7 +147,7 @@ void print_chain(const uint32_t *chain, const uint32_t *target_lookup,
         cout << " = " << "x" << j + 1 << " " << op << " x" << k + 1;
       }
     }
-    cout << " = " << bitset<N>(chain[i]).to_string();
+    cout << " = " << bitset<10>(chain[i]).to_string();
     if (target_lookup[chain[i]]) {
       cout << " [target]";
     }
@@ -212,10 +210,10 @@ int main(int argc, char *argv[]) {
   signal(SIGTERM, signal_handler);
 #endif
 
-  chain[0] = 0b0000000011111111 >> (16 - N);
-  chain[1] = 0b0000111100001111 >> (16 - N);
-  chain[2] = 0b0011001100110011 >> (16 - N);
-  chain[3] = 0b0101010101010101 >> (16 - N);
+  chain[0] = 0b0010100101 >> (16 - N);
+  chain[1] = 0b0000010011 >> (16 - N);
+  chain[2] = 0b0100101010 >> (16 - N);
+  chain[3] = 0b0001001100 >> (16 - N);
   size_t chain_size = 4;
   start_chain_length = chain_size;
 
@@ -257,7 +255,7 @@ int main(int argc, char *argv[]) {
        << ", CAPTURE_STATS: " << CAPTURE_STATS << endl;
   cout << NUM_TARGETS << " targets:" << endl;
   for (size_t i = 0; i < NUM_TARGETS; i++) {
-    cout << "  " << bitset<N>(TARGETS[i]).to_string() << endl;
+    cout << "  " << bitset<10>(TARGETS[i]).to_string() << endl;
   }
 #endif
 
