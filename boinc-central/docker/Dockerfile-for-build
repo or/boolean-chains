@@ -10,4 +10,4 @@ COPY src src
 RUN mkdir target
 RUN make target/full-search target/full-search-plan
 
-RUN target/full-search-plan 1 > plan.txt
+RUN target/full-search-plan 3 > plan.txt

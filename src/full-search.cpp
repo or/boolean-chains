@@ -33,9 +33,9 @@ using namespace std;
 #define CAPTURE_STATS_CALL
 #endif
 
-constexpr uint32_t N = 12;
+constexpr uint32_t N = 15;
 constexpr uint32_t SIZE = 1 << (N - 1);
-constexpr uint32_t MAX_LENGTH = 18;
+constexpr uint32_t MAX_LENGTH = 21;
 constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
 constexpr uint32_t TARGET_1 =
     ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY;
@@ -80,47 +80,24 @@ uint64_t stats_num_data_points[25] = {0};
     expressions_size[chain_size] = expressions_size[chain_size - 1];           \
     const uint32_t h = chain[chain_size - 1];                                  \
     const uint32_t not_h = ~h;                                                 \
-                                                                               \
-    size_t j = 0;                                                              \
-    for (; j < chain_size - 4; j += 4) {                                       \
-      const uint32_t g0 = chain[j], g1 = chain[j + 1], g2 = chain[j + 2],      \
-                     g3 = chain[j + 3];                                        \
-      const uint32_t not_g0 = ~g0, not_g1 = ~g1, not_g2 = ~g2, not_g3 = ~g3;   \
-                                                                               \
-      ADD_EXPRESSION(g0 & h);                                                  \
-      ADD_EXPRESSION(g1 & h);                                                  \
-      ADD_EXPRESSION(g2 & h);                                                  \
-      ADD_EXPRESSION(g3 & h);                                                  \
-                                                                               \
-      ADD_EXPRESSION(not_g0 & h);                                              \
-      ADD_EXPRESSION(not_g1 & h);                                              \
-      ADD_EXPRESSION(not_g2 & h);                                              \
-      ADD_EXPRESSION(not_g3 & h);                                              \
-                                                                               \
-      ADD_EXPRESSION(g0 & not_h);                                              \
-      ADD_EXPRESSION(g1 & not_h);                                              \
-      ADD_EXPRESSION(g2 & not_h);                                              \
-      ADD_EXPRESSION(g3 & not_h);                                              \
-                                                                               \
-      ADD_EXPRESSION(g0 ^ h);                                                  \
-      ADD_EXPRESSION(g1 ^ h);                                                  \
-      ADD_EXPRESSION(g2 ^ h);                                                  \
-      ADD_EXPRESSION(g3 ^ h);                                                  \
-                                                                               \
-      ADD_EXPRESSION(g0 | h);                                                  \
-      ADD_EXPRESSION(g1 | h);                                                  \
-      ADD_EXPRESSION(g2 | h);                                                  \
-      ADD_EXPRESSION(g3 | h);                                                  \
-    }                                                                          \
-                                                                               \
-    for (; j < chain_size - 1; j++) {                                          \
+    for (size_t j = 0; j < chain_size - 1; j++) {                              \
       const uint32_t g = chain[j];                                             \
-      const uint32_t not_g = ~chain[j];                                        \
-      ADD_EXPRESSION(g & h);                                                   \
-      ADD_EXPRESSION(not_g & h);                                               \
-      ADD_EXPRESSION(g & not_h);                                               \
-      ADD_EXPRESSION(g ^ h);                                                   \
-      ADD_EXPRESSION(g | h);                                                   \
+      const uint32_t not_g = ~g;                                               \
+                                                                               \
+      const uint32_t ft1 = g & h;                                              \
+      ADD_EXPRESSION(ft1)                                                      \
+                                                                               \
+      const uint32_t ft2 = g & not_h;                                          \
+      ADD_EXPRESSION(ft2)                                                      \
+                                                                               \
+      const uint32_t ft3 = g ^ h;                                              \
+      ADD_EXPRESSION(ft3)                                                      \
+                                                                               \
+      const uint32_t ft4 = g | h;                                              \
+      ADD_EXPRESSION(ft4)                                                      \
+                                                                               \
+      const uint32_t ft5 = not_g & h;                                          \
+      ADD_EXPRESSION(ft5)                                                      \
     }                                                                          \
   }
 
