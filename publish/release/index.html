@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2025-03-30 Sun 14:22 -->
+<!-- 2025-04-29 Tue 11:35 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Boolean Chains</title>
@@ -1186,6 +1186,8 @@ programming.
 <col  class="org-right" />
 
 <col  class="org-right" />
+
+<col  class="org-right" />
 </colgroup>
 <thead>
 <tr>
@@ -1195,6 +1197,7 @@ programming.
 <th scope="col" class="org-right">unique chains</th>
 <th scope="col" class="org-right">chains generated</th>
 <th scope="col" class="org-right">computation</th>
+<th scope="col" class="org-right">progress</th>
 <th scope="col" class="org-right">capacity</th>
 </tr>
 
@@ -1206,6 +1209,7 @@ programming.
 <th scope="col" class="org-right">&#xa0;</th>
 <th scope="col" class="org-right">time</th>
 <th scope="col" class="org-right">&#xa0;</th>
+<th scope="col" class="org-right">&#xa0;</th>
 </tr>
 </thead>
 <tbody>
@@ -1216,6 +1220,7 @@ programming.
 <td class="org-right">40</td>
 <td class="org-right">7,461,658</td>
 <td class="org-right">0.03 secs</td>
+<td class="org-right">100%</td>
 <td class="org-right">MacBook Air 15" (M2, 2023)</td>
 </tr>
 
@@ -1226,6 +1231,7 @@ programming.
 <td class="org-right">1,079</td>
 <td class="org-right">344,252,541</td>
 <td class="org-right">0.78 secs</td>
+<td class="org-right">100%</td>
 <td class="org-right">MacBook Air 15" (M2, 2023)</td>
 </tr>
 
@@ -1236,6 +1242,7 @@ programming.
 <td class="org-right">75</td>
 <td class="org-right">263,675,232,692</td>
 <td class="org-right">9 mins</td>
+<td class="org-right">100%</td>
 <td class="org-right">MacBook Air 15" (M2, 2023)</td>
 </tr>
 
@@ -1246,6 +1253,7 @@ programming.
 <td class="org-right">4</td>
 <td class="org-right">15,586,512,093,540</td>
 <td class="org-right">7.6 hours</td>
+<td class="org-right">100%</td>
 <td class="org-right">MacBook Air 15" (M2, 2023)</td>
 </tr>
 
@@ -1256,6 +1264,7 @@ programming.
 <td class="org-right">71</td>
 <td class="org-right">1,172,393,232,657,510</td>
 <td class="org-right">156 days</td>
+<td class="org-right">100%</td>
 <td class="org-right">AWS ECS, 1 vCPU/job</td>
 </tr>
 
@@ -1264,9 +1273,21 @@ programming.
 <td class="org-right">17</td>
 <td class="org-right">[so far] 1</td>
 <td class="org-right">1</td>
-<td class="org-right">[45%]        30,968,277,080,052,517</td>
-<td class="org-right">[45%]     1,436 days</td>
+<td class="org-right">30,968,277,080,052,517</td>
+<td class="org-right">1,436 days</td>
+<td class="org-right">45%</td>
 <td class="org-right">AWS ECS, 1 vCPU/job</td>
+</tr>
+
+<tr>
+<td class="org-left">&#xa0;</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-right">&#xa0;</td>
+<td class="org-right">1,504,229,048,363,794</td>
+<td class="org-right">87 days</td>
+<td class="org-right">+ 5%</td>
+<td class="org-right">BOINC Central, various</td>
 </tr>
 </tbody>
 </table>
@@ -1276,6 +1297,10 @@ yet stop the branch after finding a target function; the number of chains to
 generate then reduces to about 56-59% of the figures here.
 An exception is the 15-digit run, which started with the old version for the
 first 10%, then switched to the new version to save time.
+</p>
+
+<p>
+Thanks to <a href="https://boinc.berkeley.edu/central/">BOINC Central</a> for providing computing capacity for this search!
 </p>
 </div>
 </div>
@@ -1648,7 +1673,7 @@ and fewer branches make it to those higher lengths.
 \end{aligned}
 
 
-<div id="orgcdace44" class="figure">
+<div id="orge673d6a" class="figure">
 <p><img src="./10-digits-segments.svg" alt="10-digits-segments.svg" class="org-svg" width="550px" />
 </p>
 </div>
@@ -1681,7 +1706,7 @@ All 40 unique optimal chains of length 11: <a href="chains-10-15.txt">chains-10-
 \end{aligned}
 
 
-<div id="org3cbec68" class="figure">
+<div id="org8738ce9" class="figure">
 <p><img src="./11-digits-segments.svg" alt="11-digits-segments.svg" class="org-svg" width="550px" />
 </p>
 </div>
@@ -1716,7 +1741,7 @@ All 1,079 unique optimal chains of length 12: <a href="chains-11-16.txt">chains-
 \end{aligned}
 
 
-<div id="org717b2fb" class="figure">
+<div id="orga54282f" class="figure">
 <p><img src="./12-digits-segments.svg" alt="12-digits-segments.svg" class="org-svg" width="550px" />
 </p>
 </div>
@@ -1753,7 +1778,7 @@ All 75 unique optimal chains of length 14: <a href="chains-12-18.txt">chains-12-
 \end{aligned}
 
 
-<div id="org56d2676" class="figure">
+<div id="orgc1bbe9b" class="figure">
 <p><img src="./13-digits-segments.svg" alt="13-digits-segments.svg" class="org-svg" width="550px" />
 </p>
 </div>
@@ -1797,7 +1822,7 @@ close!
 </p>
 
 
-<div id="org512cd79" class="figure">
+<div id="orgdc501f9" class="figure">
 <p><img src="./14-digits-segments.svg" alt="14-digits-segments.svg" class="org-svg" width="550px" />
 </p>
 </div>
@@ -1837,7 +1862,7 @@ All 71 unique optimal chains of length 16: <a href="chains-14-20.txt">chains-14-
 \end{aligned}
 
 
-<div id="orga278450" class="figure">
+<div id="org43f1bc4" class="figure">
 <p><img src="./15-digits-segments.svg" alt="15-digits-segments.svg" class="org-svg" width="550px" />
 </p>
 </div>
@@ -1892,7 +1917,7 @@ exhaustive, not proven to be optimal.
 </p>
 
 
-<div id="org80ea558" class="figure">
+<div id="orgb126d0a" class="figure">
 <p><img src="./16-digits-segments.svg" alt="16-digits-segments.svg" class="org-svg" width="550px" />
 </p>
 </div>
@@ -1993,7 +2018,7 @@ better than me.
 <div id="postamble" class="status">
 <p class="date">Date: 2025-03-01 Sat 00:00</p>
 <p class="author">Author: Oliver Runge</p>
-<p class="date">Created: 2025-03-30 Sun 14:22</p>
+<p class="date">Created: 2025-04-29 Tue 11:35</p>
 </div>
 </body>
 </html>
