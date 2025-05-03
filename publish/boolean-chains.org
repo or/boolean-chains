@@ -763,8 +763,8 @@ programming.
 | 12 digits |      14 |             6 |            75 |        263,675,232,692 |      9 mins |     100% | MacBook Air 15" (M2, 2023) |
 | 13 digits |      15 |             1 |             4 |     15,586,512,093,540 |   7.6 hours |     100% | MacBook Air 15" (M2, 2023) |
 | 14 digits |      16 |            35 |            71 |  1,172,393,232,657,510 |    156 days |     100% |        AWS ECS, 1 vCPU/job |
-| 15 digits |      17 |    [so far] 1 |             1 | 30,968,277,080,052,517 |  1,436 days |      45% |        AWS ECS, 1 vCPU/job |
-|           |         |               |               |  1,504,229,048,363,794 |     87 days |     + 5% |     BOINC Central, various |
+| 15 digits |      17 |    [so far] 1 |             1 | 30,968,277,080,052,517 |  1,436 days |     <40% |        AWS ECS, 1 vCPU/job |
+|           |         |               |               | 11,724,979,477,504,060 |    668 days |    +<20% |     BOINC Central, various |
 Note: those times and numbers are based on the full search version that didn't
 yet stop the branch after finding a target function; the number of chains to
 generate then reduces to about 56-59% of the figures here.
