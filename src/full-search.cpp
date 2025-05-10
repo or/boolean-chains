@@ -124,6 +124,63 @@ uint64_t stats_num_data_points[25] = {0};
     }                                                                          \
   }
 
+#define ADD_EXPRESSION_TARGET(value, chain_size)                               \
+  {                                                                            \
+    const uint32_t v = value;                                                  \
+    const uint32_t a = seen[v] & target_lookup[v];                             \
+    expressions[expressions_size[chain_size]] = v;                             \
+    expressions_size[chain_size] += a;                                         \
+    seen[v] -= a;                                                              \
+  }
+
+#define GENERATE_NEW_EXPRESSIONS_TARGET(chain_size)                            \
+  {                                                                            \
+    expressions_size[chain_size] = expressions_size[chain_size - 1];           \
+    const uint32_t h = chain[chain_size - 1];                                  \
+    const uint32_t not_h = ~h;                                                 \
+                                                                               \
+    size_t j = 0;                                                              \
+    for (; j < chain_size - 4; j += 4) {                                       \
+      const uint32_t g0 = chain[j], g1 = chain[j + 1], g2 = chain[j + 2],      \
+                     g3 = chain[j + 3];                                        \
+      const uint32_t not_g0 = ~g0, not_g1 = ~g1, not_g2 = ~g2, not_g3 = ~g3;   \
+                                                                               \
+      ADD_EXPRESSION_TARGET(g0 & h, chain_size);                               \
+      ADD_EXPRESSION_TARGET(g1 & h, chain_size);                               \
+      ADD_EXPRESSION_TARGET(g2 & h, chain_size);                               \
+      ADD_EXPRESSION_TARGET(g3 & h, chain_size);                               \
+                                                                               \
+      ADD_EXPRESSION_TARGET(not_g0 & h, chain_size);                           \
+      ADD_EXPRESSION_TARGET(not_g1 & h, chain_size);                           \
+      ADD_EXPRESSION_TARGET(not_g2 & h, chain_size);                           \
+      ADD_EXPRESSION_TARGET(not_g3 & h, chain_size);                           \
+                                                                               \
+      ADD_EXPRESSION_TARGET(g0 & not_h, chain_size);                           \
+      ADD_EXPRESSION_TARGET(g1 & not_h, chain_size);                           \
+      ADD_EXPRESSION_TARGET(g2 & not_h, chain_size);                           \
+      ADD_EXPRESSION_TARGET(g3 & not_h, chain_size);                           \
+                                                                               \
+      ADD_EXPRESSION_TARGET(g0 ^ h, chain_size);                               \
+      ADD_EXPRESSION_TARGET(g1 ^ h, chain_size);                               \
+      ADD_EXPRESSION_TARGET(g2 ^ h, chain_size);                               \
+      ADD_EXPRESSION_TARGET(g3 ^ h, chain_size);                               \
+                                                                               \
+      ADD_EXPRESSION_TARGET(g0 | h, chain_size);                               \
+      ADD_EXPRESSION_TARGET(g1 | h, chain_size);                               \
+      ADD_EXPRESSION_TARGET(g2 | h, chain_size);                               \
+      ADD_EXPRESSION_TARGET(g3 | h, chain_size);                               \
+    }                                                                          \
+                                                                               \
+    for (; j < chain_size - 1; j++) {                                          \
+      const uint32_t g = chain[j];                                             \
+      const uint32_t not_g = ~chain[j];                                        \
+      ADD_EXPRESSION_TARGET(g & h, chain_size);                                \
+      ADD_EXPRESSION_TARGET(not_g & h, chain_size);                            \
+      ADD_EXPRESSION_TARGET(g & not_h, chain_size);                            \
+      ADD_EXPRESSION_TARGET(g ^ h, chain_size);                                \
+      ADD_EXPRESSION_TARGET(g | h, chain_size);                                \
+    }                                                                          \
+  }
 void print_chain(const uint32_t *chain, const uint32_t *target_lookup,
                  const size_t chain_size) {
   cout << "chain (" << chain_size << "):" << endl;
@@ -328,7 +385,7 @@ int main(int argc, char *argv[]) {
       size_t j = choices[chain_size] + 1;
 
       while (tmp_chain_size < MAX_LENGTH) {
-        GENERATE_NEW_EXPRESSIONS(tmp_chain_size)
+        GENERATE_NEW_EXPRESSIONS_TARGET(tmp_chain_size)
         generated_chain_size = tmp_chain_size;
 
         CAPTURE_STATS_CALL(tmp_chain_size)
