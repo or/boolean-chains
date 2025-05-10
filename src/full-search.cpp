@@ -382,6 +382,9 @@ int main(int argc, char *argv[]) {
       // space to about 50% the trick here is to simply add a large number to
       // the choices at that level if target_lookup is 1, this avoids branching
       choices[chain_size] += target_lookup[chain[chain_size]] << 16;
+      if (__builtin_expect(chain_size < stop_chain_size, 1)) {
+        return 0;
+      }
     } else {
       GENERATE_NEW_EXPRESSIONS(chain_size)
 
