@@ -389,7 +389,7 @@ int main(int argc, char *argv[]) {
         GENERATE_NEW_EXPRESSIONS_TARGET(tmp_chain_size)
         generated_chain_size = tmp_chain_size;
 
-        CAPTURE_STATS_CALL(tmp_chain_size)
+        // CAPTURE_STATS_CALL(tmp_chain_size)
 
         for (; j < expressions_size[tmp_chain_size]; ++j) {
           total_chains++;
