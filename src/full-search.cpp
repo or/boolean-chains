@@ -341,8 +341,8 @@ int main(int argc, char *argv[]) {
             for (size_t j = start_chain_length; j < tmp_chain_size; ++j) {
               cout << choices[j] << ", ";
             }
-            cout << choices[tmp_chain_size] << " [best: " << current_best_length
-                 << "] " << total_chains << endl;
+            cout << j << " [best: " << current_best_length << "] "
+                 << total_chains << endl;
             // exit(0);
           }
 
