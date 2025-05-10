@@ -384,15 +384,14 @@ int main(int argc, char *argv[]) {
       uint32_t tmp_num_unfulfilled_targets = num_unfulfilled_targets;
       size_t j = choices[chain_size] + 1;
 
+    next:
       while (tmp_chain_size < MAX_LENGTH) {
         GENERATE_NEW_EXPRESSIONS_TARGET(tmp_chain_size)
         generated_chain_size = tmp_chain_size;
 
         CAPTURE_STATS_CALL(tmp_chain_size)
 
-        bool found = false;
         for (; j < expressions_size[tmp_chain_size]; ++j) {
-
           total_chains++;
           if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
             for (size_t j = start_chain_length; j < tmp_chain_size; ++j) {
@@ -405,24 +404,20 @@ int main(int argc, char *argv[]) {
 
           if (__builtin_expect(target_lookup[expressions[j]], 0)) {
             chain[tmp_chain_size] = expressions[j];
-            found = true;
             tmp_num_unfulfilled_targets--;
             tmp_chain_size++;
+            if (__builtin_expect(!tmp_num_unfulfilled_targets, 0)) {
+              print_chain(chain, target_lookup, tmp_chain_size);
+              goto leafs_done;
+            }
             j++;
-            break;
+            goto next;
           }
         }
-
-        if (__buildin_expect(!found, 1)) {
-          break;
-        }
-
-        if (!tmp_num_unfulfilled_targets) {
-          print_chain(chain, target_lookup, tmp_chain_size);
-          break;
-        }
+        break;
       }
 
+    leafs_done:
       for (size_t i = expressions_size[chain_size - 1];
            i < expressions_size[generated_chain_size]; i++) {
         seen[expressions[i]] = 1;
