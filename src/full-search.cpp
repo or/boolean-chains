@@ -403,7 +403,7 @@ int main(int argc, char *argv[]) {
             // exit(0);
           }
 
-          if (target_lookup[expressions[j]]) {
+          if (__builtin_expect(target_lookup[expressions[j]], 0)) {
             chain[tmp_chain_size] = expressions[j];
             found = true;
             tmp_num_unfulfilled_targets--;
@@ -413,7 +413,7 @@ int main(int argc, char *argv[]) {
           }
         }
 
-        if (!found) {
+        if (__buildin_expect(!found, 1)) {
           break;
         }
 
@@ -436,7 +436,7 @@ int main(int argc, char *argv[]) {
       // space to about 50% the trick here is to simply add a large number to
       // the choices at that level if target_lookup is 1, this avoids branching
       choices[chain_size] += target_lookup[chain[chain_size]] << 16;
-      if (__builtin_expect(chain_size < stop_chain_size, 1)) {
+      if (__builtin_expect(chain_size < stop_chain_size, 0)) {
         return 0;
       }
     } else {
@@ -493,7 +493,7 @@ int main(int argc, char *argv[]) {
       // space to about 50% the trick here is to simply add a large number to
       // the choices at that level if target_lookup is 1, this avoids branching
       choices[chain_size] += target_lookup[chain[chain_size]] << 16;
-      if (__builtin_expect(chain_size < stop_chain_size, 1)) {
+      if (__builtin_expect(chain_size < stop_chain_size, 0)) {
         return 0;
       }
     }
