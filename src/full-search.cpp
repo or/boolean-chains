@@ -314,9 +314,7 @@ int main(int argc, char *argv[]) {
     // this will be counted again
     total_chains--;
 
-    // this must not be inside the while loop, otherwise it destroys the
-    // compiler's ability to optimize, making it only about half as fast
-    //    goto restore_progress;
+    goto restore_progress;
   } else {
     // so that the first addition in the loop results in 0 for the first choice
     choices[chain_size] = 0xffffffff;
@@ -390,6 +388,7 @@ int main(int argc, char *argv[]) {
       CAPTURE_STATS_CALL(chain_size)
     }
 
+  restore_progress:
     while (true) {
       choices[chain_size]++;
       if (choices[chain_size] < expressions_size[chain_size]) {
