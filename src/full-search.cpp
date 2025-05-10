@@ -271,7 +271,6 @@ int main(int argc, char *argv[]) {
   }
 
   chain_size--;
-  expressions_size[chain_size - 1] = 0;
   expressions_size[chain_size] = 0;
   for (size_t k = 1; k < chain_size; k++) {
     const uint32_t h = chain[k];
