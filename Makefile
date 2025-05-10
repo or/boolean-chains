@@ -25,3 +25,6 @@ target/reverse-hungry-search: src/reverse-hungry-search.cpp src/*.h Makefile
 
 target/hungry-search-debug: src/hungry-search.cpp src/*.h Makefile
 	clang++ -o target/hungry-search-debug src/hungry-search.cpp -std=c++20 -g 2>&1
+
+target/full-search-debug: src/full-search.cpp src/*.h Makefile
+	clang++ -o target/full-search-debug src/full-search.cpp -std=c++20 -g 2>&1
