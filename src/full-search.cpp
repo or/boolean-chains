@@ -364,13 +364,8 @@ int main(int argc, char *argv[]) {
         }
       }
 
-      for (size_t i = expressions_size[chain_size];
-           i < expressions_size[tmp_chain_size]; i++) {
-        seen[expressions[i]] = 1;
-      }
-
       for (size_t i = expressions_size[chain_size - 1];
-           i < expressions_size[chain_size]; i++) {
+           i < expressions_size[tmp_chain_size]; i++) {
         seen[expressions[i]] = 1;
       }
 
