@@ -323,11 +323,13 @@ int main(int argc, char *argv[]) {
   while (true) {
     if (chain_size + num_unfulfilled_targets == MAX_LENGTH) {
       size_t tmp_chain_size = chain_size;
+      size_t generated_chain_size = chain_size - 1;
       uint32_t tmp_num_unfulfilled_targets = num_unfulfilled_targets;
       size_t j = choices[chain_size] + 1;
 
       while (tmp_chain_size < MAX_LENGTH) {
         GENERATE_NEW_EXPRESSIONS(tmp_chain_size)
+        generated_chain_size = tmp_chain_size;
 
         CAPTURE_STATS_CALL(tmp_chain_size)
 
@@ -365,7 +367,7 @@ int main(int argc, char *argv[]) {
       }
 
       for (size_t i = expressions_size[chain_size - 1];
-           i < expressions_size[tmp_chain_size]; i++) {
+           i < expressions_size[generated_chain_size]; i++) {
         seen[expressions[i]] = 1;
       }
 
