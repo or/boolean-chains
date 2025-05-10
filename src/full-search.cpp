@@ -20,12 +20,12 @@ using namespace std;
   {                                                                            \
     const auto new_expressions =                                               \
         expressions_size[chain_size] - expressions_size[chain_size - 1];       \
-    if (new_expressions < stats_min_num_expressions[chain_size]) {             \
-      stats_min_num_expressions[chain_size] = new_expressions;                 \
-    }                                                                          \
-    if (new_expressions > stats_max_num_expressions[chain_size]) {             \
-      stats_max_num_expressions[chain_size] = new_expressions;                 \
-    }                                                                          \
+    stats_min_num_expressions[chain_size] +=                                   \
+        (new_expressions < stats_min_num_expressions[chain_size]) *            \
+        (new_expressions - stats_min_num_expressions[chain_size]);             \
+    stats_max_num_expressions[chain_size] +=                                   \
+        (new_expressions > stats_max_num_expressions[chain_size]) *            \
+        (new_expressions - stats_max_num_expressions[chain_size]);             \
     stats_total_num_expressions[chain_size] += new_expressions;                \
     stats_num_data_points[chain_size]++;                                       \
   }
