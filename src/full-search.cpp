@@ -16,7 +16,7 @@ using namespace std;
 #endif
 
 #if CAPTURE_STATS
-#define CAPTURE_STATS_CALL                                                     \
+#define CAPTURE_STATS_CALL(chain_size)                                         \
   {                                                                            \
     const auto new_expressions =                                               \
         expressions_size[chain_size] - expressions_size[chain_size - 1];       \
@@ -30,7 +30,7 @@ using namespace std;
     stats_num_data_points[chain_size]++;                                       \
   }
 #else
-#define CAPTURE_STATS_CALL
+#define CAPTURE_STATS_CALL(chain_size)
 #endif
 
 constexpr uint32_t N = 12;
@@ -70,12 +70,12 @@ uint32_t stats_max_num_expressions[25] = {0};
 uint64_t stats_num_data_points[25] = {0};
 #endif
 
-#define ADD_EXPRESSION(value)                                                  \
+#define ADD_EXPRESSION(value, chain_size)                                      \
   expressions[expressions_size[chain_size]] = value;                           \
   expressions_size[chain_size] += seen[value];                                 \
   seen[value] = 0;
 
-#define GENERATE_NEW_EXPRESSIONS                                               \
+#define GENERATE_NEW_EXPRESSIONS(chain_size)                                   \
   {                                                                            \
     expressions_size[chain_size] = expressions_size[chain_size - 1];           \
     const uint32_t h = chain[chain_size - 1];                                  \
@@ -87,40 +87,40 @@ uint64_t stats_num_data_points[25] = {0};
                      g3 = chain[j + 3];                                        \
       const uint32_t not_g0 = ~g0, not_g1 = ~g1, not_g2 = ~g2, not_g3 = ~g3;   \
                                                                                \
-      ADD_EXPRESSION(g0 & h);                                                  \
-      ADD_EXPRESSION(g1 & h);                                                  \
-      ADD_EXPRESSION(g2 & h);                                                  \
-      ADD_EXPRESSION(g3 & h);                                                  \
+      ADD_EXPRESSION(g0 & h, chain_size);                                      \
+      ADD_EXPRESSION(g1 & h, chain_size);                                      \
+      ADD_EXPRESSION(g2 & h, chain_size);                                      \
+      ADD_EXPRESSION(g3 & h, chain_size);                                      \
                                                                                \
-      ADD_EXPRESSION(not_g0 & h);                                              \
-      ADD_EXPRESSION(not_g1 & h);                                              \
-      ADD_EXPRESSION(not_g2 & h);                                              \
-      ADD_EXPRESSION(not_g3 & h);                                              \
+      ADD_EXPRESSION(not_g0 & h, chain_size);                                  \
+      ADD_EXPRESSION(not_g1 & h, chain_size);                                  \
+      ADD_EXPRESSION(not_g2 & h, chain_size);                                  \
+      ADD_EXPRESSION(not_g3 & h, chain_size);                                  \
                                                                                \
-      ADD_EXPRESSION(g0 & not_h);                                              \
-      ADD_EXPRESSION(g1 & not_h);                                              \
-      ADD_EXPRESSION(g2 & not_h);                                              \
-      ADD_EXPRESSION(g3 & not_h);                                              \
+      ADD_EXPRESSION(g0 & not_h, chain_size);                                  \
+      ADD_EXPRESSION(g1 & not_h, chain_size);                                  \
+      ADD_EXPRESSION(g2 & not_h, chain_size);                                  \
+      ADD_EXPRESSION(g3 & not_h, chain_size);                                  \
                                                                                \
-      ADD_EXPRESSION(g0 ^ h);                                                  \
-      ADD_EXPRESSION(g1 ^ h);                                                  \
-      ADD_EXPRESSION(g2 ^ h);                                                  \
-      ADD_EXPRESSION(g3 ^ h);                                                  \
+      ADD_EXPRESSION(g0 ^ h, chain_size);                                      \
+      ADD_EXPRESSION(g1 ^ h, chain_size);                                      \
+      ADD_EXPRESSION(g2 ^ h, chain_size);                                      \
+      ADD_EXPRESSION(g3 ^ h, chain_size);                                      \
                                                                                \
-      ADD_EXPRESSION(g0 | h);                                                  \
-      ADD_EXPRESSION(g1 | h);                                                  \
-      ADD_EXPRESSION(g2 | h);                                                  \
-      ADD_EXPRESSION(g3 | h);                                                  \
+      ADD_EXPRESSION(g0 | h, chain_size);                                      \
+      ADD_EXPRESSION(g1 | h, chain_size);                                      \
+      ADD_EXPRESSION(g2 | h, chain_size);                                      \
+      ADD_EXPRESSION(g3 | h, chain_size);                                      \
     }                                                                          \
                                                                                \
     for (; j < chain_size - 1; j++) {                                          \
       const uint32_t g = chain[j];                                             \
       const uint32_t not_g = ~chain[j];                                        \
-      ADD_EXPRESSION(g & h);                                                   \
-      ADD_EXPRESSION(not_g & h);                                               \
-      ADD_EXPRESSION(g & not_h);                                               \
-      ADD_EXPRESSION(g ^ h);                                                   \
-      ADD_EXPRESSION(g | h);                                                   \
+      ADD_EXPRESSION(g & h, chain_size);                                       \
+      ADD_EXPRESSION(not_g & h, chain_size);                                   \
+      ADD_EXPRESSION(g & not_h, chain_size);                                   \
+      ADD_EXPRESSION(g ^ h, chain_size);                                       \
+      ADD_EXPRESSION(g | h, chain_size);                                       \
     }                                                                          \
   }
 
@@ -279,16 +279,16 @@ int main(int argc, char *argv[]) {
       const uint32_t g = chain[j];
       const uint32_t not_g = ~g;
 
-      ADD_EXPRESSION(g & h)
-      ADD_EXPRESSION(g & not_h)
-      ADD_EXPRESSION(g ^ h)
-      ADD_EXPRESSION(g | h)
-      ADD_EXPRESSION(not_g & h)
+      ADD_EXPRESSION(g & h, chain_size)
+      ADD_EXPRESSION(g & not_h, chain_size)
+      ADD_EXPRESSION(g ^ h, chain_size)
+      ADD_EXPRESSION(g | h, chain_size)
+      ADD_EXPRESSION(not_g & h, chain_size)
     }
   }
 
   // just to get the initial branch before the algorithm even starts
-  CAPTURE_STATS_CALL
+  CAPTURE_STATS_CALL(chain_size)
   chain_size++;
 
   stop_chain_size = start_chain_length;
@@ -299,14 +299,14 @@ int main(int argc, char *argv[]) {
   // restore progress
   if (start_indices_size > start_chain_length) {
     while (chain_size < start_indices_size - 1) {
-      GENERATE_NEW_EXPRESSIONS
+      GENERATE_NEW_EXPRESSIONS(chain_size)
       choices[chain_size] = start_indices[chain_size];
       chain[chain_size] = expressions[choices[chain_size]];
       num_unfulfilled_targets -= target_lookup[chain[chain_size]];
       chain_size++;
     }
 
-    GENERATE_NEW_EXPRESSIONS
+    GENERATE_NEW_EXPRESSIONS(chain_size)
 
     // will be incremented again in the main loop
     choices[chain_size] = start_indices[chain_size] - 1;
@@ -316,35 +316,72 @@ int main(int argc, char *argv[]) {
 
     // this must not be inside the while loop, otherwise it destroys the
     // compiler's ability to optimize, making it only about half as fast
-    goto restore_progress;
+    //    goto restore_progress;
   } else {
     // so that the first addition in the loop results in 0 for the first choice
     choices[chain_size] = 0xffffffff;
   }
 
 start:
+  if (chain_size + num_unfulfilled_targets == MAX_LENGTH) {
+    size_t tmp_chain_size = chain_size;
+    uint32_t tmp_num_unfulfilled_targets = num_unfulfilled_targets;
+    size_t j = choices[chain_size] + 1;
 
-  GENERATE_NEW_EXPRESSIONS
+    while (tmp_chain_size < MAX_LENGTH) {
+      GENERATE_NEW_EXPRESSIONS(tmp_chain_size)
 
-  CAPTURE_STATS_CALL
+      CAPTURE_STATS_CALL(tmp_chain_size)
 
-restore_progress:
+      bool found = false;
+      for (; j < expressions_size[tmp_chain_size]; ++j) {
+
+        total_chains++;
+        if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+          for (size_t j = start_chain_length; j < tmp_chain_size; ++j) {
+            cout << choices[j] << ", ";
+          }
+          cout << choices[tmp_chain_size] << " [best: " << current_best_length
+               << "] " << total_chains << endl;
+          // exit(0);
+        }
+
+        if (target_lookup[expressions[j]]) {
+          chain[tmp_chain_size] = expressions[j];
+          found = true;
+          tmp_num_unfulfilled_targets--;
+          tmp_chain_size++;
+          j++;
+          break;
+        }
+      }
+
+      if (!found) {
+        break;
+      }
+
+      if (!tmp_num_unfulfilled_targets) {
+        print_chain(chain, target_lookup, tmp_chain_size);
+        break;
+      }
+    }
+
+    for (size_t i = expressions_size[chain_size];
+         i < expressions_size[tmp_chain_size]; i++) {
+      seen[expressions[i]] = 1;
+    }
+
+    goto done;
+  }
+
+  GENERATE_NEW_EXPRESSIONS(chain_size)
+
+  CAPTURE_STATS_CALL(chain_size)
+
   do {
     choices[chain_size]++;
-    while (choices[chain_size] < expressions_size[chain_size]) {
+    if (choices[chain_size] < expressions_size[chain_size]) {
       chain[chain_size] = expressions[choices[chain_size]];
-
-#if PLAN_MODE
-      if (chain_size + 1 - start_chain_length >= plan_depth) {
-        cout << "-c";
-        for (size_t j = start_chain_length; j <= chain_size; ++j) {
-          cout << " " << choices[j];
-        }
-        cout << endl;
-        choices[chain_size]++;
-        continue;
-      }
-#endif
 
       total_chains++;
       if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
@@ -357,12 +394,6 @@ restore_progress:
       }
 
       num_unfulfilled_targets -= target_lookup[chain[chain_size]];
-      if (chain_size + num_unfulfilled_targets >= MAX_LENGTH) {
-        // no need to do this, as it must have been 0 to end up in this path
-        // num_unfulfilled_targets += target_lookup[chain[chain_size]];
-        choices[chain_size]++;
-        continue;
-      }
 
       if (__builtin_expect(!num_unfulfilled_targets, 0)) {
         print_chain(chain, target_lookup, chain_size + 1);
@@ -372,8 +403,7 @@ restore_progress:
         // it must have been 1 to end up in this path, so we can just increment
         // num_unfulfilled_targets += target_lookup[chain[chain_size]];
         num_unfulfilled_targets++;
-        choices[chain_size]++;
-        continue;
+        goto done;
       }
 
       chain_size++;
@@ -381,6 +411,7 @@ restore_progress:
       goto start;
     }
 
+  done:
     for (size_t i = expressions_size[chain_size - 1];
          i < expressions_size[chain_size]; i++) {
       seen[expressions[i]] = 1;
@@ -389,11 +420,10 @@ restore_progress:
     chain_size--;
     num_unfulfilled_targets += target_lookup[chain[chain_size]];
     // if it was a target function, then we can skip all other choices at this
-    // length, because the target function would now be in seen and prevent any
-    // successful chain from here on; this massively reduces the search space to
-    // about 50%
-    // the trick here is to simply add a large number to the choices at that
-    // level if target_lookup is 1, this avoids branching
+    // length, because the target function would now be in seen and prevent
+    // any successful chain from here on; this massively reduces the search
+    // space to about 50% the trick here is to simply add a large number to
+    // the choices at that level if target_lookup is 1, this avoids branching
     choices[chain_size] += target_lookup[chain[chain_size]] << 16;
   } while (__builtin_expect(chain_size >= stop_chain_size, 1));
 
