@@ -322,110 +322,126 @@ int main(int argc, char *argv[]) {
     choices[chain_size] = 0xffffffff;
   }
 
-start:
-  if (chain_size + num_unfulfilled_targets == MAX_LENGTH) {
-    size_t tmp_chain_size = chain_size;
-    uint32_t tmp_num_unfulfilled_targets = num_unfulfilled_targets;
-    size_t j = choices[chain_size] + 1;
+  while (true) {
+    if (chain_size + num_unfulfilled_targets == MAX_LENGTH) {
+      size_t tmp_chain_size = chain_size;
+      uint32_t tmp_num_unfulfilled_targets = num_unfulfilled_targets;
+      size_t j = choices[chain_size] + 1;
 
-    while (tmp_chain_size < MAX_LENGTH) {
-      GENERATE_NEW_EXPRESSIONS(tmp_chain_size)
+      while (tmp_chain_size < MAX_LENGTH) {
+        GENERATE_NEW_EXPRESSIONS(tmp_chain_size)
 
-      CAPTURE_STATS_CALL(tmp_chain_size)
+        CAPTURE_STATS_CALL(tmp_chain_size)
 
-      bool found = false;
-      for (; j < expressions_size[tmp_chain_size]; ++j) {
+        bool found = false;
+        for (; j < expressions_size[tmp_chain_size]; ++j) {
 
-        total_chains++;
-        if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-          for (size_t j = start_chain_length; j < tmp_chain_size; ++j) {
-            cout << choices[j] << ", ";
+          total_chains++;
+          if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+            for (size_t j = start_chain_length; j < tmp_chain_size; ++j) {
+              cout << choices[j] << ", ";
+            }
+            cout << choices[tmp_chain_size] << " [best: " << current_best_length
+                 << "] " << total_chains << endl;
+            // exit(0);
           }
-          cout << choices[tmp_chain_size] << " [best: " << current_best_length
-               << "] " << total_chains << endl;
-          // exit(0);
+
+          if (target_lookup[expressions[j]]) {
+            chain[tmp_chain_size] = expressions[j];
+            found = true;
+            tmp_num_unfulfilled_targets--;
+            tmp_chain_size++;
+            j++;
+            break;
+          }
         }
 
-        if (target_lookup[expressions[j]]) {
-          chain[tmp_chain_size] = expressions[j];
-          found = true;
-          tmp_num_unfulfilled_targets--;
-          tmp_chain_size++;
-          j++;
+        if (!found) {
+          break;
+        }
+
+        if (!tmp_num_unfulfilled_targets) {
+          print_chain(chain, target_lookup, tmp_chain_size);
           break;
         }
       }
 
-      if (!found) {
+      for (size_t i = expressions_size[chain_size];
+           i < expressions_size[tmp_chain_size]; i++) {
+        seen[expressions[i]] = 1;
+      }
+
+      for (size_t i = expressions_size[chain_size - 1];
+           i < expressions_size[chain_size]; i++) {
+        seen[expressions[i]] = 1;
+      }
+
+      chain_size--;
+      num_unfulfilled_targets += target_lookup[chain[chain_size]];
+      // if it was a target function, then we can skip all other choices at this
+      // length, because the target function would now be in seen and prevent
+      // any successful chain from here on; this massively reduces the search
+      // space to about 50% the trick here is to simply add a large number to
+      // the choices at that level if target_lookup is 1, this avoids branching
+      choices[chain_size] += target_lookup[chain[chain_size]] << 16;
+    } else {
+      GENERATE_NEW_EXPRESSIONS(chain_size)
+
+      CAPTURE_STATS_CALL(chain_size)
+    }
+
+    while (true) {
+      choices[chain_size]++;
+      if (choices[chain_size] < expressions_size[chain_size]) {
+        chain[chain_size] = expressions[choices[chain_size]];
+
+        total_chains++;
+        if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+          for (size_t j = start_chain_length; j < chain_size; ++j) {
+            cout << choices[j] << ", ";
+          }
+          cout << choices[chain_size] << " [best: " << current_best_length
+               << "] " << total_chains << endl;
+          // exit(0);
+        }
+
+        num_unfulfilled_targets -= target_lookup[chain[chain_size]];
+
+        // if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+        //   print_chain(chain, target_lookup, chain_size + 1);
+        //   if (chain_size + 1 < current_best_length) {
+        //     current_best_length = chain_size + 1;
+        //   }
+        //   // it must have been 1 to end up in this path, so we can just
+        //   increment
+        //   // num_unfulfilled_targets += target_lookup[chain[chain_size]];
+        //   num_unfulfilled_targets++;
+        //   goto done;
+        // }
+
+        chain_size++;
+        choices[chain_size] = choices[chain_size - 1];
         break;
       }
 
-      if (!tmp_num_unfulfilled_targets) {
-        print_chain(chain, target_lookup, tmp_chain_size);
-        break;
+      for (size_t i = expressions_size[chain_size - 1];
+           i < expressions_size[chain_size]; i++) {
+        seen[expressions[i]] = 1;
+      }
+
+      chain_size--;
+      num_unfulfilled_targets += target_lookup[chain[chain_size]];
+      // if it was a target function, then we can skip all other choices at this
+      // length, because the target function would now be in seen and prevent
+      // any successful chain from here on; this massively reduces the search
+      // space to about 50% the trick here is to simply add a large number to
+      // the choices at that level if target_lookup is 1, this avoids branching
+      choices[chain_size] += target_lookup[chain[chain_size]] << 16;
+      if (__builtin_expect(chain_size < stop_chain_size, 1)) {
+        return 0;
       }
     }
-
-    for (size_t i = expressions_size[chain_size];
-         i < expressions_size[tmp_chain_size]; i++) {
-      seen[expressions[i]] = 1;
-    }
-
-    goto done;
   }
-
-  GENERATE_NEW_EXPRESSIONS(chain_size)
-
-  CAPTURE_STATS_CALL(chain_size)
-
-  do {
-    choices[chain_size]++;
-    if (choices[chain_size] < expressions_size[chain_size]) {
-      chain[chain_size] = expressions[choices[chain_size]];
-
-      total_chains++;
-      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-        for (size_t j = start_chain_length; j < chain_size; ++j) {
-          cout << choices[j] << ", ";
-        }
-        cout << choices[chain_size] << " [best: " << current_best_length << "] "
-             << total_chains << endl;
-        // exit(0);
-      }
-
-      num_unfulfilled_targets -= target_lookup[chain[chain_size]];
-
-      if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-        print_chain(chain, target_lookup, chain_size + 1);
-        if (chain_size + 1 < current_best_length) {
-          current_best_length = chain_size + 1;
-        }
-        // it must have been 1 to end up in this path, so we can just increment
-        // num_unfulfilled_targets += target_lookup[chain[chain_size]];
-        num_unfulfilled_targets++;
-        goto done;
-      }
-
-      chain_size++;
-      choices[chain_size] = choices[chain_size - 1];
-      goto start;
-    }
-
-  done:
-    for (size_t i = expressions_size[chain_size - 1];
-         i < expressions_size[chain_size]; i++) {
-      seen[expressions[i]] = 1;
-    }
-
-    chain_size--;
-    num_unfulfilled_targets += target_lookup[chain[chain_size]];
-    // if it was a target function, then we can skip all other choices at this
-    // length, because the target function would now be in seen and prevent
-    // any successful chain from here on; this massively reduces the search
-    // space to about 50% the trick here is to simply add a large number to
-    // the choices at that level if target_lookup is 1, this avoids branching
-    choices[chain_size] += target_lookup[chain[chain_size]] << 16;
-  } while (__builtin_expect(chain_size >= stop_chain_size, 1));
 
   return 0;
 }
