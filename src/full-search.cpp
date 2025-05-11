@@ -330,14 +330,15 @@ int main(int argc, char *argv[]) {
   }
 
   while (true) {
-    if (chain_size + num_unfulfilled_targets == MAX_LENGTH) {
+    if (__builtin_expect(chain_size + num_unfulfilled_targets == MAX_LENGTH,
+                         1)) {
       size_t tmp_chain_size = chain_size;
       size_t generated_chain_size = chain_size - 1;
       uint32_t tmp_num_unfulfilled_targets = num_unfulfilled_targets;
       size_t j = choices[chain_size] + 1;
 
     next:
-      while (tmp_chain_size < MAX_LENGTH) {
+      while (__builtin_expect(tmp_chain_size < MAX_LENGTH, 1)) {
         GENERATE_NEW_EXPRESSIONS(tmp_chain_size, ADD_EXPRESSION_TARGET)
         generated_chain_size = tmp_chain_size;
 
