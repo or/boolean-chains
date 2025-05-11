@@ -398,6 +398,18 @@ int main(int argc, char *argv[]) {
       if (choices[chain_size] < expressions_size[chain_size]) {
         chain[chain_size] = expressions[choices[chain_size]];
 
+#if PLAN_MODE
+        if (chain_size + 1 - start_chain_length >= plan_depth) {
+          printf("-c");
+          for (size_t j = start_chain_length; j <= chain_size; ++j) {
+            printf(" %d", choices[j]);
+          }
+          printf("\n");
+          choices[chain_size]++;
+          continue;
+        }
+#endif
+
         total_chains++;
         if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
           PRINT_PROGRESS(chain_size, choices[chain_size])
