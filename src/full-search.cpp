@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-using namespace std;
 
 #ifndef CAPTURE_STATS
 #define CAPTURE_STATS 1
@@ -164,7 +163,7 @@ void print_chain(const uint32_t *chain, const uint32_t *target_lookup,
         printf(" = x%zu %c x%zu", j + 1, op, k + 1);
       }
     }
-    printf(" = %s", bitset<N>(chain[i]).to_string().c_str());
+    printf(" = %s", std::bitset<N>(chain[i]).to_string().c_str());
     if (target_lookup[chain[i]]) {
       printf(" [target]");
     }
@@ -269,7 +268,7 @@ int main(int argc, char *argv[]) {
          CAPTURE_STATS);
   printf("%d targets:\n", NUM_TARGETS);
   for (size_t i = 0; i < NUM_TARGETS; i++) {
-    printf("  %s\n", bitset<N>(TARGETS[i]).to_string().c_str());
+    printf("  %s\n", std::bitset<N>(TARGETS[i]).to_string().c_str());
   }
 #endif
 
