@@ -410,23 +410,24 @@ int main(int argc, char *argv[]) {
 
         num_unfulfilled_targets -= target_lookup[chain[chain_size]];
 
-        // if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-        //   print_chain(chain, target_lookup, chain_size + 1);
-        //   if (chain_size + 1 < current_best_length) {
-        //     current_best_length = chain_size + 1;
-        //   }
-        //   // it must have been 1 to end up in this path, so we can just
-        //   increment
-        //   // num_unfulfilled_targets += target_lookup[chain[chain_size]];
-        //   num_unfulfilled_targets++;
-        //   goto done;
-        // }
+        if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+          print_chain(chain, target_lookup, chain_size + 1);
+          if (chain_size + 1 < current_best_length) {
+            current_best_length = chain_size + 1;
+          }
+          // it must have been 1 to end up in this path, so we can just
+          // increment num_unfulfilled_targets +=
+          // target_lookup[chain[chain_size]];
+          num_unfulfilled_targets++;
+          goto done;
+        }
 
         chain_size++;
         choices[chain_size] = choices[chain_size - 1];
         break;
       }
 
+    done:
       for (size_t i = expressions_size[chain_size - 1];
            i < expressions_size[chain_size]; i++) {
         seen[expressions[i]] = 1;
