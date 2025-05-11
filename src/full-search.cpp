@@ -81,7 +81,7 @@ uint64_t stats_num_data_points[25] = {0};
     const uint32_t a = seen[v] & target_lookup[v];                             \
     expressions[expressions_size[chain_size]] = v;                             \
     expressions_size[chain_size] += a;                                         \
-    seen[v] -= a;                                                              \
+    seen[v] &= ~a;                                                             \
   }
 
 #define GENERATE_NEW_EXPRESSIONS(chain_size, add_expression)                   \
