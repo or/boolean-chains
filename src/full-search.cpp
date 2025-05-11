@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
 using namespace std;
 
 #ifndef CAPTURE_STATS
@@ -69,6 +68,14 @@ uint32_t stats_min_num_expressions[25] = {UNDEFINED};
 uint32_t stats_max_num_expressions[25] = {0};
 uint64_t stats_num_data_points[25] = {0};
 #endif
+
+#define PRINT_PROGRESS(chain_size, last)                                       \
+  for (size_t j = start_chain_length; j < chain_size; ++j) {                   \
+    printf("%d, ", choices[j]);                                                \
+  }                                                                            \
+  printf("%d [best: %zu] %" PRIu64 "\n", last, current_best_length,            \
+         total_chains);                                                        \
+  fflush(stdout);
 
 #define ADD_EXPRESSION(value, chain_size)                                      \
   expressions[expressions_size[chain_size]] = value;                           \
@@ -135,9 +142,9 @@ uint64_t stats_num_data_points[25] = {0};
 
 void print_chain(const uint32_t *chain, const uint32_t *target_lookup,
                  const size_t chain_size) {
-  cout << "chain (" << chain_size << "):" << endl;
+  printf("chain (%zu):\n", chain_size);
   for (size_t i = 0; i < chain_size; i++) {
-    cout << "x" << i + 1;
+    printf("x%zu", i + 1);
     for (size_t j = 0; j < i; j++) {
       for (size_t k = j + 1; k < i; k++) {
         char op = 0;
@@ -155,27 +162,25 @@ void print_chain(const uint32_t *chain, const uint32_t *target_lookup,
           continue;
         }
 
-        cout << " = " << "x" << j + 1 << " " << op << " x" << k + 1;
+        printf(" = x%zu %c x%zu", j + 1, op, k + 1);
       }
     }
-    cout << " = " << bitset<N>(chain[i]).to_string();
+    printf(" = %s", bitset<N>(chain[i]).to_string().c_str());
     if (target_lookup[chain[i]]) {
-      cout << " [target]";
+      printf(" [target]");
     }
-    cout << endl;
+    printf("\n");
   }
-  cout << endl;
 }
 
 void on_exit() {
-  cout << "total chains: " << total_chains << endl;
+  printf("total chains: %" PRIu64 "\n", total_chains);
 
 #if CAPTURE_STATS
-  cout << "new expressions at chain length:" << endl;
-  cout << "                   n                       sum              avg     "
-          "         "
-          "min              max"
-       << endl;
+  printf("new expressions at chain length:\n");
+  printf("                   n                       sum              avg     "
+         "         "
+         "min              max\n");
 
   stats_total_num_expressions[start_chain_length] +=
       stats_total_num_expressions[start_chain_length - 1];
@@ -195,7 +200,6 @@ void on_exit() {
                : stats_min_num_expressions[i],
            stats_max_num_expressions[i]);
   }
-  cout << flush;
 #endif
 }
 
@@ -262,12 +266,13 @@ int main(int argc, char *argv[]) {
   }
 
 #if PLAN_MODE != 1
-  cout << "N = " << N << ", MAX_LENGTH: " << MAX_LENGTH
-       << ", CAPTURE_STATS: " << CAPTURE_STATS << endl;
-  cout << NUM_TARGETS << " targets:" << endl;
+  printf("N = %d, MAX_LENGTH: %d, CAPTURE_STATS: %d\n", N, MAX_LENGTH,
+         CAPTURE_STATS);
+  printf("%d targets:\n", NUM_TARGETS);
   for (size_t i = 0; i < NUM_TARGETS; i++) {
-    cout << "  " << bitset<N>(TARGETS[i]).to_string() << endl;
+    printf("  %s\n", bitset<N>(TARGETS[i]).to_string().c_str());
   }
+  fflush(stdout);
 #endif
 
 #if CAPTURE_STATS
@@ -347,12 +352,7 @@ int main(int argc, char *argv[]) {
         for (; j < expressions_size[tmp_chain_size]; ++j) {
           total_chains++;
           if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-            for (size_t j = start_chain_length; j < tmp_chain_size; ++j) {
-              cout << choices[j] << ", ";
-            }
-            cout << j << " [best: " << current_best_length << "] "
-                 << total_chains << endl;
-            // exit(0);
+            PRINT_PROGRESS(tmp_chain_size, (uint32_t)j)
           }
 
           if (__builtin_expect(target_lookup[expressions[j]], 0)) {
@@ -401,12 +401,7 @@ int main(int argc, char *argv[]) {
 
         total_chains++;
         if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-          for (size_t j = start_chain_length; j < chain_size; ++j) {
-            cout << choices[j] << ", ";
-          }
-          cout << choices[chain_size] << " [best: " << current_best_length
-               << "] " << total_chains << endl;
-          // exit(0);
+          PRINT_PROGRESS(chain_size, choices[chain_size])
         }
 
         num_unfulfilled_targets -= target_lookup[chain[chain_size]];

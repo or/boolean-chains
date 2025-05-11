@@ -6,7 +6,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <execinfo.h>
-#include <iostream>
 #include <signal.h>
 #include <tuple>
 #include <vector>
@@ -107,7 +106,7 @@ uint32_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
 
 void print_expression(const uint32_t *chain, const uint32_t index,
                       const size_t chain_size, const uint32_t f) {
-  cout << "x" << index + 1;
+  printf("x%d", index + 1);
   for (size_t j = 0; j < index; j++) {
     for (size_t k = j + 1; k < index; k++) {
       char op = 0;
@@ -125,22 +124,22 @@ void print_expression(const uint32_t *chain, const uint32_t index,
         continue;
       }
 
-      cout << " = " << "x" << j + 1 << " " << op << " x" << k + 1;
+      printf(" = x%zu %c x%zu", j + 1, op, k + 1);
     }
   }
-  cout << " = " << bitset<N>(f).to_string();
+  printf(" = %s", bitset<N>(f).to_string().c_str());
   if (target_lookup[f]) {
-    cout << " [target]";
+    printf(" [target]");
   }
 }
 
 void print_chain(const uint32_t *chain, const size_t chain_size) {
-  cout << "hungry chain (" << chain_size << "):" << endl;
+  printf("hungry chain (%zu):\n", chain_size);
   for (size_t i = 0; i < chain_size; i++) {
     print_expression(chain, i, chain_size, chain[i]);
-    cout << endl;
+    printf("\n");
   }
-  cout << endl;
+  printf("\n");
 }
 
 void erase(uint32_t *array, size_t &array_size, uint32_t f) {
@@ -291,14 +290,13 @@ auto get_priority(const size_t index) {
 };
 
 void on_exit() {
-  cout << "total chains: " << total_chains << endl;
+  printf("total chains: %" PRIu64 "\n", total_chains);
 
 #if CAPTURE_STATS
-  cout << "new expressions at length in algorithm L:" << endl;
-  cout << "                   n                       sum              avg     "
-          "         "
-          "min              max        avg tries"
-       << endl;
+  printf("new expressions at length in algorithm L:\n");
+  printf("                   n                       sum              avg     "
+         "         "
+         "min              max        avg tries\n");
 
   for (int i = 2; i < 10; i++) {
     printf("%2d: %16" PRIu64 " %25" PRIu64 " %16" PRIu64 " %16" PRId32
@@ -315,7 +313,6 @@ void on_exit() {
                ? 0
                : stats_num_tries[i] / stats_num_data_points[i]);
   }
-  cout << flush;
 #endif
 }
 
@@ -393,8 +390,9 @@ int main(int argc, char *argv[]) {
     stop_chain_size = start_indices_size;
   }
 
-  cout << "hungry-search: N = " << N << ", MAX_LENGTH: " << MAX_LENGTH
-       << ", CAPTURE_STATS: " << CAPTURE_STATS << endl;
+  printf("hungry-search: N = %d, MAX_LENGTH: %d, CAPTURE_STATS: %d\n", N,
+         MAX_LENGTH, CAPTURE_STATS);
+  fflush(stdout);
 
   // restore progress
   if (start_indices_size > start_chain_length) {
@@ -446,17 +444,6 @@ start:
     GENERATE_NEW_EXPRESSIONS
   }
 
-  // cout << "top expressions (of " << priorities[chain_size].size()
-  //      << "):" << endl;
-  // for (int j = 0; j < priorities[chain_size].size() && j < 5; j++) {
-  //   auto f = expressions[chain_size][priorities[chain_size][j]];
-  //   auto priority = get_priority(priorities[chain_size][j]);
-  //   cout << "   ";
-  //   print_expression(chain, chain_size, chain_size, f);
-  //   cout << " [" << get<0>(priority) << " " << get<1>(priority) << " "
-  //        << get<2>(priority) << "]" << endl;
-  // }
-
 restore_progress:
   do {
     choices[chain_size]++;
@@ -468,11 +455,11 @@ restore_progress:
       total_chains++;
       if (__builtin_expect(chain_size <= 8, 0)) {
         for (size_t j = start_chain_length; j < chain_size; ++j) {
-          cout << choices[j] << ", ";
+          printf("%d, ", choices[j]);
         }
-        cout << choices[chain_size] << " [best: " << current_best_length << "] "
-             << total_chains << endl;
-        // exit(0);
+        printf("%d [best: %zu] %" PRIu64 "\n", choices[chain_size],
+               current_best_length, total_chains);
+        fflush(stdout);
       }
 
       num_unfulfilled_targets -= target_lookup[chain[chain_size]];
