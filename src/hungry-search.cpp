@@ -9,7 +9,6 @@
 #include <signal.h>
 #include <tuple>
 #include <vector>
-using namespace std;
 
 #ifndef CAPTURE_STATS
 #define CAPTURE_STATS 1
@@ -127,7 +126,7 @@ void print_expression(const uint32_t *chain, const uint32_t index,
       printf(" = x%zu %c x%zu", j + 1, op, k + 1);
     }
   }
-  printf(" = %s", bitset<N>(f).to_string().c_str());
+  printf(" = %s", std::bitset<N>(f).to_string().c_str());
   if (target_lookup[f]) {
     printf(" [target]");
   }
