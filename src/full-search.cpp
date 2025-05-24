@@ -354,9 +354,6 @@ restore_progress_4:
       }
 #endif
       total_chains++;
-      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-        PRINT_PROGRESS(4, choices[4])
-      }
       num_unfulfilled_targets -= target_lookup[chain[4]];
       if (4 + num_unfulfilled_targets >= MAX_LENGTH) {
         choices[4]++;
@@ -406,9 +403,7 @@ restore_progress_5:
       }
 #endif
       total_chains++;
-      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-        PRINT_PROGRESS(5, choices[5])
-      }
+      PRINT_PROGRESS(5, choices[5])
       num_unfulfilled_targets -= target_lookup[chain[5]];
       if (5 + num_unfulfilled_targets >= MAX_LENGTH) {
         choices[5]++;
@@ -458,9 +453,6 @@ restore_progress_6:
       }
 #endif
       total_chains++;
-      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-        PRINT_PROGRESS(6, choices[6])
-      }
       num_unfulfilled_targets -= target_lookup[chain[6]];
       if (6 + num_unfulfilled_targets >= MAX_LENGTH) {
         choices[6]++;
@@ -510,9 +502,6 @@ restore_progress_7:
       }
 #endif
       total_chains++;
-      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-        PRINT_PROGRESS(7, choices[7])
-      }
       num_unfulfilled_targets -= target_lookup[chain[7]];
       if (7 + num_unfulfilled_targets >= MAX_LENGTH) {
         choices[7]++;
@@ -562,9 +551,6 @@ restore_progress_8:
       }
 #endif
       total_chains++;
-      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-        PRINT_PROGRESS(8, choices[8])
-      }
       num_unfulfilled_targets -= target_lookup[chain[8]];
       if (8 + num_unfulfilled_targets >= MAX_LENGTH) {
         choices[8]++;
@@ -614,9 +600,6 @@ restore_progress_9:
       }
 #endif
       total_chains++;
-      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-        PRINT_PROGRESS(9, choices[9])
-      }
       num_unfulfilled_targets -= target_lookup[chain[9]];
       if (9 + num_unfulfilled_targets >= MAX_LENGTH) {
         choices[9]++;
@@ -666,9 +649,6 @@ restore_progress_10:
       }
 #endif
       total_chains++;
-      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-        PRINT_PROGRESS(10, choices[10])
-      }
       num_unfulfilled_targets -= target_lookup[chain[10]];
       if (10 + num_unfulfilled_targets >= MAX_LENGTH) {
         choices[10]++;
@@ -718,9 +698,6 @@ restore_progress_11:
       }
 #endif
       total_chains++;
-      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-        PRINT_PROGRESS(11, choices[11])
-      }
       num_unfulfilled_targets -= target_lookup[chain[11]];
       if (11 + num_unfulfilled_targets >= MAX_LENGTH) {
         choices[11]++;
@@ -770,9 +747,6 @@ restore_progress_12:
       }
 #endif
       total_chains++;
-      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-        PRINT_PROGRESS(12, choices[12])
-      }
       num_unfulfilled_targets -= target_lookup[chain[12]];
       if (12 + num_unfulfilled_targets >= MAX_LENGTH) {
         choices[12]++;
@@ -822,9 +796,6 @@ restore_progress_13:
       }
 #endif
       total_chains++;
-      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-        PRINT_PROGRESS(13, choices[13])
-      }
       num_unfulfilled_targets -= target_lookup[chain[13]];
       if (13 + num_unfulfilled_targets >= MAX_LENGTH) {
         choices[13]++;
@@ -874,9 +845,6 @@ restore_progress_14:
       }
 #endif
       total_chains++;
-      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-        PRINT_PROGRESS(14, choices[14])
-      }
       num_unfulfilled_targets -= target_lookup[chain[14]];
       if (14 + num_unfulfilled_targets >= MAX_LENGTH) {
         choices[14]++;
@@ -926,9 +894,6 @@ restore_progress_15:
       }
 #endif
       total_chains++;
-      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-        PRINT_PROGRESS(15, choices[15])
-      }
       num_unfulfilled_targets -= target_lookup[chain[15]];
       if (15 + num_unfulfilled_targets >= MAX_LENGTH) {
         choices[15]++;
@@ -978,9 +943,6 @@ restore_progress_16:
       }
 #endif
       total_chains++;
-      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-        PRINT_PROGRESS(16, choices[16])
-      }
       num_unfulfilled_targets -= target_lookup[chain[16]];
       if (16 + num_unfulfilled_targets >= MAX_LENGTH) {
         choices[16]++;
@@ -1030,9 +992,6 @@ restore_progress_17:
       }
 #endif
       total_chains++;
-      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-        PRINT_PROGRESS(17, choices[17])
-      }
       num_unfulfilled_targets -= target_lookup[chain[17]];
       if (17 + num_unfulfilled_targets >= MAX_LENGTH) {
         choices[17]++;
