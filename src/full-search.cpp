@@ -352,15 +352,6 @@ restore_progress_4:
 #endif
     total_chains++;
     num_unfulfilled_targets -= target_lookup[chain[4]];
-    if (4 + num_unfulfilled_targets >= MAX_LENGTH) {
-      choices[4]++;
-      continue;
-    }
-    if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-      print_chain(chain, target_lookup, 4 + 1);
-      num_unfulfilled_targets++;
-      goto done_4;
-    }
     choices[5] = choices[4];
     goto level_5;
   }
@@ -389,15 +380,6 @@ restore_progress_5:
     total_chains++;
     PRINT_PROGRESS(5, choices[5])
     num_unfulfilled_targets -= target_lookup[chain[5]];
-    if (5 + num_unfulfilled_targets >= MAX_LENGTH) {
-      choices[5]++;
-      continue;
-    }
-    if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-      print_chain(chain, target_lookup, 5 + 1);
-      num_unfulfilled_targets++;
-      goto done_5;
-    }
     choices[6] = choices[5];
     goto level_6;
   }
@@ -433,15 +415,6 @@ restore_progress_6:
 #endif
     total_chains++;
     num_unfulfilled_targets -= target_lookup[chain[6]];
-    if (6 + num_unfulfilled_targets >= MAX_LENGTH) {
-      choices[6]++;
-      continue;
-    }
-    if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-      print_chain(chain, target_lookup, 6 + 1);
-      num_unfulfilled_targets++;
-      goto done_6;
-    }
     choices[7] = choices[6];
     goto level_7;
   }
@@ -477,15 +450,6 @@ restore_progress_7:
 #endif
     total_chains++;
     num_unfulfilled_targets -= target_lookup[chain[7]];
-    if (7 + num_unfulfilled_targets >= MAX_LENGTH) {
-      choices[7]++;
-      continue;
-    }
-    if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-      print_chain(chain, target_lookup, 7 + 1);
-      num_unfulfilled_targets++;
-      goto done_7;
-    }
     choices[8] = choices[7];
     goto level_8;
   }
@@ -521,15 +485,6 @@ restore_progress_8:
 #endif
     total_chains++;
     num_unfulfilled_targets -= target_lookup[chain[8]];
-    if (8 + num_unfulfilled_targets >= MAX_LENGTH) {
-      choices[8]++;
-      continue;
-    }
-    if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-      print_chain(chain, target_lookup, 8 + 1);
-      num_unfulfilled_targets++;
-      goto done_8;
-    }
     choices[9] = choices[8];
     goto level_9;
   }
@@ -565,15 +520,6 @@ restore_progress_9:
 #endif
     total_chains++;
     num_unfulfilled_targets -= target_lookup[chain[9]];
-    if (9 + num_unfulfilled_targets >= MAX_LENGTH) {
-      choices[9]++;
-      continue;
-    }
-    if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-      print_chain(chain, target_lookup, 9 + 1);
-      num_unfulfilled_targets++;
-      goto done_9;
-    }
     choices[10] = choices[9];
     goto level_10;
   }
@@ -609,15 +555,6 @@ restore_progress_10:
 #endif
     total_chains++;
     num_unfulfilled_targets -= target_lookup[chain[10]];
-    if (10 + num_unfulfilled_targets >= MAX_LENGTH) {
-      choices[10]++;
-      continue;
-    }
-    if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-      print_chain(chain, target_lookup, 10 + 1);
-      num_unfulfilled_targets++;
-      goto done_10;
-    }
     choices[11] = choices[10];
     goto level_11;
   }
@@ -656,11 +593,6 @@ restore_progress_11:
     if (11 + num_unfulfilled_targets >= MAX_LENGTH) {
       choices[11]++;
       continue;
-    }
-    if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-      print_chain(chain, target_lookup, 11 + 1);
-      num_unfulfilled_targets++;
-      goto done_11;
     }
     choices[12] = choices[11];
     goto level_12;
@@ -701,11 +633,6 @@ restore_progress_12:
       choices[12]++;
       continue;
     }
-    if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-      print_chain(chain, target_lookup, 12 + 1);
-      num_unfulfilled_targets++;
-      goto done_12;
-    }
     choices[13] = choices[12];
     goto level_13;
   }
@@ -744,11 +671,6 @@ restore_progress_13:
     if (13 + num_unfulfilled_targets >= MAX_LENGTH) {
       choices[13]++;
       continue;
-    }
-    if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-      print_chain(chain, target_lookup, 13 + 1);
-      num_unfulfilled_targets++;
-      goto done_13;
     }
     choices[14] = choices[13];
     goto level_14;
@@ -789,11 +711,6 @@ restore_progress_14:
       choices[14]++;
       continue;
     }
-    if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-      print_chain(chain, target_lookup, 14 + 1);
-      num_unfulfilled_targets++;
-      goto done_14;
-    }
     choices[15] = choices[14];
     goto level_15;
   }
@@ -833,11 +750,6 @@ restore_progress_15:
       choices[15]++;
       continue;
     }
-    if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-      print_chain(chain, target_lookup, 15 + 1);
-      num_unfulfilled_targets++;
-      goto done_15;
-    }
     choices[16] = choices[15];
     goto level_16;
   }
@@ -876,11 +788,6 @@ restore_progress_16:
     if (16 + num_unfulfilled_targets >= MAX_LENGTH) {
       choices[16]++;
       continue;
-    }
-    if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-      print_chain(chain, target_lookup, 16 + 1);
-      num_unfulfilled_targets++;
-      goto done_16;
     }
     choices[17] = choices[16];
     goto level_17;
