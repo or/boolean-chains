@@ -31,10 +31,10 @@
 #define CAPTURE_STATS_CALL(chain_size)
 #endif
 
-constexpr uint32_t N = 12;
+constexpr uint32_t N = 15;
 constexpr uint32_t SIZE = 1 << (N - 1);
-constexpr uint32_t MAX_LENGTH = 18;
-constexpr uint32_t PRINT_PROGRESS_LENGTH = 5;
+constexpr uint32_t MAX_LENGTH = 21;
+constexpr uint32_t PRINT_PROGRESS_LENGTH = 9;
 constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
 constexpr uint32_t TARGET_1 =
     ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY;
@@ -435,7 +435,7 @@ int main(int argc, char *argv[]) {
     // this will be counted again
     total_chains--;
 
-    goto restore_progress_4;
+    goto restore_progress_8;
   } else {
     // so that the first addition in the loop results in 0 for the first choice
     choices[chain_size] = 0xffffffff;
