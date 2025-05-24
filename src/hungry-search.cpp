@@ -181,6 +181,7 @@ void generate_first_expressions(const uint32_t *chain, const size_t chain_size,
     }
   }
 }
+
 void algorithm_l_with_footprints(const uint32_t *chain,
                                  const size_t chain_size) {
   memset(costs, 0xff, sizeof(costs));
