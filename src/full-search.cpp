@@ -327,84 +327,738 @@ int main(int argc, char *argv[]) {
     // this will be counted again
     total_chains--;
 
-    goto restore_progress;
+    goto restore_progress_4;
   } else {
     // so that the first addition in the loop results in 0 for the first choice
     choices[chain_size] = 0xffffffff;
   }
 
+// Level 4
+level_4:
+  GENERATE_NEW_EXPRESSIONS(4, ADD_EXPRESSION)
+  CAPTURE_STATS_CALL(4)
+restore_progress_4:
   while (true) {
-  next:
-    GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
-
-    CAPTURE_STATS_CALL(chain_size)
-
-  restore_progress:
-    while (true) {
-      choices[chain_size]++;
-      while (choices[chain_size] < expressions_size[chain_size]) {
-        chain[chain_size] = expressions[choices[chain_size]];
-
+    choices[4]++;
+    while (choices[4] < expressions_size[4]) {
+      chain[4] = expressions[choices[4]];
 #if PLAN_MODE
-        if (chain_size + 1 - start_chain_length >= plan_depth) {
-          printf("-c");
-          for (size_t j = start_chain_length; j <= chain_size; ++j) {
-            printf(" %d", choices[j]);
-          }
-          printf("\n");
-          choices[chain_size]++;
-          continue;
+      if (4 + 1 - start_chain_length >= plan_depth) {
+        printf("-c");
+        for (size_t j = start_chain_length; j <= 4; ++j) {
+          printf(" %d", choices[j]);
         }
+        printf("\n");
+        choices[4]++;
+        continue;
+      }
 #endif
-
-        total_chains++;
-        if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-          PRINT_PROGRESS(chain_size, choices[chain_size])
-        }
-
-        num_unfulfilled_targets -= target_lookup[chain[chain_size]];
-        if (chain_size + num_unfulfilled_targets >= MAX_LENGTH) {
-          // no need to do this, as it must have been 0 to end up in this path
-          // num_unfulfilled_targets += target_lookup[chain[chain_size]];
-          choices[chain_size]++;
-          continue;
-        }
-
-        if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-          print_chain(chain, target_lookup, chain_size + 1);
-          if (chain_size + 1 < current_best_length) {
-            current_best_length = chain_size + 1;
-          }
-          // it must have been 1 to end up in this path, so we can just
-          // increment num_unfulfilled_targets +=
-          // target_lookup[chain[chain_size]];
-          num_unfulfilled_targets++;
-          goto done;
-        }
-
-        chain_size++;
-        choices[chain_size] = choices[chain_size - 1];
-        goto next;
+      total_chains++;
+      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+        PRINT_PROGRESS(4, choices[4])
       }
-
-    done:
-      for (size_t i = expressions_size[chain_size - 1];
-           i < expressions_size[chain_size]; i++) {
-        seen[expressions[i]] = 1;
+      num_unfulfilled_targets -= target_lookup[chain[4]];
+      if (4 + num_unfulfilled_targets >= MAX_LENGTH) {
+        choices[4]++;
+        continue;
       }
-
-      chain_size--;
-      num_unfulfilled_targets += target_lookup[chain[chain_size]];
-      // if it was a target function, then we can skip all other choices at this
-      // length, because the target function would now be in seen and prevent
-      // any successful chain from here on; this massively reduces the search
-      // space to about 50% the trick here is to simply add a large number to
-      // the choices at that level if target_lookup is 1, this avoids branching
-      choices[chain_size] += target_lookup[chain[chain_size]] << 16;
-      if (__builtin_expect(chain_size < stop_chain_size, 0)) {
-        return 0;
+      if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+        print_chain(chain, target_lookup, 4 + 1);
+        if (4 + 1 < current_best_length) {
+          current_best_length = 4 + 1;
+        }
+        num_unfulfilled_targets++;
+        goto done_4;
       }
+      choices[5] = choices[4];
+      goto level_5;
     }
+  done_4:
+    for (size_t i = expressions_size[3]; i < expressions_size[4]; i++) {
+      seen[expressions[i]] = 1;
+    }
+    num_unfulfilled_targets += target_lookup[chain[3]];
+    choices[3] += target_lookup[chain[3]] << 16;
+    if (__builtin_expect(3 < stop_chain_size, 0)) {
+      return 0;
+    }
+    break; // Exit main loop
+  }
+
+// Level 5
+level_5:
+  GENERATE_NEW_EXPRESSIONS(5, ADD_EXPRESSION)
+  CAPTURE_STATS_CALL(5)
+restore_progress_5:
+  while (true) {
+    choices[5]++;
+    while (choices[5] < expressions_size[5]) {
+      chain[5] = expressions[choices[5]];
+#if PLAN_MODE
+      if (5 + 1 - start_chain_length >= plan_depth) {
+        printf("-c");
+        for (size_t j = start_chain_length; j <= 5; ++j) {
+          printf(" %d", choices[j]);
+        }
+        printf("\n");
+        choices[5]++;
+        continue;
+      }
+#endif
+      total_chains++;
+      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+        PRINT_PROGRESS(5, choices[5])
+      }
+      num_unfulfilled_targets -= target_lookup[chain[5]];
+      if (5 + num_unfulfilled_targets >= MAX_LENGTH) {
+        choices[5]++;
+        continue;
+      }
+      if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+        print_chain(chain, target_lookup, 5 + 1);
+        if (5 + 1 < current_best_length) {
+          current_best_length = 5 + 1;
+        }
+        num_unfulfilled_targets++;
+        goto done_5;
+      }
+      choices[6] = choices[5];
+      goto level_6;
+    }
+  done_5:
+    for (size_t i = expressions_size[4]; i < expressions_size[5]; i++) {
+      seen[expressions[i]] = 1;
+    }
+    num_unfulfilled_targets += target_lookup[chain[4]];
+    choices[4] += target_lookup[chain[4]] << 16;
+    if (__builtin_expect(4 < stop_chain_size, 0)) {
+      return 0;
+    }
+    goto restore_progress_4;
+  }
+
+// Level 6
+level_6:
+  GENERATE_NEW_EXPRESSIONS(6, ADD_EXPRESSION)
+  CAPTURE_STATS_CALL(6)
+restore_progress_6:
+  while (true) {
+    choices[6]++;
+    while (choices[6] < expressions_size[6]) {
+      chain[6] = expressions[choices[6]];
+#if PLAN_MODE
+      if (6 + 1 - start_chain_length >= plan_depth) {
+        printf("-c");
+        for (size_t j = start_chain_length; j <= 6; ++j) {
+          printf(" %d", choices[j]);
+        }
+        printf("\n");
+        choices[6]++;
+        continue;
+      }
+#endif
+      total_chains++;
+      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+        PRINT_PROGRESS(6, choices[6])
+      }
+      num_unfulfilled_targets -= target_lookup[chain[6]];
+      if (6 + num_unfulfilled_targets >= MAX_LENGTH) {
+        choices[6]++;
+        continue;
+      }
+      if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+        print_chain(chain, target_lookup, 6 + 1);
+        if (6 + 1 < current_best_length) {
+          current_best_length = 6 + 1;
+        }
+        num_unfulfilled_targets++;
+        goto done_6;
+      }
+      choices[7] = choices[6];
+      goto level_7;
+    }
+  done_6:
+    for (size_t i = expressions_size[5]; i < expressions_size[6]; i++) {
+      seen[expressions[i]] = 1;
+    }
+    num_unfulfilled_targets += target_lookup[chain[5]];
+    choices[5] += target_lookup[chain[5]] << 16;
+    if (__builtin_expect(5 < stop_chain_size, 0)) {
+      return 0;
+    }
+    goto restore_progress_5;
+  }
+
+// Level 7
+level_7:
+  GENERATE_NEW_EXPRESSIONS(7, ADD_EXPRESSION)
+  CAPTURE_STATS_CALL(7)
+restore_progress_7:
+  while (true) {
+    choices[7]++;
+    while (choices[7] < expressions_size[7]) {
+      chain[7] = expressions[choices[7]];
+#if PLAN_MODE
+      if (7 + 1 - start_chain_length >= plan_depth) {
+        printf("-c");
+        for (size_t j = start_chain_length; j <= 7; ++j) {
+          printf(" %d", choices[j]);
+        }
+        printf("\n");
+        choices[7]++;
+        continue;
+      }
+#endif
+      total_chains++;
+      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+        PRINT_PROGRESS(7, choices[7])
+      }
+      num_unfulfilled_targets -= target_lookup[chain[7]];
+      if (7 + num_unfulfilled_targets >= MAX_LENGTH) {
+        choices[7]++;
+        continue;
+      }
+      if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+        print_chain(chain, target_lookup, 7 + 1);
+        if (7 + 1 < current_best_length) {
+          current_best_length = 7 + 1;
+        }
+        num_unfulfilled_targets++;
+        goto done_7;
+      }
+      choices[8] = choices[7];
+      goto level_8;
+    }
+  done_7:
+    for (size_t i = expressions_size[6]; i < expressions_size[7]; i++) {
+      seen[expressions[i]] = 1;
+    }
+    num_unfulfilled_targets += target_lookup[chain[6]];
+    choices[6] += target_lookup[chain[6]] << 16;
+    if (__builtin_expect(6 < stop_chain_size, 0)) {
+      return 0;
+    }
+    goto restore_progress_6;
+  }
+
+// Level 8
+level_8:
+  GENERATE_NEW_EXPRESSIONS(8, ADD_EXPRESSION)
+  CAPTURE_STATS_CALL(8)
+restore_progress_8:
+  while (true) {
+    choices[8]++;
+    while (choices[8] < expressions_size[8]) {
+      chain[8] = expressions[choices[8]];
+#if PLAN_MODE
+      if (8 + 1 - start_chain_length >= plan_depth) {
+        printf("-c");
+        for (size_t j = start_chain_length; j <= 8; ++j) {
+          printf(" %d", choices[j]);
+        }
+        printf("\n");
+        choices[8]++;
+        continue;
+      }
+#endif
+      total_chains++;
+      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+        PRINT_PROGRESS(8, choices[8])
+      }
+      num_unfulfilled_targets -= target_lookup[chain[8]];
+      if (8 + num_unfulfilled_targets >= MAX_LENGTH) {
+        choices[8]++;
+        continue;
+      }
+      if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+        print_chain(chain, target_lookup, 8 + 1);
+        if (8 + 1 < current_best_length) {
+          current_best_length = 8 + 1;
+        }
+        num_unfulfilled_targets++;
+        goto done_8;
+      }
+      choices[9] = choices[8];
+      goto level_9;
+    }
+  done_8:
+    for (size_t i = expressions_size[7]; i < expressions_size[8]; i++) {
+      seen[expressions[i]] = 1;
+    }
+    num_unfulfilled_targets += target_lookup[chain[7]];
+    choices[7] += target_lookup[chain[7]] << 16;
+    if (__builtin_expect(7 < stop_chain_size, 0)) {
+      return 0;
+    }
+    goto restore_progress_7;
+  }
+
+// Level 9
+level_9:
+  GENERATE_NEW_EXPRESSIONS(9, ADD_EXPRESSION)
+  CAPTURE_STATS_CALL(9)
+restore_progress_9:
+  while (true) {
+    choices[9]++;
+    while (choices[9] < expressions_size[9]) {
+      chain[9] = expressions[choices[9]];
+#if PLAN_MODE
+      if (9 + 1 - start_chain_length >= plan_depth) {
+        printf("-c");
+        for (size_t j = start_chain_length; j <= 9; ++j) {
+          printf(" %d", choices[j]);
+        }
+        printf("\n");
+        choices[9]++;
+        continue;
+      }
+#endif
+      total_chains++;
+      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+        PRINT_PROGRESS(9, choices[9])
+      }
+      num_unfulfilled_targets -= target_lookup[chain[9]];
+      if (9 + num_unfulfilled_targets >= MAX_LENGTH) {
+        choices[9]++;
+        continue;
+      }
+      if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+        print_chain(chain, target_lookup, 9 + 1);
+        if (9 + 1 < current_best_length) {
+          current_best_length = 9 + 1;
+        }
+        num_unfulfilled_targets++;
+        goto done_9;
+      }
+      choices[10] = choices[9];
+      goto level_10;
+    }
+  done_9:
+    for (size_t i = expressions_size[8]; i < expressions_size[9]; i++) {
+      seen[expressions[i]] = 1;
+    }
+    num_unfulfilled_targets += target_lookup[chain[8]];
+    choices[8] += target_lookup[chain[8]] << 16;
+    if (__builtin_expect(8 < stop_chain_size, 0)) {
+      return 0;
+    }
+    goto restore_progress_8;
+  }
+
+// Level 10
+level_10:
+  GENERATE_NEW_EXPRESSIONS(10, ADD_EXPRESSION)
+  CAPTURE_STATS_CALL(10)
+restore_progress_10:
+  while (true) {
+    choices[10]++;
+    while (choices[10] < expressions_size[10]) {
+      chain[10] = expressions[choices[10]];
+#if PLAN_MODE
+      if (10 + 1 - start_chain_length >= plan_depth) {
+        printf("-c");
+        for (size_t j = start_chain_length; j <= 10; ++j) {
+          printf(" %d", choices[j]);
+        }
+        printf("\n");
+        choices[10]++;
+        continue;
+      }
+#endif
+      total_chains++;
+      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+        PRINT_PROGRESS(10, choices[10])
+      }
+      num_unfulfilled_targets -= target_lookup[chain[10]];
+      if (10 + num_unfulfilled_targets >= MAX_LENGTH) {
+        choices[10]++;
+        continue;
+      }
+      if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+        print_chain(chain, target_lookup, 10 + 1);
+        if (10 + 1 < current_best_length) {
+          current_best_length = 10 + 1;
+        }
+        num_unfulfilled_targets++;
+        goto done_10;
+      }
+      choices[11] = choices[10];
+      goto level_11;
+    }
+  done_10:
+    for (size_t i = expressions_size[9]; i < expressions_size[10]; i++) {
+      seen[expressions[i]] = 1;
+    }
+    num_unfulfilled_targets += target_lookup[chain[9]];
+    choices[9] += target_lookup[chain[9]] << 16;
+    if (__builtin_expect(9 < stop_chain_size, 0)) {
+      return 0;
+    }
+    goto restore_progress_9;
+  }
+
+// Level 11
+level_11:
+  GENERATE_NEW_EXPRESSIONS(11, ADD_EXPRESSION)
+  CAPTURE_STATS_CALL(11)
+restore_progress_11:
+  while (true) {
+    choices[11]++;
+    while (choices[11] < expressions_size[11]) {
+      chain[11] = expressions[choices[11]];
+#if PLAN_MODE
+      if (11 + 1 - start_chain_length >= plan_depth) {
+        printf("-c");
+        for (size_t j = start_chain_length; j <= 11; ++j) {
+          printf(" %d", choices[j]);
+        }
+        printf("\n");
+        choices[11]++;
+        continue;
+      }
+#endif
+      total_chains++;
+      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+        PRINT_PROGRESS(11, choices[11])
+      }
+      num_unfulfilled_targets -= target_lookup[chain[11]];
+      if (11 + num_unfulfilled_targets >= MAX_LENGTH) {
+        choices[11]++;
+        continue;
+      }
+      if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+        print_chain(chain, target_lookup, 11 + 1);
+        if (11 + 1 < current_best_length) {
+          current_best_length = 11 + 1;
+        }
+        num_unfulfilled_targets++;
+        goto done_11;
+      }
+      choices[12] = choices[11];
+      goto level_12;
+    }
+  done_11:
+    for (size_t i = expressions_size[10]; i < expressions_size[11]; i++) {
+      seen[expressions[i]] = 1;
+    }
+    num_unfulfilled_targets += target_lookup[chain[10]];
+    choices[10] += target_lookup[chain[10]] << 16;
+    if (__builtin_expect(10 < stop_chain_size, 0)) {
+      return 0;
+    }
+    goto restore_progress_10;
+  }
+
+// Level 12
+level_12:
+  GENERATE_NEW_EXPRESSIONS(12, ADD_EXPRESSION)
+  CAPTURE_STATS_CALL(12)
+restore_progress_12:
+  while (true) {
+    choices[12]++;
+    while (choices[12] < expressions_size[12]) {
+      chain[12] = expressions[choices[12]];
+#if PLAN_MODE
+      if (12 + 1 - start_chain_length >= plan_depth) {
+        printf("-c");
+        for (size_t j = start_chain_length; j <= 12; ++j) {
+          printf(" %d", choices[j]);
+        }
+        printf("\n");
+        choices[12]++;
+        continue;
+      }
+#endif
+      total_chains++;
+      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+        PRINT_PROGRESS(12, choices[12])
+      }
+      num_unfulfilled_targets -= target_lookup[chain[12]];
+      if (12 + num_unfulfilled_targets >= MAX_LENGTH) {
+        choices[12]++;
+        continue;
+      }
+      if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+        print_chain(chain, target_lookup, 12 + 1);
+        if (12 + 1 < current_best_length) {
+          current_best_length = 12 + 1;
+        }
+        num_unfulfilled_targets++;
+        goto done_12;
+      }
+      choices[13] = choices[12];
+      goto level_13;
+    }
+  done_12:
+    for (size_t i = expressions_size[11]; i < expressions_size[12]; i++) {
+      seen[expressions[i]] = 1;
+    }
+    num_unfulfilled_targets += target_lookup[chain[11]];
+    choices[11] += target_lookup[chain[11]] << 16;
+    if (__builtin_expect(11 < stop_chain_size, 0)) {
+      return 0;
+    }
+    goto restore_progress_11;
+  }
+
+// Level 13
+level_13:
+  GENERATE_NEW_EXPRESSIONS(13, ADD_EXPRESSION)
+  CAPTURE_STATS_CALL(13)
+restore_progress_13:
+  while (true) {
+    choices[13]++;
+    while (choices[13] < expressions_size[13]) {
+      chain[13] = expressions[choices[13]];
+#if PLAN_MODE
+      if (13 + 1 - start_chain_length >= plan_depth) {
+        printf("-c");
+        for (size_t j = start_chain_length; j <= 13; ++j) {
+          printf(" %d", choices[j]);
+        }
+        printf("\n");
+        choices[13]++;
+        continue;
+      }
+#endif
+      total_chains++;
+      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+        PRINT_PROGRESS(13, choices[13])
+      }
+      num_unfulfilled_targets -= target_lookup[chain[13]];
+      if (13 + num_unfulfilled_targets >= MAX_LENGTH) {
+        choices[13]++;
+        continue;
+      }
+      if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+        print_chain(chain, target_lookup, 13 + 1);
+        if (13 + 1 < current_best_length) {
+          current_best_length = 13 + 1;
+        }
+        num_unfulfilled_targets++;
+        goto done_13;
+      }
+      choices[14] = choices[13];
+      goto level_14;
+    }
+  done_13:
+    for (size_t i = expressions_size[12]; i < expressions_size[13]; i++) {
+      seen[expressions[i]] = 1;
+    }
+    num_unfulfilled_targets += target_lookup[chain[12]];
+    choices[12] += target_lookup[chain[12]] << 16;
+    if (__builtin_expect(12 < stop_chain_size, 0)) {
+      return 0;
+    }
+    goto restore_progress_12;
+  }
+
+// Level 14
+level_14:
+  GENERATE_NEW_EXPRESSIONS(14, ADD_EXPRESSION)
+  CAPTURE_STATS_CALL(14)
+restore_progress_14:
+  while (true) {
+    choices[14]++;
+    while (choices[14] < expressions_size[14]) {
+      chain[14] = expressions[choices[14]];
+#if PLAN_MODE
+      if (14 + 1 - start_chain_length >= plan_depth) {
+        printf("-c");
+        for (size_t j = start_chain_length; j <= 14; ++j) {
+          printf(" %d", choices[j]);
+        }
+        printf("\n");
+        choices[14]++;
+        continue;
+      }
+#endif
+      total_chains++;
+      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+        PRINT_PROGRESS(14, choices[14])
+      }
+      num_unfulfilled_targets -= target_lookup[chain[14]];
+      if (14 + num_unfulfilled_targets >= MAX_LENGTH) {
+        choices[14]++;
+        continue;
+      }
+      if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+        print_chain(chain, target_lookup, 14 + 1);
+        if (14 + 1 < current_best_length) {
+          current_best_length = 14 + 1;
+        }
+        num_unfulfilled_targets++;
+        goto done_14;
+      }
+      choices[15] = choices[14];
+      goto level_15;
+    }
+  done_14:
+    for (size_t i = expressions_size[13]; i < expressions_size[14]; i++) {
+      seen[expressions[i]] = 1;
+    }
+    num_unfulfilled_targets += target_lookup[chain[13]];
+    choices[13] += target_lookup[chain[13]] << 16;
+    if (__builtin_expect(13 < stop_chain_size, 0)) {
+      return 0;
+    }
+    goto restore_progress_13;
+  }
+
+// Level 15
+level_15:
+  GENERATE_NEW_EXPRESSIONS(15, ADD_EXPRESSION)
+  CAPTURE_STATS_CALL(15)
+restore_progress_15:
+  while (true) {
+    choices[15]++;
+    while (choices[15] < expressions_size[15]) {
+      chain[15] = expressions[choices[15]];
+#if PLAN_MODE
+      if (15 + 1 - start_chain_length >= plan_depth) {
+        printf("-c");
+        for (size_t j = start_chain_length; j <= 15; ++j) {
+          printf(" %d", choices[j]);
+        }
+        printf("\n");
+        choices[15]++;
+        continue;
+      }
+#endif
+      total_chains++;
+      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+        PRINT_PROGRESS(15, choices[15])
+      }
+      num_unfulfilled_targets -= target_lookup[chain[15]];
+      if (15 + num_unfulfilled_targets >= MAX_LENGTH) {
+        choices[15]++;
+        continue;
+      }
+      if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+        print_chain(chain, target_lookup, 15 + 1);
+        if (15 + 1 < current_best_length) {
+          current_best_length = 15 + 1;
+        }
+        num_unfulfilled_targets++;
+        goto done_15;
+      }
+      choices[16] = choices[15];
+      goto level_16;
+    }
+  done_15:
+    for (size_t i = expressions_size[14]; i < expressions_size[15]; i++) {
+      seen[expressions[i]] = 1;
+    }
+    num_unfulfilled_targets += target_lookup[chain[14]];
+    choices[14] += target_lookup[chain[14]] << 16;
+    if (__builtin_expect(14 < stop_chain_size, 0)) {
+      return 0;
+    }
+    goto restore_progress_14;
+  }
+
+// Level 16
+level_16:
+  GENERATE_NEW_EXPRESSIONS(16, ADD_EXPRESSION)
+  CAPTURE_STATS_CALL(16)
+restore_progress_16:
+  while (true) {
+    choices[16]++;
+    while (choices[16] < expressions_size[16]) {
+      chain[16] = expressions[choices[16]];
+#if PLAN_MODE
+      if (16 + 1 - start_chain_length >= plan_depth) {
+        printf("-c");
+        for (size_t j = start_chain_length; j <= 16; ++j) {
+          printf(" %d", choices[j]);
+        }
+        printf("\n");
+        choices[16]++;
+        continue;
+      }
+#endif
+      total_chains++;
+      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+        PRINT_PROGRESS(16, choices[16])
+      }
+      num_unfulfilled_targets -= target_lookup[chain[16]];
+      if (16 + num_unfulfilled_targets >= MAX_LENGTH) {
+        choices[16]++;
+        continue;
+      }
+      if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+        print_chain(chain, target_lookup, 16 + 1);
+        if (16 + 1 < current_best_length) {
+          current_best_length = 16 + 1;
+        }
+        num_unfulfilled_targets++;
+        goto done_16;
+      }
+      choices[17] = choices[16];
+      goto level_17;
+    }
+  done_16:
+    for (size_t i = expressions_size[15]; i < expressions_size[16]; i++) {
+      seen[expressions[i]] = 1;
+    }
+    num_unfulfilled_targets += target_lookup[chain[15]];
+    choices[15] += target_lookup[chain[15]] << 16;
+    if (__builtin_expect(15 < stop_chain_size, 0)) {
+      return 0;
+    }
+    goto restore_progress_15;
+  }
+
+// Level 17 (final level since MAX_LENGTH = 18)
+level_17:
+  GENERATE_NEW_EXPRESSIONS(17, ADD_EXPRESSION)
+  CAPTURE_STATS_CALL(17)
+restore_progress_17:
+  while (true) {
+    choices[17]++;
+    while (choices[17] < expressions_size[17]) {
+      chain[17] = expressions[choices[17]];
+#if PLAN_MODE
+      if (17 + 1 - start_chain_length >= plan_depth) {
+        printf("-c");
+        for (size_t j = start_chain_length; j <= 17; ++j) {
+          printf(" %d", choices[j]);
+        }
+        printf("\n");
+        choices[17]++;
+        continue;
+      }
+#endif
+      total_chains++;
+      if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
+        PRINT_PROGRESS(17, choices[17])
+      }
+      num_unfulfilled_targets -= target_lookup[chain[17]];
+      if (17 + num_unfulfilled_targets >= MAX_LENGTH) {
+        choices[17]++;
+        continue;
+      }
+      if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+        print_chain(chain, target_lookup, 17 + 1);
+        if (17 + 1 < current_best_length) {
+          current_best_length = 17 + 1;
+        }
+        num_unfulfilled_targets++;
+        goto done_17;
+      }
+      // No next level - we've reached MAX_LENGTH
+      goto done_17;
+    }
+  done_17:
+    for (size_t i = expressions_size[16]; i < expressions_size[17]; i++) {
+      seen[expressions[i]] = 1;
+    }
+    num_unfulfilled_targets += target_lookup[chain[16]];
+    choices[16] += target_lookup[chain[16]] << 16;
+    if (__builtin_expect(16 < stop_chain_size, 0)) {
+      return 0;
+    }
+    goto restore_progress_16;
   }
 
   return 0;
