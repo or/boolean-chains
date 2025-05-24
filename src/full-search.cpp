@@ -72,8 +72,7 @@ uint64_t stats_num_data_points[25] = {0};
   for (size_t j = start_chain_length; j < chain_size; ++j) {                   \
     printf("%d, ", choices[j]);                                                \
   }                                                                            \
-  printf("%d [best: %zu] %" PRIu64 "\n", last, current_best_length,            \
-         total_chains);                                                        \
+  printf("%d %" PRIu64 "\n", last, total_chains);                              \
   fflush(stdout);
 
 #define ADD_EXPRESSION(value, chain_size)                                      \
@@ -208,7 +207,6 @@ int main(int argc, char *argv[]) {
   bool chunk_mode = false;
   uint32_t num_unfulfilled_targets = NUM_TARGETS;
   size_t stop_chain_size;
-  size_t current_best_length = 1000;
   size_t start_indices_size __attribute__((aligned(64))) = 0;
   uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
   uint32_t choices[30] __attribute__((aligned(64)));
@@ -361,9 +359,6 @@ restore_progress_4:
       }
       if (__builtin_expect(!num_unfulfilled_targets, 0)) {
         print_chain(chain, target_lookup, 4 + 1);
-        if (4 + 1 < current_best_length) {
-          current_best_length = 4 + 1;
-        }
         num_unfulfilled_targets++;
         goto done_4;
       }
@@ -371,15 +366,7 @@ restore_progress_4:
       goto level_5;
     }
   done_4:
-    for (size_t i = expressions_size[3]; i < expressions_size[4]; i++) {
-      seen[expressions[i]] = 1;
-    }
-    num_unfulfilled_targets += target_lookup[chain[3]];
-    choices[3] += target_lookup[chain[3]] << 16;
-    if (__builtin_expect(3 < stop_chain_size, 0)) {
-      return 0;
-    }
-    break; // Exit main loop
+    return 0;
   }
 
 // Level 5
@@ -411,9 +398,6 @@ restore_progress_5:
       }
       if (__builtin_expect(!num_unfulfilled_targets, 0)) {
         print_chain(chain, target_lookup, 5 + 1);
-        if (5 + 1 < current_best_length) {
-          current_best_length = 5 + 1;
-        }
         num_unfulfilled_targets++;
         goto done_5;
       }
@@ -460,9 +444,6 @@ restore_progress_6:
       }
       if (__builtin_expect(!num_unfulfilled_targets, 0)) {
         print_chain(chain, target_lookup, 6 + 1);
-        if (6 + 1 < current_best_length) {
-          current_best_length = 6 + 1;
-        }
         num_unfulfilled_targets++;
         goto done_6;
       }
@@ -509,9 +490,6 @@ restore_progress_7:
       }
       if (__builtin_expect(!num_unfulfilled_targets, 0)) {
         print_chain(chain, target_lookup, 7 + 1);
-        if (7 + 1 < current_best_length) {
-          current_best_length = 7 + 1;
-        }
         num_unfulfilled_targets++;
         goto done_7;
       }
@@ -558,9 +536,6 @@ restore_progress_8:
       }
       if (__builtin_expect(!num_unfulfilled_targets, 0)) {
         print_chain(chain, target_lookup, 8 + 1);
-        if (8 + 1 < current_best_length) {
-          current_best_length = 8 + 1;
-        }
         num_unfulfilled_targets++;
         goto done_8;
       }
@@ -607,9 +582,6 @@ restore_progress_9:
       }
       if (__builtin_expect(!num_unfulfilled_targets, 0)) {
         print_chain(chain, target_lookup, 9 + 1);
-        if (9 + 1 < current_best_length) {
-          current_best_length = 9 + 1;
-        }
         num_unfulfilled_targets++;
         goto done_9;
       }
@@ -656,9 +628,6 @@ restore_progress_10:
       }
       if (__builtin_expect(!num_unfulfilled_targets, 0)) {
         print_chain(chain, target_lookup, 10 + 1);
-        if (10 + 1 < current_best_length) {
-          current_best_length = 10 + 1;
-        }
         num_unfulfilled_targets++;
         goto done_10;
       }
@@ -705,9 +674,6 @@ restore_progress_11:
       }
       if (__builtin_expect(!num_unfulfilled_targets, 0)) {
         print_chain(chain, target_lookup, 11 + 1);
-        if (11 + 1 < current_best_length) {
-          current_best_length = 11 + 1;
-        }
         num_unfulfilled_targets++;
         goto done_11;
       }
@@ -754,9 +720,6 @@ restore_progress_12:
       }
       if (__builtin_expect(!num_unfulfilled_targets, 0)) {
         print_chain(chain, target_lookup, 12 + 1);
-        if (12 + 1 < current_best_length) {
-          current_best_length = 12 + 1;
-        }
         num_unfulfilled_targets++;
         goto done_12;
       }
@@ -803,9 +766,6 @@ restore_progress_13:
       }
       if (__builtin_expect(!num_unfulfilled_targets, 0)) {
         print_chain(chain, target_lookup, 13 + 1);
-        if (13 + 1 < current_best_length) {
-          current_best_length = 13 + 1;
-        }
         num_unfulfilled_targets++;
         goto done_13;
       }
@@ -852,9 +812,6 @@ restore_progress_14:
       }
       if (__builtin_expect(!num_unfulfilled_targets, 0)) {
         print_chain(chain, target_lookup, 14 + 1);
-        if (14 + 1 < current_best_length) {
-          current_best_length = 14 + 1;
-        }
         num_unfulfilled_targets++;
         goto done_14;
       }
@@ -901,9 +858,6 @@ restore_progress_15:
       }
       if (__builtin_expect(!num_unfulfilled_targets, 0)) {
         print_chain(chain, target_lookup, 15 + 1);
-        if (15 + 1 < current_best_length) {
-          current_best_length = 15 + 1;
-        }
         num_unfulfilled_targets++;
         goto done_15;
       }
@@ -950,9 +904,6 @@ restore_progress_16:
       }
       if (__builtin_expect(!num_unfulfilled_targets, 0)) {
         print_chain(chain, target_lookup, 16 + 1);
-        if (16 + 1 < current_best_length) {
-          current_best_length = 16 + 1;
-        }
         num_unfulfilled_targets++;
         goto done_16;
       }
@@ -999,9 +950,6 @@ restore_progress_17:
       }
       if (__builtin_expect(!num_unfulfilled_targets, 0)) {
         print_chain(chain, target_lookup, 17 + 1);
-        if (17 + 1 < current_best_length) {
-          current_best_length = 17 + 1;
-        }
         num_unfulfilled_targets++;
         goto done_17;
       }
