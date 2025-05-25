@@ -14,7 +14,7 @@ target/full-search-plan: src/full-search.cpp Makefile
 target/full-search-profile: src/full-search.cpp Makefile
 	clang++ -o target/full-search-profile src/full-search.cpp $(OPT_FLAGS) $(PROFILE_FLAGS) 2>&1
 
-target/full-search-optimized: src/full-search.cpp Makefile
+target/full-search-optimized: src/full-search.cpp Makefile default.profdata
 	clang++ -o target/full-search-optimized src/full-search.cpp $(OPT_FLAGS) $(OPTIMIZED_PROFILE_FLAGS) 2>&1
 
 target/hungry-search: src/hungry-search.cpp src/*.h Makefile
