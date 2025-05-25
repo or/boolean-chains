@@ -82,16 +82,16 @@ uint64_t stats_num_data_points[25] = {0};
 
 #define ADD_EXPRESSION(value, chain_size)                                      \
   expressions[expressions_size[chain_size]] = value;                           \
-  expressions_size[chain_size] += seen[value];                                 \
-  seen[value] = 0;
+  expressions_size[chain_size] += unseen[value];                               \
+  unseen[value] = 0;
 
 #define ADD_EXPRESSION_TARGET(value, chain_size)                               \
   {                                                                            \
     const uint32_t v = value;                                                  \
-    const uint32_t a = seen[v] & target_lookup[v];                             \
+    const uint32_t a = unseen[v] & target_lookup[v];                           \
     expressions[expressions_size[chain_size]] = v;                             \
     expressions_size[chain_size] += a;                                         \
-    seen[v] &= ~a;                                                             \
+    unseen[v] &= ~a;                                                           \
   }
 
 #define GENERATE_NEW_EXPRESSIONS(chain_size, add_expression)                   \
@@ -208,7 +208,7 @@ uint64_t stats_num_data_points[25] = {0};
                                                                                \
           for (size_t i = expressions_size[CS];                                \
                i < expressions_size[generated_chain_size]; i++) {              \
-            seen[expressions[i]] = 1;                                          \
+            unseen[expressions[i]] = 1;                                        \
           }                                                                    \
                                                                                \
           choices[CS] += 1 + (target_lookup[chain[CS]] << 16);                 \
@@ -233,7 +233,7 @@ uint64_t stats_num_data_points[25] = {0};
     done_##CS : if (CS > 4) {                                                  \
       for (size_t i = expressions_size[PREV_CS]; i < expressions_size[CS];     \
            i++) {                                                              \
-        seen[expressions[i]] = 1;                                              \
+        unseen[expressions[i]] = 1;                                            \
       }                                                                        \
       num_unfulfilled_targets += target_lookup[chain[PREV_CS]];                \
       choices[PREV_CS] += 1 + (target_lookup[chain[PREV_CS]] << 16);           \
@@ -320,7 +320,7 @@ int main(int argc, char *argv[]) {
   uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
   uint32_t choices[30] __attribute__((aligned(64)));
   uint8_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
-  uint8_t seen[SIZE] __attribute__((aligned(64)));
+  uint8_t unseen[SIZE] __attribute__((aligned(64)));
   uint32_t chain[25] __attribute__((aligned(64)));
   uint32_t expressions[600] __attribute__((aligned(64)));
   uint32_t expressions_size[25] __attribute__((aligned(64)));
@@ -365,9 +365,9 @@ int main(int argc, char *argv[]) {
 #endif
 
   for (size_t i = 0; i < SIZE; i++) {
-    // flip the logic: 1 means unseen, 0 seen, that'll avoid one operation when
-    // setting this flag
-    seen[i] = 1;
+    // flip the logic: 1 means unseen, 0 unseen, that'll avoid one operation
+    // when setting this flag
+    unseen[i] = 1;
   }
 
   for (size_t i = 0; i < NUM_TARGETS; i++) {
@@ -388,9 +388,9 @@ int main(int argc, char *argv[]) {
   memset(stats_min_num_expressions, UNDEFINED,
          sizeof(stats_min_num_expressions));
 #endif
-  seen[0] = 0;
+  unseen[0] = 0;
   for (size_t i = 0; i < chain_size; i++) {
-    seen[chain[i]] = 0;
+    unseen[chain[i]] = 0;
   }
 
   chain_size--;
