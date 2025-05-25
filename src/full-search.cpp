@@ -247,7 +247,7 @@ uint64_t stats_num_data_points[25] = {0};
     }                                                                          \
   }
 
-void print_chain(const uint32_t *chain, const uint32_t *target_lookup,
+void print_chain(const uint32_t *chain, const uint8_t *target_lookup,
                  const size_t chain_size) {
   printf("chain (%zu):\n", chain_size);
   for (size_t i = 0; i < chain_size; i++) {
@@ -319,8 +319,8 @@ int main(int argc, char *argv[]) {
   size_t start_indices_size __attribute__((aligned(64))) = 0;
   uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
   uint32_t choices[30] __attribute__((aligned(64)));
-  uint32_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
-  uint32_t seen[SIZE] __attribute__((aligned(64)));
+  uint8_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
+  uint8_t seen[SIZE] __attribute__((aligned(64)));
   uint32_t chain[25] __attribute__((aligned(64)));
   uint32_t expressions[600] __attribute__((aligned(64)));
   uint32_t expressions_size[25] __attribute__((aligned(64)));

@@ -24,3 +24,7 @@ hyperfine --warmup 5 'target/full-search -c 8 31'
 | 65b1df3 | 8 31  | 400.0 ms          | 399.5 ms       |               0.13% |                    |
 | e0354c1 | 8     | 19.106 s          | 18.714 s       |                2.1% |               4.8% |
 | e0354c1 | 8 31  | 380.0 ms          | 374.4 ms       |                1.5% |               5.3% |
+*** Using ~uint8~ instead of ~uint32~ for ~seen~ and ~target_lookup~
+- should be more cache friendly, appears to improve performance by ~1-2% for N=12
+- potentially has a slightly bigger impact for larger N, when the size of those
+  arrays grows
