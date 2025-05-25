@@ -31,9 +31,16 @@
 #define CAPTURE_STATS_CALL(chain_size)
 #endif
 
-constexpr uint32_t N = 16;
+constexpr uint32_t N = 12;
 constexpr uint32_t SIZE = 1 << (N - 1);
-constexpr uint32_t MAX_LENGTH = 22;
+constexpr uint32_t MAX_LENGTH = 18;
+constexpr uint32_t PRINT_PROGRESS_LENGTH = 5;
+// That check is not needed for most leaf processing; but if this is too low,
+// then the chunk completion won't be detected properly, namely if it is lower
+// than the chunk length provided... chunks likely will be 4 + 1, 2, 3, 4, or 5,
+// so 9 is a good value.
+constexpr uint32_t MAX_LENGTH_FOR_COMPLETION_CHECK = 9;
+constexpr bool CHECK_SHORTER_THAN_MAX_LENGTH = false;
 constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
 constexpr uint32_t TARGET_1 =
     ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY;
@@ -54,9 +61,7 @@ constexpr uint32_t TARGETS[] = {
 };
 constexpr uint32_t NUM_TARGETS = sizeof(TARGETS) / sizeof(uint32_t);
 
-#if PLAN_MODE
 size_t plan_depth = 1;
-#endif
 
 uint32_t start_chain_length;
 uint64_t total_chains = 0;
@@ -72,8 +77,7 @@ uint64_t stats_num_data_points[25] = {0};
   for (size_t j = start_chain_length; j < chain_size; ++j) {                   \
     printf("%d, ", choices[j]);                                                \
   }                                                                            \
-  printf("%d [best: %zu] %" PRIu64 "\n", last, current_best_length,            \
-         total_chains);                                                        \
+  printf("%d %" PRIu64 "\n", last, total_chains);                              \
   fflush(stdout);
 
 #define ADD_EXPRESSION(value, chain_size)                                      \
@@ -139,7 +143,111 @@ uint64_t stats_num_data_points[25] = {0};
     }                                                                          \
   }
 
-void print_chain(const uint32_t *chain, const uint32_t *target_lookup,
+#define LOOP(CS, PREV_CS, NEXT_CS)                                             \
+  loop_##CS : if (CS < MAX_LENGTH) {                                           \
+                                                                               \
+    if (choices[CS] < expressions_size[CS]) {                                  \
+      chain[CS] = expressions[choices[CS]];                                    \
+                                                                               \
+      if (PLAN_MODE) {                                                         \
+        if (CS + 1 - start_chain_length >= plan_depth) {                       \
+          printf("-c");                                                        \
+          for (size_t j = start_chain_length; j <= CS; ++j) {                  \
+            printf(" %d", choices[j]);                                         \
+          }                                                                    \
+          printf("\n");                                                        \
+          choices[CS]++;                                                       \
+          goto loop_##CS;                                                      \
+        }                                                                      \
+      }                                                                        \
+                                                                               \
+      total_chains++;                                                          \
+                                                                               \
+      if (CS == PRINT_PROGRESS_LENGTH) {                                       \
+        PRINT_PROGRESS(CS, choices[CS]);                                       \
+      }                                                                        \
+                                                                               \
+      if (CHECK_SHORTER_THAN_MAX_LENGTH) {                                     \
+        if (__builtin_expect(                                                  \
+                num_unfulfilled_targets - target_lookup[chain[CS]] == 1, 0)) { \
+          print_chain(chain, target_lookup, MAX_LENGTH);                       \
+          goto done_##CS;                                                      \
+        }                                                                      \
+      }                                                                        \
+                                                                               \
+      if (CS < MAX_LENGTH - 1 && NEXT_CS >= MAX_LENGTH - NUM_TARGETS) {        \
+        if (__builtin_expect(NEXT_CS + num_unfulfilled_targets -               \
+                                     target_lookup[chain[CS]] ==               \
+                                 MAX_LENGTH,                                   \
+                             1)) {                                             \
+          tmp_chain_size = NEXT_CS;                                            \
+          generated_chain_size = CS;                                           \
+          tmp_num_unfulfilled_targets =                                        \
+              num_unfulfilled_targets - target_lookup[chain[CS]];              \
+          size_t j = choices[CS] + 1;                                          \
+                                                                               \
+          next_##CS : if (__builtin_expect(tmp_chain_size < MAX_LENGTH, 1)) {  \
+            GENERATE_NEW_EXPRESSIONS(tmp_chain_size, ADD_EXPRESSION_TARGET)    \
+            generated_chain_size = tmp_chain_size;                             \
+                                                                               \
+            for (; j < expressions_size[tmp_chain_size]; ++j) {                \
+              total_chains++;                                                  \
+              if (__builtin_expect(target_lookup[expressions[j]], 0)) {        \
+                chain[tmp_chain_size] = expressions[j];                        \
+                tmp_num_unfulfilled_targets--;                                 \
+                tmp_chain_size++;                                              \
+                if (__builtin_expect(!tmp_num_unfulfilled_targets, 0)) {       \
+                  print_chain(chain, target_lookup, tmp_chain_size);           \
+                  break;                                                       \
+                }                                                              \
+                j++;                                                           \
+                goto next_##CS;                                                \
+              }                                                                \
+            }                                                                  \
+          }                                                                    \
+                                                                               \
+          for (size_t i = expressions_size[CS];                                \
+               i < expressions_size[generated_chain_size]; i++) {              \
+            seen[expressions[i]] = 1;                                          \
+          }                                                                    \
+                                                                               \
+          choices[CS] += 1 + (target_lookup[chain[CS]] << 16);                 \
+          if (CS <= MAX_LENGTH_FOR_COMPLETION_CHECK) {                         \
+            if (__builtin_expect(CS < stop_chain_size, 0)) {                   \
+              return 0;                                                        \
+            }                                                                  \
+          }                                                                    \
+          goto loop_##CS;                                                      \
+        }                                                                      \
+      }                                                                        \
+                                                                               \
+      num_unfulfilled_targets -= target_lookup[chain[CS]];                     \
+                                                                               \
+      choices[NEXT_CS] = choices[CS] + 1;                                      \
+      GENERATE_NEW_EXPRESSIONS(NEXT_CS, ADD_EXPRESSION)                        \
+                                                                               \
+      CAPTURE_STATS_CALL(NEXT_CS)                                              \
+      goto loop_##NEXT_CS;                                                     \
+    }                                                                          \
+                                                                               \
+    done_##CS : if (CS > 4) {                                                  \
+      for (size_t i = expressions_size[PREV_CS]; i < expressions_size[CS];     \
+           i++) {                                                              \
+        seen[expressions[i]] = 1;                                              \
+      }                                                                        \
+      num_unfulfilled_targets += target_lookup[chain[PREV_CS]];                \
+      choices[PREV_CS] += 1 + (target_lookup[chain[PREV_CS]] << 16);           \
+      if (__builtin_expect(PREV_CS < stop_chain_size, 0)) {                    \
+        return 0;                                                              \
+      }                                                                        \
+      goto loop_##PREV_CS;                                                     \
+    }                                                                          \
+    else {                                                                     \
+      return 0;                                                                \
+    }                                                                          \
+  }
+
+void print_chain(const uint32_t *chain, const uint8_t *target_lookup,
                  const size_t chain_size) {
   printf("chain (%zu):\n", chain_size);
   for (size_t i = 0; i < chain_size; i++) {
@@ -208,15 +316,17 @@ int main(int argc, char *argv[]) {
   bool chunk_mode = false;
   uint32_t num_unfulfilled_targets = NUM_TARGETS;
   size_t stop_chain_size;
-  size_t current_best_length = 1000;
   size_t start_indices_size __attribute__((aligned(64))) = 0;
   uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
   uint32_t choices[30] __attribute__((aligned(64)));
-  uint32_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
-  uint32_t seen[SIZE] __attribute__((aligned(64)));
+  uint8_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
+  uint8_t seen[SIZE] __attribute__((aligned(64)));
   uint32_t chain[25] __attribute__((aligned(64)));
   uint32_t expressions[600] __attribute__((aligned(64)));
   uint32_t expressions_size[25] __attribute__((aligned(64)));
+  size_t tmp_chain_size;
+  size_t generated_chain_size;
+  uint32_t tmp_num_unfulfilled_targets;
 
 #if !PLAN_MODE
   atexit(on_exit);
@@ -321,138 +431,38 @@ int main(int argc, char *argv[]) {
 
     GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
 
-    // will be incremented again in the main loop
-    choices[chain_size] = start_indices[chain_size] - 1;
+    choices[chain_size] = start_indices[chain_size];
 
     // this will be counted again
     total_chains--;
 
-    goto restore_progress;
+    goto loop_4;
   } else {
-    // so that the first addition in the loop results in 0 for the first choice
-    choices[chain_size] = 0xffffffff;
+    choices[chain_size] = 0;
   }
 
-  while (true) {
-    if (__builtin_expect(chain_size + num_unfulfilled_targets == MAX_LENGTH,
-                         1)) {
-      size_t tmp_chain_size = chain_size;
-      size_t generated_chain_size = chain_size - 1;
-      uint32_t tmp_num_unfulfilled_targets = num_unfulfilled_targets;
-      size_t j = choices[chain_size] + 1;
+  LOOP(4, 3, 5)
+  LOOP(5, 4, 6)
+  LOOP(6, 5, 7)
+  LOOP(7, 6, 8)
+  LOOP(8, 7, 9)
+  LOOP(9, 8, 10)
+  LOOP(10, 9, 11)
+  LOOP(11, 10, 12)
+  LOOP(12, 11, 13)
+  LOOP(13, 12, 14)
+  LOOP(14, 13, 15)
+  LOOP(15, 14, 16)
+  LOOP(16, 15, 17)
+  LOOP(17, 16, 18)
+  LOOP(18, 17, 19)
+  LOOP(19, 18, 20)
+  LOOP(20, 19, 21)
+  LOOP(21, 20, 22)
+  LOOP(22, 21, 23)
 
-    next:
-      while (__builtin_expect(tmp_chain_size < MAX_LENGTH, 1)) {
-        GENERATE_NEW_EXPRESSIONS(tmp_chain_size, ADD_EXPRESSION_TARGET)
-        generated_chain_size = tmp_chain_size;
+loop_23: // shouldn't be used
 
-        // CAPTURE_STATS_CALL(tmp_chain_size)
-
-        for (; j < expressions_size[tmp_chain_size]; ++j) {
-          total_chains++;
-          if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-            PRINT_PROGRESS(tmp_chain_size, (uint32_t)j)
-          }
-
-          if (__builtin_expect(target_lookup[expressions[j]], 0)) {
-            chain[tmp_chain_size] = expressions[j];
-            tmp_num_unfulfilled_targets--;
-            tmp_chain_size++;
-            if (__builtin_expect(!tmp_num_unfulfilled_targets, 0)) {
-              print_chain(chain, target_lookup, tmp_chain_size);
-              goto leafs_done;
-            }
-            j++;
-            goto next;
-          }
-        }
-        break;
-      }
-
-    leafs_done:
-      for (size_t i = expressions_size[chain_size - 1];
-           i < expressions_size[generated_chain_size]; i++) {
-        seen[expressions[i]] = 1;
-      }
-
-      chain_size--;
-      num_unfulfilled_targets += target_lookup[chain[chain_size]];
-      // if it was a target function, then we can skip all other choices at this
-      // length, because the target function would now be in seen and prevent
-      // any successful chain from here on; this massively reduces the search
-      // space to about 50% the trick here is to simply add a large number to
-      // the choices at that level if target_lookup is 1, this avoids branching
-      choices[chain_size] += target_lookup[chain[chain_size]] << 16;
-      if (__builtin_expect(chain_size < stop_chain_size, 0)) {
-        return 0;
-      }
-    } else {
-      GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
-
-      CAPTURE_STATS_CALL(chain_size)
-    }
-
-  restore_progress:
-    while (true) {
-      choices[chain_size]++;
-      if (choices[chain_size] < expressions_size[chain_size]) {
-        chain[chain_size] = expressions[choices[chain_size]];
-
-#if PLAN_MODE
-        if (chain_size + 1 - start_chain_length >= plan_depth) {
-          printf("-c");
-          for (size_t j = start_chain_length; j <= chain_size; ++j) {
-            printf(" %d", choices[j]);
-          }
-          printf("\n");
-          choices[chain_size]++;
-          continue;
-        }
-#endif
-
-        total_chains++;
-        if (__builtin_expect((total_chains & 0xffffffff) == 0, 0)) {
-          PRINT_PROGRESS(chain_size, choices[chain_size])
-        }
-
-        num_unfulfilled_targets -= target_lookup[chain[chain_size]];
-
-        if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-          print_chain(chain, target_lookup, chain_size + 1);
-          if (chain_size + 1 < current_best_length) {
-            current_best_length = chain_size + 1;
-          }
-          // it must have been 1 to end up in this path, so we can just
-          // increment num_unfulfilled_targets +=
-          // target_lookup[chain[chain_size]];
-          num_unfulfilled_targets++;
-          goto done;
-        }
-
-        chain_size++;
-        choices[chain_size] = choices[chain_size - 1];
-        break;
-      }
-
-    done:
-      for (size_t i = expressions_size[chain_size - 1];
-           i < expressions_size[chain_size]; i++) {
-        seen[expressions[i]] = 1;
-      }
-
-      chain_size--;
-      num_unfulfilled_targets += target_lookup[chain[chain_size]];
-      // if it was a target function, then we can skip all other choices at this
-      // length, because the target function would now be in seen and prevent
-      // any successful chain from here on; this massively reduces the search
-      // space to about 50% the trick here is to simply add a large number to
-      // the choices at that level if target_lookup is 1, this avoids branching
-      choices[chain_size] += target_lookup[chain[chain_size]] << 16;
-      if (__builtin_expect(chain_size < stop_chain_size, 0)) {
-        return 0;
-      }
-    }
-  }
-
+loop_3:
   return 0;
 }
