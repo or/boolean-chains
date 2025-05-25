@@ -144,7 +144,7 @@ uint64_t stats_num_data_points[25] = {0};
         tmp_chain_size = N;                                                    \
         generated_chain_size = PREV_N;                                         \
         tmp_num_unfulfilled_targets = num_unfulfilled_targets;                 \
-        size_t j = choices[N] + 1;                                             \
+        size_t j = choices[N];                                                 \
                                                                                \
         next_##N : while (__builtin_expect(tmp_chain_size < MAX_LENGTH, 1)) {  \
           GENERATE_NEW_EXPRESSIONS(tmp_chain_size, ADD_EXPRESSION_TARGET)      \
@@ -174,7 +174,7 @@ uint64_t stats_num_data_points[25] = {0};
         }                                                                      \
                                                                                \
         num_unfulfilled_targets += target_lookup[chain[PREV_N]];               \
-        choices[PREV_N] += target_lookup[chain[PREV_N]] << 16;                 \
+        choices[PREV_N] += 1 + (target_lookup[chain[PREV_N]] << 16);           \
         if (__builtin_expect(N < stop_chain_size, 0)) {                        \
           return 0;                                                            \
         }                                                                      \
@@ -184,13 +184,13 @@ uint64_t stats_num_data_points[25] = {0};
                                                                                \
         CAPTURE_STATS_CALL(N)                                                  \
       }                                                                        \
+    } else {                                                                   \
+      GENERATE_NEW_EXPRESSIONS(N, ADD_EXPRESSION)                              \
+                                                                               \
+      CAPTURE_STATS_CALL(N)                                                    \
     }                                                                          \
-    else {GENERATE_NEW_EXPRESSIONS(N, ADD_EXPRESSION)                          \
                                                                                \
-              CAPTURE_STATS_CALL(N)}                                           \
-                                                                               \
-    restore_progress_##N : choices[N]++;                                       \
-    while (choices[N] < expressions_size[N]) {                                 \
+    restore_progress_##N : while (choices[N] < expressions_size[N]) {          \
       chain[N] = expressions[choices[N]];                                      \
                                                                                \
       if (PLAN_MODE) {                                                         \
@@ -221,7 +221,7 @@ uint64_t stats_num_data_points[25] = {0};
         continue;                                                              \
       } else {                                                                 \
         num_unfulfilled_targets -= target_lookup[chain[N]];                    \
-        choices[NEXT_N] = choices[N];                                          \
+        choices[NEXT_N] = choices[N] + 1;                                      \
         goto loop_##NEXT_N;                                                    \
       }                                                                        \
     }                                                                          \
@@ -232,7 +232,7 @@ uint64_t stats_num_data_points[25] = {0};
         seen[expressions[i]] = 1;                                              \
       }                                                                        \
       num_unfulfilled_targets += target_lookup[chain[PREV_N]];                 \
-      choices[PREV_N] += target_lookup[chain[PREV_N]] << 16;                   \
+      choices[PREV_N] += 1 + (target_lookup[chain[PREV_N]] << 16);             \
       if (__builtin_expect(PREV_N < stop_chain_size, 0)) {                     \
         return 0;                                                              \
       }                                                                        \
@@ -427,16 +427,14 @@ int main(int argc, char *argv[]) {
 
     GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
 
-    // will be incremented again in the main loop
-    choices[chain_size] = start_indices[chain_size] - 1;
+    choices[chain_size] = start_indices[chain_size];
 
     // this will be counted again
     total_chains--;
 
     goto restore_progress_4;
   } else {
-    // so that the first addition in the loop results in 0 for the first choice
-    choices[chain_size] = 0xffffffff;
+    choices[chain_size] = 0;
   }
 
   LOOP(4, 3, 5)
