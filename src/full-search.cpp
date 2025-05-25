@@ -212,24 +212,16 @@ uint64_t stats_num_data_points[25] = {0};
               return 0;                                                        \
             }                                                                  \
             goto loop_##CS;                                                    \
-          } else {                                                             \
-            num_unfulfilled_targets -= target_lookup[chain[CS]];               \
-                                                                               \
-            choices[NEXT_CS] = choices[CS] + 1;                                \
-            GENERATE_NEW_EXPRESSIONS(NEXT_CS, ADD_EXPRESSION)                  \
-                                                                               \
-            CAPTURE_STATS_CALL(NEXT_CS)                                        \
-            goto loop_##NEXT_CS;                                               \
           }                                                                    \
-        } else {                                                               \
-          num_unfulfilled_targets -= target_lookup[chain[CS]];                 \
-                                                                               \
-          choices[NEXT_CS] = choices[CS] + 1;                                  \
-          GENERATE_NEW_EXPRESSIONS(NEXT_CS, ADD_EXPRESSION)                    \
-                                                                               \
-          CAPTURE_STATS_CALL(NEXT_CS)                                          \
-          goto loop_##NEXT_CS;                                                 \
         }                                                                      \
+                                                                               \
+        num_unfulfilled_targets -= target_lookup[chain[CS]];                   \
+                                                                               \
+        choices[NEXT_CS] = choices[CS] + 1;                                    \
+        GENERATE_NEW_EXPRESSIONS(NEXT_CS, ADD_EXPRESSION)                      \
+                                                                               \
+        CAPTURE_STATS_CALL(NEXT_CS)                                            \
+        goto loop_##NEXT_CS;                                                   \
       }                                                                        \
     }                                                                          \
                                                                                \
