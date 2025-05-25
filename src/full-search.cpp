@@ -181,7 +181,7 @@ uint64_t stats_num_data_points[25] = {0};
             size_t j = choices[CS] + 1;                                        \
                                                                                \
             next_##CS                                                          \
-                : while (__builtin_expect(tmp_chain_size < MAX_LENGTH, 1)) {   \
+                : if (__builtin_expect(tmp_chain_size < MAX_LENGTH, 1)) {      \
               GENERATE_NEW_EXPRESSIONS(tmp_chain_size, ADD_EXPRESSION_TARGET)  \
               generated_chain_size = tmp_chain_size;                           \
                                                                                \
@@ -193,18 +193,16 @@ uint64_t stats_num_data_points[25] = {0};
                   tmp_chain_size++;                                            \
                   if (__builtin_expect(!tmp_num_unfulfilled_targets, 0)) {     \
                     print_chain(chain, target_lookup, tmp_chain_size);         \
-                    goto leafs_done_##CS;                                      \
+                    break;                                                     \
                   }                                                            \
                   j++;                                                         \
                   goto next_##CS;                                              \
                 }                                                              \
               }                                                                \
-              break;                                                           \
             }                                                                  \
                                                                                \
-            leafs_done_##CS                                                    \
-                : for (size_t i = expressions_size[CS];                        \
-                       i < expressions_size[generated_chain_size]; i++) {      \
+            for (size_t i = expressions_size[CS];                              \
+                 i < expressions_size[generated_chain_size]; i++) {            \
               seen[expressions[i]] = 1;                                        \
             }                                                                  \
                                                                                \
