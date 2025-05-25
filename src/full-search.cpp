@@ -140,7 +140,7 @@ uint64_t stats_num_data_points[25] = {0};
 #define LOOP(CS, PREV_CS, NEXT_CS)                                             \
   loop_##CS : if (CS < MAX_LENGTH) {                                           \
                                                                                \
-    restore_progress_##CS : if (choices[CS] < expressions_size[CS]) {          \
+    if (choices[CS] < expressions_size[CS]) {                                  \
       chain[CS] = expressions[choices[CS]];                                    \
                                                                                \
       if (PLAN_MODE) {                                                         \
@@ -151,7 +151,7 @@ uint64_t stats_num_data_points[25] = {0};
           }                                                                    \
           printf("\n");                                                        \
           choices[CS]++;                                                       \
-          goto restore_progress_##CS;                                          \
+          goto loop_##CS;                                                      \
         }                                                                      \
       }                                                                        \
                                                                                \
@@ -168,7 +168,7 @@ uint64_t stats_num_data_points[25] = {0};
           goto done_##CS;                                                      \
         }                                                                      \
         choices[CS]++;                                                         \
-        goto restore_progress_##CS;                                            \
+        goto loop_##CS;                                                        \
       } else {                                                                 \
         num_unfulfilled_targets -= target_lookup[chain[CS]];                   \
                                                                                \
@@ -213,7 +213,7 @@ uint64_t stats_num_data_points[25] = {0};
             if (__builtin_expect(CS < stop_chain_size, 0)) {                   \
               return 0;                                                        \
             }                                                                  \
-            goto restore_progress_##CS;                                        \
+            goto loop_##CS;                                                    \
           } else {                                                             \
             choices[NEXT_CS] = choices[CS] + 1;                                \
             GENERATE_NEW_EXPRESSIONS(NEXT_CS, ADD_EXPRESSION)                  \
@@ -241,7 +241,7 @@ uint64_t stats_num_data_points[25] = {0};
       if (__builtin_expect(PREV_CS < stop_chain_size, 0)) {                    \
         return 0;                                                              \
       }                                                                        \
-      goto restore_progress_##PREV_CS;                                         \
+      goto loop_##PREV_CS;                                                     \
     }                                                                          \
     else {                                                                     \
       return 0;                                                                \
@@ -437,7 +437,7 @@ int main(int argc, char *argv[]) {
     // this will be counted again
     total_chains--;
 
-    goto restore_progress_4;
+    goto loop_4;
   } else {
     choices[chain_size] = 0;
   }
@@ -464,6 +464,6 @@ int main(int argc, char *argv[]) {
 
 loop_23: // shouldn't be used
 
-restore_progress_3:
+loop_3:
   return 0;
 }
