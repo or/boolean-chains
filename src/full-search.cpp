@@ -137,16 +137,16 @@ uint64_t stats_num_data_points[25] = {0};
     }                                                                          \
   }
 
-#define LOOP(N, PREV_N, NEXT_N)                                                \
-  loop_##N : if (N < MAX_LENGTH) {                                             \
-    if (N >= MAX_LENGTH - NUM_TARGETS) {                                       \
-      if (__builtin_expect(N + num_unfulfilled_targets == MAX_LENGTH, 1)) {    \
-        tmp_chain_size = N;                                                    \
-        generated_chain_size = PREV_N;                                         \
+#define LOOP(CS, PREV_CS, NEXT_CS)                                             \
+  loop_##CS : if (CS < MAX_LENGTH) {                                           \
+    if (CS >= MAX_LENGTH - NUM_TARGETS) {                                      \
+      if (__builtin_expect(CS + num_unfulfilled_targets == MAX_LENGTH, 1)) {   \
+        tmp_chain_size = CS;                                                   \
+        generated_chain_size = PREV_CS;                                        \
         tmp_num_unfulfilled_targets = num_unfulfilled_targets;                 \
-        size_t j = choices[N];                                                 \
+        size_t j = choices[CS];                                                \
                                                                                \
-        next_##N : while (__builtin_expect(tmp_chain_size < MAX_LENGTH, 1)) {  \
+        next_##CS : while (__builtin_expect(tmp_chain_size < MAX_LENGTH, 1)) { \
           GENERATE_NEW_EXPRESSIONS(tmp_chain_size, ADD_EXPRESSION_TARGET)      \
           generated_chain_size = tmp_chain_size;                               \
                                                                                \
@@ -158,85 +158,85 @@ uint64_t stats_num_data_points[25] = {0};
               tmp_chain_size++;                                                \
               if (__builtin_expect(!tmp_num_unfulfilled_targets, 0)) {         \
                 print_chain(chain, target_lookup, tmp_chain_size);             \
-                goto leafs_done_##N;                                           \
+                goto leafs_done_##CS;                                          \
               }                                                                \
               j++;                                                             \
-              goto next_##N;                                                   \
+              goto next_##CS;                                                  \
             }                                                                  \
           }                                                                    \
           break;                                                               \
         }                                                                      \
                                                                                \
-        leafs_done_##N                                                         \
-            : for (size_t i = expressions_size[PREV_N];                        \
+        leafs_done_##CS                                                        \
+            : for (size_t i = expressions_size[PREV_CS];                       \
                    i < expressions_size[generated_chain_size]; i++) {          \
           seen[expressions[i]] = 1;                                            \
         }                                                                      \
                                                                                \
-        num_unfulfilled_targets += target_lookup[chain[PREV_N]];               \
-        choices[PREV_N] += 1 + (target_lookup[chain[PREV_N]] << 16);           \
-        if (__builtin_expect(N < stop_chain_size, 0)) {                        \
+        num_unfulfilled_targets += target_lookup[chain[PREV_CS]];              \
+        choices[PREV_CS] += 1 + (target_lookup[chain[PREV_CS]] << 16);         \
+        if (__builtin_expect(CS < stop_chain_size, 0)) {                       \
           return 0;                                                            \
         }                                                                      \
-        goto restore_progress_##PREV_N;                                        \
+        goto restore_progress_##PREV_CS;                                       \
       } else {                                                                 \
-        GENERATE_NEW_EXPRESSIONS(N, ADD_EXPRESSION)                            \
+        GENERATE_NEW_EXPRESSIONS(CS, ADD_EXPRESSION)                           \
                                                                                \
-        CAPTURE_STATS_CALL(N)                                                  \
+        CAPTURE_STATS_CALL(CS)                                                 \
       }                                                                        \
     } else {                                                                   \
-      GENERATE_NEW_EXPRESSIONS(N, ADD_EXPRESSION)                              \
+      GENERATE_NEW_EXPRESSIONS(CS, ADD_EXPRESSION)                             \
                                                                                \
-      CAPTURE_STATS_CALL(N)                                                    \
+      CAPTURE_STATS_CALL(CS)                                                   \
     }                                                                          \
                                                                                \
-    restore_progress_##N : while (choices[N] < expressions_size[N]) {          \
-      chain[N] = expressions[choices[N]];                                      \
+    restore_progress_##CS : while (choices[CS] < expressions_size[CS]) {       \
+      chain[CS] = expressions[choices[CS]];                                    \
                                                                                \
       if (PLAN_MODE) {                                                         \
-        if (N + 1 - start_chain_length >= plan_depth) {                        \
+        if (CS + 1 - start_chain_length >= plan_depth) {                       \
           printf("-c");                                                        \
-          for (size_t j = start_chain_length; j <= N; ++j) {                   \
+          for (size_t j = start_chain_length; j <= CS; ++j) {                  \
             printf(" %d", choices[j]);                                         \
           }                                                                    \
           printf("\n");                                                        \
-          choices[N]++;                                                        \
+          choices[CS]++;                                                       \
           continue;                                                            \
         }                                                                      \
       }                                                                        \
                                                                                \
       total_chains++;                                                          \
                                                                                \
-      if (N == PRINT_PROGRESS_LENGTH) {                                        \
-        PRINT_PROGRESS(N, choices[N]);                                         \
+      if (CS == PRINT_PROGRESS_LENGTH) {                                       \
+        PRINT_PROGRESS(CS, choices[CS]);                                       \
       }                                                                        \
                                                                                \
-      if (N == MAX_LENGTH - 1) {                                               \
+      if (CS == MAX_LENGTH - 1) {                                              \
         if (__builtin_expect(                                                  \
-                num_unfulfilled_targets - target_lookup[chain[N]] == 1, 0)) {  \
+                num_unfulfilled_targets - target_lookup[chain[CS]] == 1, 0)) { \
           print_chain(chain, target_lookup, MAX_LENGTH);                       \
-          goto done_##N;                                                       \
+          goto done_##CS;                                                      \
         }                                                                      \
-        choices[N]++;                                                          \
+        choices[CS]++;                                                         \
         continue;                                                              \
       } else {                                                                 \
-        num_unfulfilled_targets -= target_lookup[chain[N]];                    \
-        choices[NEXT_N] = choices[N] + 1;                                      \
-        goto loop_##NEXT_N;                                                    \
+        num_unfulfilled_targets -= target_lookup[chain[CS]];                   \
+        choices[NEXT_CS] = choices[CS] + 1;                                    \
+        goto loop_##NEXT_CS;                                                   \
       }                                                                        \
     }                                                                          \
                                                                                \
-    done_##N : if (N > 4) {                                                    \
-      for (size_t i = expressions_size[PREV_N]; i < expressions_size[N];       \
+    done_##CS : if (CS > 4) {                                                  \
+      for (size_t i = expressions_size[PREV_CS]; i < expressions_size[CS];     \
            i++) {                                                              \
         seen[expressions[i]] = 1;                                              \
       }                                                                        \
-      num_unfulfilled_targets += target_lookup[chain[PREV_N]];                 \
-      choices[PREV_N] += 1 + (target_lookup[chain[PREV_N]] << 16);             \
-      if (__builtin_expect(PREV_N < stop_chain_size, 0)) {                     \
+      num_unfulfilled_targets += target_lookup[chain[PREV_CS]];                \
+      choices[PREV_CS] += 1 + (target_lookup[chain[PREV_CS]] << 16);           \
+      if (__builtin_expect(PREV_CS < stop_chain_size, 0)) {                    \
         return 0;                                                              \
       }                                                                        \
-      goto restore_progress_##PREV_N;                                          \
+      goto restore_progress_##PREV_CS;                                         \
     }                                                                          \
     else {                                                                     \
       return 0;                                                                \
