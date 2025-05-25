@@ -190,7 +190,7 @@ uint64_t stats_num_data_points[25] = {0};
       CAPTURE_STATS_CALL(CS)                                                   \
     }                                                                          \
                                                                                \
-    restore_progress_##CS : while (choices[CS] < expressions_size[CS]) {       \
+    restore_progress_##CS : if (choices[CS] < expressions_size[CS]) {          \
       chain[CS] = expressions[choices[CS]];                                    \
                                                                                \
       if (PLAN_MODE) {                                                         \
@@ -201,7 +201,7 @@ uint64_t stats_num_data_points[25] = {0};
           }                                                                    \
           printf("\n");                                                        \
           choices[CS]++;                                                       \
-          continue;                                                            \
+          goto restore_progress_##CS;                                          \
         }                                                                      \
       }                                                                        \
                                                                                \
@@ -218,7 +218,7 @@ uint64_t stats_num_data_points[25] = {0};
           goto done_##CS;                                                      \
         }                                                                      \
         choices[CS]++;                                                         \
-        continue;                                                              \
+        goto restore_progress_##CS;                                            \
       } else {                                                                 \
         num_unfulfilled_targets -= target_lookup[chain[CS]];                   \
         choices[NEXT_CS] = choices[CS] + 1;                                    \
