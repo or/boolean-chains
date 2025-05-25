@@ -35,6 +35,11 @@ constexpr uint32_t N = 12;
 constexpr uint32_t SIZE = 1 << (N - 1);
 constexpr uint32_t MAX_LENGTH = 18;
 constexpr uint32_t PRINT_PROGRESS_LENGTH = 5;
+// That check is not needed for most leaf processing; but if this is too low,
+// then the chunk completion won't be detected properly, namely if it is lower
+// than the chunk length provided... chunks likely will be 4 + 1, 2, 3, 4, or 5,
+// so 9 is a good value.
+constexpr uint32_t MAX_LENGTH_FOR_COMPLETION_CHECK = 9;
 constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
 constexpr uint32_t TARGET_1 =
     ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY;
@@ -208,8 +213,10 @@ uint64_t stats_num_data_points[25] = {0};
             }                                                                  \
                                                                                \
             choices[CS] += 1 + (target_lookup[chain[CS]] << 16);               \
-            if (__builtin_expect(CS < stop_chain_size, 0)) {                   \
-              return 0;                                                        \
+            if (CS <= MAX_LENGTH_FOR_COMPLETION_CHECK) {                       \
+              if (__builtin_expect(CS < stop_chain_size, 0)) {                 \
+                return 0;                                                      \
+              }                                                                \
             }                                                                  \
             goto loop_##CS;                                                    \
           }                                                                    \
