@@ -170,14 +170,15 @@ uint64_t stats_num_data_points[25] = {0};
         choices[CS]++;                                                         \
         goto loop_##CS;                                                        \
       } else {                                                                 \
-        num_unfulfilled_targets -= target_lookup[chain[CS]];                   \
-                                                                               \
         if (NEXT_CS >= MAX_LENGTH - NUM_TARGETS) {                             \
-          if (__builtin_expect(                                                \
-                  NEXT_CS + num_unfulfilled_targets == MAX_LENGTH, 1)) {       \
+          if (__builtin_expect(NEXT_CS + num_unfulfilled_targets -             \
+                                       target_lookup[chain[CS]] ==             \
+                                   MAX_LENGTH,                                 \
+                               1)) {                                           \
             tmp_chain_size = NEXT_CS;                                          \
             generated_chain_size = CS;                                         \
-            tmp_num_unfulfilled_targets = num_unfulfilled_targets;             \
+            tmp_num_unfulfilled_targets =                                      \
+                num_unfulfilled_targets - target_lookup[chain[CS]];            \
             size_t j = choices[CS] + 1;                                        \
                                                                                \
             next_##CS                                                          \
@@ -206,13 +207,14 @@ uint64_t stats_num_data_points[25] = {0};
               seen[expressions[i]] = 1;                                        \
             }                                                                  \
                                                                                \
-            num_unfulfilled_targets += target_lookup[chain[CS]];               \
             choices[CS] += 1 + (target_lookup[chain[CS]] << 16);               \
             if (__builtin_expect(CS < stop_chain_size, 0)) {                   \
               return 0;                                                        \
             }                                                                  \
             goto loop_##CS;                                                    \
           } else {                                                             \
+            num_unfulfilled_targets -= target_lookup[chain[CS]];               \
+                                                                               \
             choices[NEXT_CS] = choices[CS] + 1;                                \
             GENERATE_NEW_EXPRESSIONS(NEXT_CS, ADD_EXPRESSION)                  \
                                                                                \
@@ -220,6 +222,8 @@ uint64_t stats_num_data_points[25] = {0};
             goto loop_##NEXT_CS;                                               \
           }                                                                    \
         } else {                                                               \
+          num_unfulfilled_targets -= target_lookup[chain[CS]];                 \
+                                                                               \
           choices[NEXT_CS] = choices[CS] + 1;                                  \
           GENERATE_NEW_EXPRESSIONS(NEXT_CS, ADD_EXPRESSION)                    \
                                                                                \
