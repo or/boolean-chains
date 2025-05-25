@@ -190,7 +190,8 @@ uint64_t stats_num_data_points[25] = {0};
       CAPTURE_STATS_CALL(CS)                                                   \
     }                                                                          \
                                                                                \
-    restore_progress_##CS : if (choices[CS] < expressions_size[CS]) {          \
+    restore_progress_##CS                                                      \
+        : if (__builtin_expect(choices[CS] < expressions_size[CS], 1)) {       \
       chain[CS] = expressions[choices[CS]];                                    \
                                                                                \
       if (PLAN_MODE) {                                                         \
