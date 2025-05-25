@@ -211,18 +211,16 @@ uint64_t stats_num_data_points[25] = {0};
         PRINT_PROGRESS(N, choices[N]);                                         \
       }                                                                        \
                                                                                \
-      num_unfulfilled_targets -= target_lookup[chain[N]];                      \
-                                                                               \
       if (N == MAX_LENGTH - 1) {                                               \
-        if (__builtin_expect(!num_unfulfilled_targets, 0)) {                   \
+        if (__builtin_expect(                                                  \
+                num_unfulfilled_targets - target_lookup[chain[N]] == 1, 0)) {  \
           print_chain(chain, target_lookup, MAX_LENGTH);                       \
-          num_unfulfilled_targets++;                                           \
           goto done_##N;                                                       \
         }                                                                      \
-        num_unfulfilled_targets += target_lookup[chain[N]];                    \
         choices[N]++;                                                          \
         continue;                                                              \
       } else {                                                                 \
+        num_unfulfilled_targets -= target_lookup[chain[N]];                    \
         choices[NEXT_N] = choices[N];                                          \
         goto loop_##NEXT_N;                                                    \
       }                                                                        \
