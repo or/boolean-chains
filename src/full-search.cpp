@@ -169,8 +169,8 @@ uint64_t stats_num_data_points[25] = {0};
                                                                                \
       if (CHECK_SHORTER_THAN_MAX_LENGTH) {                                     \
         if (__builtin_expect(                                                  \
-                num_unfulfilled_targets - target_lookup[chain[CS]] == 1, 0)) { \
-          print_chain(chain, target_lookup, MAX_LENGTH);                       \
+                num_unfulfilled_targets - target_lookup[chain[CS]] == 0, 0)) { \
+          print_chain(chain, target_lookup, CS + 1);                           \
           goto done_##CS;                                                      \
         }                                                                      \
       }                                                                        \
