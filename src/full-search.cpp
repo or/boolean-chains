@@ -61,7 +61,7 @@ constexpr uint32_t TARGETS[] = {
 };
 constexpr uint32_t NUM_TARGETS = sizeof(TARGETS) / sizeof(uint32_t);
 
-size_t plan_depth = 1;
+uint32_t plan_depth = 1;
 
 uint32_t start_chain_length;
 uint64_t total_chains = 0;
@@ -74,7 +74,7 @@ uint64_t stats_num_data_points[25] = {0};
 #endif
 
 #define PRINT_PROGRESS(chain_size, last)                                       \
-  for (size_t j = start_chain_length; j < chain_size; ++j) {                   \
+  for (uint32_t j = start_chain_length; j < chain_size; ++j) {                 \
     printf("%d, ", choices[j]);                                                \
   }                                                                            \
   printf("%d %" PRIu64 "\n", last, total_chains);                              \
@@ -100,7 +100,7 @@ uint64_t stats_num_data_points[25] = {0};
     const uint32_t h = chain[chain_size - 1];                                  \
     const uint32_t not_h = ~h;                                                 \
                                                                                \
-    size_t j = 0;                                                              \
+    uint32_t j = 0;                                                            \
     for (; j < chain_size - 4; j += 4) {                                       \
       const uint32_t g0 = chain[j], g1 = chain[j + 1], g2 = chain[j + 2],      \
                      g3 = chain[j + 3];                                        \
@@ -152,7 +152,7 @@ uint64_t stats_num_data_points[25] = {0};
       if (PLAN_MODE) {                                                         \
         if (CS + 1 - start_chain_length >= plan_depth) {                       \
           printf("-c");                                                        \
-          for (size_t j = start_chain_length; j <= CS; ++j) {                  \
+          for (uint32_t j = start_chain_length; j <= CS; ++j) {                \
             printf(" %d", choices[j]);                                         \
           }                                                                    \
           printf("\n");                                                        \
@@ -184,7 +184,7 @@ uint64_t stats_num_data_points[25] = {0};
           generated_chain_size = CS;                                           \
           tmp_num_unfulfilled_targets =                                        \
               num_unfulfilled_targets - target_lookup[chain[CS]];              \
-          size_t j = choices[CS] + 1;                                          \
+          uint32_t j = choices[CS] + 1;                                        \
                                                                                \
           next_##CS : if (__builtin_expect(tmp_chain_size < MAX_LENGTH, 1)) {  \
             GENERATE_NEW_EXPRESSIONS(tmp_chain_size, ADD_EXPRESSION_TARGET)    \
@@ -206,7 +206,7 @@ uint64_t stats_num_data_points[25] = {0};
             }                                                                  \
           }                                                                    \
                                                                                \
-          for (size_t i = expressions_size[CS];                                \
+          for (uint32_t i = expressions_size[CS];                              \
                i < expressions_size[generated_chain_size]; i++) {              \
             unseen[expressions[i]] = 1;                                        \
           }                                                                    \
@@ -231,7 +231,7 @@ uint64_t stats_num_data_points[25] = {0};
     }                                                                          \
                                                                                \
     done_##CS : if (CS > 4) {                                                  \
-      for (size_t i = expressions_size[PREV_CS]; i < expressions_size[CS];     \
+      for (uint32_t i = expressions_size[PREV_CS]; i < expressions_size[CS];   \
            i++) {                                                              \
         unseen[expressions[i]] = 1;                                            \
       }                                                                        \
@@ -248,12 +248,12 @@ uint64_t stats_num_data_points[25] = {0};
   }
 
 void print_chain(const uint32_t *chain, const uint8_t *target_lookup,
-                 const size_t chain_size) {
-  printf("chain (%zu):\n", chain_size);
-  for (size_t i = 0; i < chain_size; i++) {
-    printf("x%zu", i + 1);
-    for (size_t j = 0; j < i; j++) {
-      for (size_t k = j + 1; k < i; k++) {
+                 const uint32_t chain_size) {
+  printf("chain (%d):\n", chain_size);
+  for (uint32_t i = 0; i < chain_size; i++) {
+    printf("x%d", i + 1);
+    for (uint32_t j = 0; j < i; j++) {
+      for (uint32_t k = j + 1; k < i; k++) {
         char op = 0;
         if (chain[i] == (chain[j] & chain[k])) {
           op = '&';
@@ -269,7 +269,7 @@ void print_chain(const uint32_t *chain, const uint8_t *target_lookup,
           continue;
         }
 
-        printf(" = x%zu %c x%zu", j + 1, op, k + 1);
+        printf(" = x%d %c x%d", j + 1, op, k + 1);
       }
     }
     printf(" = %s", std::bitset<N>(chain[i]).to_string().c_str());
@@ -315,8 +315,8 @@ void signal_handler(int signal) { exit(signal); }
 int main(int argc, char *argv[]) {
   bool chunk_mode = false;
   uint32_t num_unfulfilled_targets = NUM_TARGETS;
-  size_t stop_chain_size;
-  size_t start_indices_size __attribute__((aligned(64))) = 0;
+  uint32_t stop_chain_size;
+  uint32_t start_indices_size __attribute__((aligned(64))) = 0;
   uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
   uint32_t choices[30] __attribute__((aligned(64)));
   uint8_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
@@ -324,8 +324,8 @@ int main(int argc, char *argv[]) {
   uint32_t chain[25] __attribute__((aligned(64)));
   uint32_t expressions[600] __attribute__((aligned(64)));
   uint32_t expressions_size[25] __attribute__((aligned(64)));
-  size_t tmp_chain_size;
-  size_t generated_chain_size;
+  uint32_t tmp_chain_size;
+  uint32_t generated_chain_size;
   uint32_t tmp_num_unfulfilled_targets;
 
 #if !PLAN_MODE
@@ -338,7 +338,7 @@ int main(int argc, char *argv[]) {
   chain[1] = 0b0000111100001111 >> (16 - N);
   chain[2] = 0b0011001100110011 >> (16 - N);
   chain[3] = 0b0101010101010101 >> (16 - N);
-  size_t chain_size = 4;
+  uint32_t chain_size = 4;
   start_chain_length = chain_size;
 
 #if PLAN_MODE
@@ -346,7 +346,7 @@ int main(int argc, char *argv[]) {
     plan_depth = atoi(argv[1]);
   }
 #else
-  size_t start_i = 1;
+  uint32_t start_i = 1;
   // -c for chunk mode, only complete one slice of the depth given by the
   // progress vector
   if (argc > 1 && strcmp(argv[1], "-c") == 0) {
@@ -354,23 +354,23 @@ int main(int argc, char *argv[]) {
     chunk_mode = true;
   }
 
-  for (size_t i = 0; i < chain_size; i++) {
+  for (uint32_t i = 0; i < chain_size; i++) {
     start_indices[start_indices_size++] = 0;
   }
 
   // read the progress vector, e.g 5 2 9, commas will be ignored: 5, 2, 9
-  for (size_t i = start_i; i < argc; i++) {
+  for (uint32_t i = start_i; i < argc; i++) {
     start_indices[start_indices_size++] = atoi(argv[i]);
   }
 #endif
 
-  for (size_t i = 0; i < SIZE; i++) {
+  for (uint32_t i = 0; i < SIZE; i++) {
     // flip the logic: 1 means unseen, 0 unseen, that'll avoid one operation
     // when setting this flag
     unseen[i] = 1;
   }
 
-  for (size_t i = 0; i < NUM_TARGETS; i++) {
+  for (uint32_t i = 0; i < NUM_TARGETS; i++) {
     target_lookup[TARGETS[i]] = 1;
   }
 
@@ -378,7 +378,7 @@ int main(int argc, char *argv[]) {
   printf("N = %d, MAX_LENGTH: %d, CAPTURE_STATS: %d\n", N, MAX_LENGTH,
          CAPTURE_STATS);
   printf("%d targets:\n", NUM_TARGETS);
-  for (size_t i = 0; i < NUM_TARGETS; i++) {
+  for (uint32_t i = 0; i < NUM_TARGETS; i++) {
     printf("  %s\n", std::bitset<N>(TARGETS[i]).to_string().c_str());
   }
   fflush(stdout);
@@ -389,16 +389,16 @@ int main(int argc, char *argv[]) {
          sizeof(stats_min_num_expressions));
 #endif
   unseen[0] = 0;
-  for (size_t i = 0; i < chain_size; i++) {
+  for (uint32_t i = 0; i < chain_size; i++) {
     unseen[chain[i]] = 0;
   }
 
   chain_size--;
   expressions_size[chain_size] = 0;
-  for (size_t k = 1; k < chain_size; k++) {
+  for (uint32_t k = 1; k < chain_size; k++) {
     const uint32_t h = chain[k];
     const uint32_t not_h = ~h;
-    for (size_t j = 0; j < k; j++) {
+    for (uint32_t j = 0; j < k; j++) {
       const uint32_t g = chain[j];
       const uint32_t not_g = ~g;
 
@@ -436,7 +436,7 @@ int main(int argc, char *argv[]) {
     // this will be counted again
     total_chains--;
 
-    goto loop_4;
+    goto loop_5;
   } else {
     choices[chain_size] = 0;
   }
