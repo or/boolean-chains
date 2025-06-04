@@ -335,18 +335,25 @@ int main(int argc, char *argv[]) {
   for (size_t i = 0; i < MAX_LENGTH; i++) {
     bite_size[i] = 1;
   }
-  bite_size[4] = 8;
-  bite_size[5] = 8;
-  bite_size[6] = 8;
-  bite_size[7] = 8;
-  bite_size[8] = 2;
-  bite_size[9] = 6;
+  bite_size[4] = 31;
+  bite_size[5] = 31;
+  bite_size[6] = 31;
+  bite_size[7] = 11;
+  bite_size[8] = 5;
+  bite_size[9] = 5;
   bite_size[10] = 5;
-  bite_size[11] = 4;
-  bite_size[12] = 4;
-  bite_size[13] = 3;
-  bite_size[14] = 3;
-  bite_size[15] = 2;
+  bite_size[11] = 5;
+  bite_size[12] = 5;
+  bite_size[13] = 4;
+  bite_size[14] = 4;
+  bite_size[15] = 4;
+  bite_size[16] = 4;
+  bite_size[17] = 4;
+  bite_size[18] = 4;
+  bite_size[19] = 3;
+  bite_size[20] = 3;
+  bite_size[21] = 2;
+  bite_size[22] = 1;
 
   atexit(on_exit);
   signal(SIGINT, signal_handler);
