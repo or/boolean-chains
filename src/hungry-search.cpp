@@ -463,7 +463,8 @@ restore_progress:
       }
 
       num_unfulfilled_targets -= target_lookup[chain[chain_size]];
-      if (chain_size + num_unfulfilled_targets >= MAX_LENGTH) {
+      if (__builtin_expect(chain_size + num_unfulfilled_targets >= MAX_LENGTH,
+                           0)) {
         // no need to do this, as it must have been 0 to end up in this path
         // num_unfulfilled_targets += target_lookup[chain[chain_size]];
         choices[chain_size]++;
