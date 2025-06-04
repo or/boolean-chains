@@ -35,7 +35,7 @@
 
 constexpr uint32_t N = 16;
 constexpr uint32_t SIZE = 1 << (N - 1);
-constexpr uint32_t MAX_LENGTH = 23;
+constexpr uint32_t MAX_LENGTH = 22;
 constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
 constexpr uint32_t TARGET_1 =
     ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY;
@@ -331,7 +331,7 @@ int main(int argc, char *argv[]) {
   size_t start_indices_size __attribute__((aligned(64))) = 0;
   uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
   size_t current_best_length = 1000;
-  size_t bite_size[MAX_LENGTH] = {0};
+  size_t bite_size[25] = {0};
   for (size_t i = 0; i < MAX_LENGTH; i++) {
     bite_size[i] = 1;
   }
