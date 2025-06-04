@@ -8,6 +8,6 @@ COPY Makefile .
 COPY src src
 
 RUN mkdir target
-RUN make target/full-search target/full-search-plan
+RUN make target/full-search target/full-search-plan target/hungry-search
 
 RUN target/full-search-plan 4 > plan.txt

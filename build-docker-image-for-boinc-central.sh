@@ -10,3 +10,4 @@ container_id="$(docker ps -a | grep $container_name | awk '{print $1}')"
 mkdir -p boinc-build
 docker cp $container_id:/target/full-search ./boinc-build
 docker cp $container_id:/plan.txt ./boinc-build
+docker cp $container_id:/target/hungry-search ./boinc-build
