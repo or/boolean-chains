@@ -316,6 +316,80 @@ def extract_chains():
                 f.write("\n------\n\n")
 
 
+def find_shortest_chain(chain, target):
+    involved_steps = set()
+    next_steps = []
+    for i, step in enumerate(chain):
+        if target.startswith(step[-2]):
+            next_steps.append(i)
+            break
+
+    while next_steps:
+        # print(target, next_steps, involved_steps)
+        index = next_steps.pop(0)
+        (left, _, right, *_) = chain[index]
+        involved_steps.add(index)
+
+        if (
+            left is not None
+            and left >= 4
+            and left not in involved_steps
+            and left not in next_steps
+        ):
+            next_steps.append(left)
+        if (
+            right is not None
+            and right >= 4
+            and right not in involved_steps
+            and right not in next_steps
+        ):
+            next_steps.append(right)
+
+    return involved_steps
+
+
+def find_single_target_chain_lengths():
+    data = []
+    for fn in sys.argv[1:]:
+        with open(fn) as f:
+            data.append(f.read())
+
+    data = "\n".join(data)
+
+    chains = find_chains(data)
+    parsed_chains = [parse_chain(chain) for chain in chains]
+
+    min_size = min(len(x) for x in parsed_chains)
+    num_bits = len(parsed_chains[0][0])
+
+    parsed_chains = [x for x in parsed_chains if len(x) == min_size]
+
+    raw_extracted_chains = []
+    for parsed_chain in parsed_chains:
+        raw_extracted_chains += extract_possible_chains(parsed_chain)
+
+    extracted_chains = []
+    for chain in raw_extracted_chains:
+        new_chain = []
+        for j, op, k, f, full_f in chain:
+            new_chain.append(
+                (
+                    j,
+                    op,
+                    k,
+                    bin(f)[2:].rjust(num_bits, "0"),
+                    bin(full_f)[2:].rjust(16, "0"),
+                )
+            )
+
+        extracted_chains.append(new_chain)
+
+    for extracted_chain in extracted_chains:
+        for target in TARGETS:
+            target_chain = find_shortest_chain(extracted_chain, target[0])
+            print(target, len(target_chain))
+
+
 def get_smaller_chains():
     chain_sets = {}
     for fn in glob("output-partial-*-*.txt"):
@@ -372,4 +446,6 @@ def try_puzzle():
 
 # stats()
 
-extract_chains()
+# extract_chains()
+
+find_single_target_chain_lengths()
