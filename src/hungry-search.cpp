@@ -68,16 +68,16 @@ uint64_t stats_num_tries[25] = {0};
 #endif
 
 BitSet footprints[SIZE];
-uint32_t costs[SIZE] __attribute__((aligned(64))) = {0};
-uint32_t levels[50][50000];
+uint8_t costs[SIZE] __attribute__((aligned(64))) = {0};
+uint32_t levels[50][50000] __attribute__((aligned(64))) = {0};
 size_t levels_size[10] = {0};
-uint32_t frequencies[50000];
-uint32_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
+uint8_t frequencies[50000];
+uint8_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
 
 #define ADD_FIRST_EXPRESSION(value)                                            \
   {                                                                            \
     uint32_t f = value;                                                        \
-    if (costs[f] == 0xffffffff) {                                              \
+    if (costs[f] == 0xff) {                                                    \
       costs[f] = 1;                                                            \
       levels[1][levels_size[1]] = f;                                           \
       footprints[f].insert(levels_size[1]);                                    \
@@ -201,7 +201,7 @@ void algorithm_l_with_footprints(const uint32_t *chain,
 
     bool all_targets_found = true;
     for (size_t i = 0; i < NUM_TARGETS; i++) {
-      if (costs[TARGETS[i]] == 0xffffffff) {
+      if (costs[TARGETS[i]] == 0xff) {
         all_targets_found = false;
         break;
       }
@@ -241,7 +241,7 @@ void algorithm_l_with_footprints(const uint32_t *chain,
 
           for (const uint32_t &f :
                {g & h, not_g & h, g & not_h, g | h, g ^ h}) {
-            if (costs[f] == 0xffffffff) {
+            if (costs[f] == 0xff) {
               costs[f] = u;
               levels[u][levels_size[u]] = f;
               levels_size[u]++;
@@ -267,7 +267,7 @@ void algorithm_l_with_footprints(const uint32_t *chain,
 }
 
 void count_first_expressions_in_footprints(const uint32_t expressions_size) {
-  memset(frequencies, 0, sizeof(uint32_t) * expressions_size);
+  memset(frequencies, 0, sizeof(uint8_t) * expressions_size);
 
   for (const uint32_t &f : TARGETS) {
     for (size_t i = 0; i < expressions_size; i++) {
