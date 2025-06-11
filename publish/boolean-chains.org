@@ -797,6 +797,12 @@ Note: the 15 digits search for length 18 is noticeably faster than the one for
 length 17, this is because the one for length 18 already employed the
 optimization of avoiding Algorithm U if the next step must be a target function.
 
+With bite sizes 31, 31, 31, 11, 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 3, 3, 2, 1.
+|           | length | chains found | unique chains | chains generated | computation time | progress |               capacity |
+|           |    <r> |          <r> |           <r> |              <r> |              <r> |      <r> |                    <r> |
+|-----------+--------+--------------+---------------+------------------+------------------+----------+------------------------|
+| 16 digits |     18 |            0 |             0 |    7,814,908,813 |       1,454 days |      24% | BOINC Central, various |
+
 ** Branching
 :PROPERTIES:
 :CUSTOM_ID: results-branching
