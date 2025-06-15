@@ -9,9 +9,9 @@
 // These constants define the parameters of the search problem.
 
 // N defines the number of bits in the boolean functions.
-#define N 11
+#define N 12
 // The maximum length of the logic chain to search for.
-#define MAX_LENGTH 16
+#define MAX_LENGTH 18
 // The total number of possible functions is 2^(N-1), as f(x) = f(~x).
 #define SIZE (1 << (N - 1))
 // A bitmask representing a tautology (all ones).
@@ -97,9 +97,9 @@ __host__ __device__ void generate_new_expressions(uint8_t chain_size,
         // Generate expressions from various bitwise operations.
         add_expression(g & h, expressions_size, chain);
         add_expression(g & not_h, expressions_size, chain);
-        add_expression(not_g & h, expressions_size, chain);
         add_expression(g ^ h, expressions_size, chain);
         add_expression(g | h, expressions_size, chain);
+        add_expression(not_g & h, expressions_size, chain);
     }
 }
 
@@ -256,7 +256,7 @@ void print_chain(const Chain &s, const uint8_t *target_lookup) {
     }
 }
 
-int main() {
+int main(int argc, char *argv[]) {
     printf("Starting logic chain synthesis for N=%d\n", N);
     printf("Max length: %d, Num targets: %d\n", MAX_LENGTH, NUM_TARGETS);
 
@@ -288,6 +288,16 @@ int main() {
         target_lookup[host_targets[i]] = 1;
     }
 
+    uint32_t start_i = 1;
+    // -c for chunk mode, only complete one slice of the depth given by the
+    // progress vector
+    if (argc > 1 && strcmp(argv[1], "-c") == 0) {
+        start_i++;
+    }
+
+    uint32_t start_indices_size __attribute__((aligned(64))) = 0;
+    uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
+
     // --- Generate Initial Search Tasks on the CPU ---
     printf("Generating initial search tasks on the CPU...\n");
     std::vector<Chain> initial_tasks;
@@ -298,6 +308,15 @@ int main() {
     base_chain.chain[1] = 0b0000111100001111 >> (16 - N);
     base_chain.chain[2] = 0b0011001100110011 >> (16 - N);
     base_chain.chain[3] = 0b0101010101010101 >> (16 - N);
+
+    for (uint32_t i = 0; i < base_chain.length; i++) {
+        start_indices[start_indices_size++] = 0;
+    }
+
+    // read the progress vector, e.g 5 2 9, commas will be ignored: 5, 2, 9
+    for (uint32_t i = start_i; i < argc; i++) {
+        start_indices[start_indices_size++] = atoi(argv[i]);
+    }
 
     memset(base_chain.unseen, 1, sizeof(base_chain.unseen));
     base_chain.unseen[0] = 0;
@@ -313,9 +332,16 @@ int main() {
                                  base_chain);
     }
 
+    while (base_chain.length < start_indices_size) {
+        generate_new_expressions(base_chain.length, base_chain.expressions_size,
+                                 base_chain);
+        base_chain.choices[base_chain.length] = start_indices[base_chain.length];
+        base_chain.chain[base_chain.length] = base_chain.expressions[base_chain.choices[base_chain.length]];
+        base_chain.length++;
+    }
+
     // Unroll the first few levels of the search to create independent tasks
-    uint32_t cpu_search_depth =
-        3; // Generate tasks for chains of length 4 + 2 = 6
+    uint32_t cpu_search_depth = 3;
     std::vector<Chain> queue;
     queue.push_back(base_chain);
 
