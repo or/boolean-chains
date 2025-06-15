@@ -1,5 +1,6 @@
 COMPILER = clang++
 OPT_FLAGS = -std=c++20 -O3 -march=native -flto -ffast-math -fomit-frame-pointer -funroll-loops -fno-sanitize=all -fno-builtin-memcpy -fno-stack-protector -fno-strict-aliasing -fno-delete-null-pointer-checks -fno-exceptions -fno-rtti
+GPU_OPT_FLAGS = -I/home/or/lib/cuda-samples/Common -ccbin g++-14 -m64 -std=c++17 -O3 -Wno-deprecated-gpu-targets
 
 PROFILE_FLAGS = -O0 -fprofile-instr-generate=default.profraw
 OPTIMIZED_PROFILE_FLAGS = -fprofile-instr-use=default.profdata
@@ -31,7 +32,10 @@ target/full-search-debug: src/full-search.cpp src/*.h Makefile
 	$(COMPILER) -o target/full-search-debug src/full-search.cpp -std=c++20 -g 2>&1
 
 target/full-search-cuda: src/full-search-cuda.cu Makefile
-	nvcc -I/home/or/lib/cuda-samples/Common -ccbin g++-14 -m64 --std=c++17 -o target/full-search-cuda src/full-search-cuda.cu 2>&1
+	nvcc $(GPU_OPT_FLAGS) -o target/full-search-cuda src/full-search-cuda.cu 2>&1
+
+target/full-search-cuda-debug: src/full-search-cuda.cu Makefile
+	nvcc -I/home/or/lib/cuda-samples/Common -ccbin g++-14 -m64 --std=c++17 -Wno-deprecated-gpu-targets -g -o target/full-search-cuda-debug src/full-search-cuda.cu 2>&1
 
 target/full-search-recursive: src/full-search-recursive.cpp Makefile
 	$(COMPILER) -o target/full-search-recursive src/full-search-recursive.cpp $(OPT_FLAGS) 2>&1

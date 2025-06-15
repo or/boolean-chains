@@ -9,9 +9,9 @@
 // These constants define the parameters of the search problem.
 
 // N defines the number of bits in the boolean functions.
-#define N 12
+#define N 11
 // The maximum length of the logic chain to search for.
-#define MAX_LENGTH 18
+#define MAX_LENGTH 16
 // The total number of possible functions is 2^(N-1), as f(x) = f(~x).
 #define SIZE (1 << (N - 1))
 // A bitmask representing a tautology (all ones).
@@ -38,7 +38,7 @@ struct StackFrame {
     uint32_t choice;
 };
 
-// A structure to store a found solution on the GPU.
+// A structure to store a chain on the GPU.
 struct Chain {
     uint32_t length;
     uint32_t expressions[1000];
@@ -120,7 +120,6 @@ __global__ void find_optimal_chain_kernel(const Chain *initial_chains,
     if (idx >= num_tasks) {
         return;
     }
-
     StackFrame
         search_stack[MAX_LENGTH]; // Max depth of search defines stack size.
     uint32_t stack_ptr = 0;
@@ -144,9 +143,9 @@ __global__ void find_optimal_chain_kernel(const Chain *initial_chains,
     // Push the initial state onto this thread's search stack.
     search_stack[stack_ptr++] = {
         STATE_START, start_chain_size, num_unfulfilled_targets,
-        chain.expressions_size, chain.choices[chain.length - 1]};
+        chain.expressions_size, chain.choices[chain.length - 1] + 1};
 
-    // --- Main Iterative Search Loop (replaces recursion) ---
+    //  --- Main Iterative Search Loop (replaces recursion) ---
     while (stack_ptr > 0) {
         // Get the current search level from the top of the stack.
         StackFrame *current_level = &search_stack[stack_ptr - 1];
@@ -195,6 +194,9 @@ __global__ void find_optimal_chain_kernel(const Chain *initial_chains,
                     current_level->expressions_size, current_level->choice + 1};
             }
         } else {
+            if (stack_ptr == 1) {
+                break;
+            }
             // "Return from recursion": All expressions at this level have been
             // checked. Backtrack by restoring the 'unseen' status of the
             // expressions generated at this level.
@@ -295,36 +297,42 @@ int main() {
     base_chain.chain[2] = 0b0011001100110011 >> (16 - N);
     base_chain.chain[3] = 0b0101010101010101 >> (16 - N);
 
+    memset(base_chain.unseen, 1, sizeof(base_chain.unseen));
     base_chain.unseen[0] = 0;
     for (int32_t k = 0; k < base_chain.length; k++) {
         base_chain.unseen[base_chain.chain[k]] = 0;
-        base_chain.choices[k] = 0;
+        base_chain.choices[k] = 0xffffffff;
     }
 
     base_chain.expressions_size = 0;
-    for (int32_t k = 1; k < base_chain.length; k++) {
-        generate_new_expressions(k, base_chain.expressions_size, base_chain);
+    // only do it up to length - 1, the length step is done below
+    for (int32_t k = 1; k < base_chain.length - 1; k++) {
+        generate_new_expressions(k + 1, base_chain.expressions_size,
+                                 base_chain);
     }
 
     // Unroll the first few levels of the search to create independent tasks
     uint32_t cpu_search_depth =
-        2; // Generate tasks for chains of length 4 + 2 = 6
+        3; // Generate tasks for chains of length 4 + 2 = 6
     std::vector<Chain> queue;
     queue.push_back(base_chain);
 
     for (uint32_t depth = 0; depth < cpu_search_depth; ++depth) {
+        // printf("generating at depth %d: %d in queue\n", depth, queue.size());
         std::vector<Chain> next_queue;
         for (auto &current : queue) {
+            // printf("chain: %d length, %d expression size\n", current.length,
+            //        current.expressions_size);
             generate_new_expressions(current.length, current.expressions_size,
                                      current);
-            current.length++;
-            for (uint32_t i = 0; i < current.expressions_size; ++i) {
+            for (uint32_t i = current.choices[current.length - 1] + 1;
+                 i < current.expressions_size; ++i) {
                 current.choices[current.length] = i;
                 current.chain[current.length] =
-                    current.expressions[current.choices[i]];
-                current.unseen[current.chain[current.length]] = 0;
+                    current.expressions[current.choices[current.length]];
+                current.length++;
                 next_queue.push_back(current);
-                current.unseen[current.chain[current.length]] = 1;
+                current.length--;
                 if (next_queue.size() >= MAX_GPU_TASKS) {
                     break;
                 }
