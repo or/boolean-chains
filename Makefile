@@ -29,3 +29,6 @@ target/hungry-search-debug: src/hungry-search.cpp src/*.h Makefile
 
 target/full-search-debug: src/full-search.cpp src/*.h Makefile
 	$(COMPILER) -o target/full-search-debug src/full-search.cpp -std=c++20 -g 2>&1
+
+target/full-search-cuda: src/full-search-cuda.cu Makefile
+	nvcc -I/home/or/lib/cuda-samples/Common -ccbin g++-14 -m64 --std=c++17 -o target/full-search-cuda src/full-search-cuda.cu 2>&1

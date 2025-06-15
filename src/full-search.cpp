@@ -436,7 +436,7 @@ int main(int argc, char *argv[]) {
     // this will be counted again
     total_chains--;
 
-    goto loop_5;
+    goto loop_4;
   } else {
     choices[chain_size] = 0;
     GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
