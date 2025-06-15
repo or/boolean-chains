@@ -32,3 +32,6 @@ target/full-search-debug: src/full-search.cpp src/*.h Makefile
 
 target/full-search-cuda: src/full-search-cuda.cu Makefile
 	nvcc -I/home/or/lib/cuda-samples/Common -ccbin g++-14 -m64 --std=c++17 -o target/full-search-cuda src/full-search-cuda.cu 2>&1
+
+target/full-search-recursive: src/full-search-recursive.cpp Makefile
+	$(COMPILER) -o target/full-search-recursive src/full-search-recursive.cpp $(OPT_FLAGS) 2>&1
