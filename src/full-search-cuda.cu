@@ -61,14 +61,9 @@ __host__ __device__ inline void add_expression(uint32_t value,
                                                int &expressions_size,
                                                uint32_t *expressions,
                                                uint8_t *unseen) {
-    // We only care about the lower half of the function space due to symmetry.
-    value &= (SIZE - 1);
-    // If we haven't unseen this function before in this search path...
-    if (unseen[value]) {
-        expressions[expressions_size++] = value;
-        // Mark it as unseen for this path to avoid cycles and redundant work.
-        unseen[value] = 0;
-    }
+    expressions[expressions_size] = value;
+    expressions_size += unseen[value];
+    unseen[value] = 0;
 }
 
 /**
