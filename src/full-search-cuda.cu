@@ -306,10 +306,10 @@ int main() {
 
     Solution base_chain;
     base_chain.length = 4;
-    base_chain.chain[0] = (0b0000000011111111 >> (16 - N)) & (SIZE - 1);
-    base_chain.chain[1] = (0b0000111100001111 >> (16 - N)) & (SIZE - 1);
-    base_chain.chain[2] = (0b0011001100110011 >> (16 - N)) & (SIZE - 1);
-    base_chain.chain[3] = (0b0101010101010101 >> (16 - N)) & (SIZE - 1);
+    base_chain.chain[0] = 0b0000000011111111 >> (16 - N);
+    base_chain.chain[1] = 0b0000111100001111 >> (16 - N);
+    base_chain.chain[2] = 0b0011001100110011 >> (16 - N);
+    base_chain.chain[3] = 0b0101010101010101 >> (16 - N);
 
     // Unroll the first few levels of the search to create independent tasks
     int cpu_search_depth = 2; // Generate tasks for chains of length 4 + 2 = 6
