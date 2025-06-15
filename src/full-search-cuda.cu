@@ -48,11 +48,6 @@ __constant__ uint32_t d_TARGETS[NUM_TARGETS];
 // Initialized once from the host.
 __device__ uint8_t d_TARGET_LOOKUP[SIZE];
 
-// A global variable on the device to store the length of the best solution
-// found so far. Using atomic operations on this variable allows all threads to
-// prune their search if they can no longer beat the current best solution.
-__device__ int d_current_best_length;
-
 /**
  * @brief Adds a new, unique expression to the list of available expressions.
  * This function can be called from both host and device code.
@@ -174,7 +169,6 @@ __global__ void find_optimal_chain_kernel(const Solution *initial_chains,
     if (num_unfulfilled_targets == 0) {
         int sol_idx = atomicAdd(solution_count, 1);
         solutions[sol_idx] = initial_chain;
-        atomicMin(&d_current_best_length, start_chain_size);
         return;
     }
 
@@ -221,24 +215,17 @@ __global__ void find_optimal_chain_kernel(const Solution *initial_chains,
             // Pruning: if the chain is already too long to be a better
             // solution, abandon this path.
             if (next_chain_size + next_num_unfulfilled_targets >=
-                d_current_best_length) {
+                MAX_LENGTH + 1) {
                 continue;
             }
 
             if (next_num_unfulfilled_targets == 0) {
-                // Found a solution!
-                int best_len =
-                    atomicMin(&d_current_best_length, next_chain_size);
-
-                // Only store it if it's potentially one of the best.
-                if (next_chain_size <= best_len) {
-                    int sol_idx = atomicAdd(solution_count, 1);
-                    if (sol_idx <
-                        100) { // Limit stored solutions to prevent overflow
-                        solutions[sol_idx].length = next_chain_size;
-                        for (int i = 0; i < next_chain_size; i++) {
-                            solutions[sol_idx].chain[i] = chain[i];
-                        }
+                int sol_idx = atomicAdd(solution_count, 1);
+                // Limit stored solutions to prevent overflow
+                if (sol_idx < 100) {
+                    solutions[sol_idx].length = next_chain_size;
+                    for (int i = 0; i < next_chain_size; i++) {
+                        solutions[sol_idx].chain[i] = chain[i];
                     }
                 }
             } else {
@@ -399,8 +386,6 @@ int main() {
     // Copy data to __constant__ and __device__ global memory
     cudaMemcpyToSymbol(d_TARGETS, host_targets, NUM_TARGETS * sizeof(uint32_t));
     cudaMemcpyToSymbol(d_TARGET_LOOKUP, target_lookup, SIZE * sizeof(uint8_t));
-    int host_best_length = MAX_LENGTH + 1;
-    cudaMemcpyToSymbol(d_current_best_length, &host_best_length, sizeof(int));
 
     // --- Launch Kernel ---
     printf("Launching CUDA kernel...\n");
@@ -433,18 +418,8 @@ int main() {
                    solution_count_host * sizeof(Solution),
                    cudaMemcpyDeviceToHost);
 
-        // Find the best length among all found solutions.
-        int best_length = MAX_LENGTH + 1;
         for (const auto &s : solutions_host) {
-            if (s.length < best_length)
-                best_length = s.length;
-        }
-
-        printf("\n--- Optimal Solutions (length %d) ---\n", best_length);
-        for (const auto &s : solutions_host) {
-            if (s.length == best_length) {
-                print_chain(s, host_targets);
-            }
+            print_chain(s, host_targets);
         }
     } else {
         printf("No solutions found within the specified MAX_LENGTH.\n");
