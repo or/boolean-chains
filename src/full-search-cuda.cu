@@ -19,6 +19,8 @@
 // The number of target functions we are trying to synthesize.
 #define NUM_TARGETS 7
 
+#define MAX_SOLUTIONS 1000
+
 // The maximum number of parallel search tasks to generate on the CPU.
 // Each task will be assigned to a CUDA thread.
 #define MAX_GPU_TASKS 65536
@@ -179,7 +181,7 @@ __global__ void find_optimal_chain_kernel(const Chain *initial_chains,
             if (next_num_unfulfilled_targets == 0) {
                 uint32_t sol_idx = atomicAdd(solution_count, 1);
                 // Limit stored solutions to prevent overflow
-                if (sol_idx < 100) {
+                if (sol_idx < MAX_SOLUTIONS) {
                     solutions[sol_idx].length = next_chain_size;
                     for (uint32_t i = 0; i < next_chain_size; i++) {
                         solutions[sol_idx].chain[i] = chain.chain[i];
@@ -369,8 +371,7 @@ int main() {
     }
 
     Chain *d_solutions;
-    cudaMalloc(&d_solutions,
-               100 * sizeof(Chain)); // Buffer for 100 solutions
+    cudaMalloc(&d_solutions, MAX_SOLUTIONS * sizeof(Chain));
 
     uint32_t *d_solution_count;
     cudaMalloc(&d_solution_count, sizeof(uint32_t));
@@ -402,8 +403,9 @@ int main() {
     int solution_count_host = 0;
     cudaMemcpy(&solution_count_host, d_solution_count, sizeof(uint32_t),
                cudaMemcpyDeviceToHost);
-    solution_count_host =
-        std::min(solution_count_host, 100); // Cap at buffer size
+    printf("found %d solutions, only kept up to %d\n", solution_count_host,
+           MAX_SOLUTIONS);
+    solution_count_host = std::min(solution_count_host, MAX_SOLUTIONS);
 
     if (solution_count_host > 0) {
         std::vector<Chain> solutions_host(solution_count_host);
@@ -414,7 +416,7 @@ int main() {
             print_chain(s, target_lookup);
         }
     } else {
-        printf("No solutions found within the specified MAX_LENGTH.\n");
+        printf("No solutions found.\n");
     }
 
     // --- Cleanup ---
