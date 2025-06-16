@@ -9,9 +9,9 @@
 // These constants define the parameters of the search problem.
 
 // N defines the number of bits in the boolean functions.
-#define N 12
+#define N 11
 // The maximum length of the logic chain to search for.
-#define MAX_LENGTH 18
+#define MAX_LENGTH 16
 // The total number of possible functions is 2^(N-1), as f(x) = f(~x).
 #define SIZE (1 << (N - 1))
 // A bitmask representing a tautology (all ones).
@@ -25,16 +25,11 @@
 // Each task will be assigned to a CUDA thread.
 #define MAX_GPU_TASKS 65536
 
-// --- CUDA Kernel and Device Helpers ---
-
-#define STATE_START 0
-#define STATE_SEARCH 1
-
 // A structure to store a chain on the GPU.
 struct Chain {
   uint32_t length;
   uint32_t expressions[1000];
-  uint32_t expressions_size;
+  uint32_t expressions_size[MAX_LENGTH];
   uint32_t chain[MAX_LENGTH];
   uint32_t choices[MAX_LENGTH];
   uint8_t unseen[SIZE];
@@ -48,81 +43,75 @@ __constant__ uint32_t d_TARGETS[NUM_TARGETS];
 // Initialized once from the host.
 __device__ uint8_t d_TARGET_LOOKUP[SIZE];
 
-#define ADD_EXPRESSION(value, chain, expressions_size)                         \
-  chain.expressions[expressions_size] = value;                                 \
-  expressions_size += chain.unseen[value];                                     \
+#define ADD_EXPRESSION(value, chain, chain_size)                               \
+  chain.expressions[chain.expressions_size[chain_size]] = value;               \
+  chain.expressions_size[chain_size] += chain.unseen[value];                   \
   chain.unseen[value] = 0;
 
-#define ADD_EXPRESSION_TARGET(value, chain, expressions_size)                  \
+#define ADD_EXPRESSION_TARGET(value, chain, chain_size)                        \
   {                                                                            \
     const uint32_t v = value;                                                  \
-    const uint32_t a = chain.unseen[v] & target_lookup[v];                     \
-    chain.expressions[expressions_size] = v;                                   \
-    expressions_size += a;                                                     \
+    const uint32_t a = chain.unseen[v] & d_TARGET_LOOKUP[v];                   \
+    chain.expressions[chain.expressions_size[chain_size]] = v;                 \
+    chain.expressions_size[chain_size] += a;                                   \
     chain.unseen[v] &= ~a;                                                     \
   }
 
-#define GENERATE_NEW_EXPRESSIONS(chain_size, chain_struct, expressions_size,   \
-                                 add_expression)                               \
+#define GENERATE_NEW_EXPRESSIONS(chain_size, chain_struct, add_expression)     \
   {                                                                            \
-    const uint32_t h = chain_struct.chain[chain_struct.length - 1];            \
+    chain_struct.expressions_size[chain_size] =                                \
+        chain_struct.expressions_size[chain_size - 1];                         \
+    const uint32_t h = chain_struct.chain[chain_size - 1];                     \
     const uint32_t not_h = ~h;                                                 \
                                                                                \
-    for (int j = 0; j < chain_struct.length - 1; j++) {                        \
+    for (int j = 0; j < chain_size - 1; j++) {                                 \
       const uint32_t g = chain_struct.chain[j];                                \
       const uint32_t not_g = ~chain_struct.chain[j];                           \
-      add_expression(g & h, chain_struct, expressions_size);                   \
-      add_expression(not_g & h, chain_struct, expressions_size);               \
-      add_expression(g & not_h, chain_struct, expressions_size);               \
-      add_expression(g ^ h, chain_struct, expressions_size);                   \
-      add_expression(g | h, chain_struct, expressions_size);                   \
+      add_expression(g & h, chain_struct, chain_size);                         \
+      add_expression(not_g & h, chain_struct, chain_size);                     \
+      add_expression(g & not_h, chain_struct, chain_size);                     \
+      add_expression(g ^ h, chain_struct, chain_size);                         \
+      add_expression(g | h, chain_struct, chain_size);                         \
     }                                                                          \
   }
 
-#define LOOP(CS, PREV_CS, NEXT_CS, chain, expressions_size)                    \
+#define LOOP(CS, PREV_CS, NEXT_CS, chain_struct)                               \
   loop_##CS : if (CS < MAX_LENGTH) {                                           \
-                                                                               \
-    if (choices[CS] < expressions_size[CS]) {                                  \
-      chain[CS] = expressions[choices[CS]];                                    \
-                                                                               \
-      total_chains++;                                                          \
-                                                                               \
-      if (CS == PRINT_PROGRESS_LENGTH) {                                       \
-        PRINT_PROGRESS(CS, choices[CS]);                                       \
-      }                                                                        \
-                                                                               \
-      if (CHECK_SHORTER_THAN_MAX_LENGTH) {                                     \
-        if (__builtin_expect(                                                  \
-                num_unfulfilled_targets - target_lookup[chain[CS]] == 0, 0)) { \
-          print_chain(chain, target_lookup, CS + 1);                           \
-          goto done_##CS;                                                      \
-        }                                                                      \
-      }                                                                        \
+    if (chain_struct.choices[CS] < chain_struct.expressions_size[CS]) {        \
+      chain_struct.chain[CS] =                                                 \
+          chain_struct.expressions[chain_struct.choices[CS]];                  \
                                                                                \
       if (CS < MAX_LENGTH - 1 && NEXT_CS >= MAX_LENGTH - NUM_TARGETS) {        \
-        if (__builtin_expect(NEXT_CS + num_unfulfilled_targets -               \
-                                     target_lookup[chain[CS]] ==               \
-                                 MAX_LENGTH,                                   \
-                             1)) {                                             \
+        if (__builtin_expect(                                                  \
+                NEXT_CS + num_unfulfilled_targets -                            \
+                        d_TARGET_LOOKUP[chain_struct.chain[CS]] ==             \
+                    MAX_LENGTH,                                                \
+                1)) {                                                          \
           tmp_chain_size = NEXT_CS;                                            \
           generated_chain_size = CS;                                           \
           tmp_num_unfulfilled_targets =                                        \
-              num_unfulfilled_targets - target_lookup[chain[CS]];              \
-          uint32_t j = choices[CS] + 1;                                        \
+              num_unfulfilled_targets -                                        \
+              d_TARGET_LOOKUP[chain_struct.chain[CS]];                         \
+          uint32_t j = chain_struct.choices[CS] + 1;                           \
                                                                                \
           next_##CS : if (__builtin_expect(tmp_chain_size < MAX_LENGTH, 1)) {  \
-            GENERATE_NEW_EXPRESSIONS(tmp_chain_size, chain, expressions_size,  \
+            GENERATE_NEW_EXPRESSIONS(tmp_chain_size, chain_struct,             \
                                      ADD_EXPRESSION_TARGET)                    \
             generated_chain_size = tmp_chain_size;                             \
                                                                                \
-            for (; j < expressions_size[tmp_chain_size]; ++j) {                \
-              total_chains++;                                                  \
-              if (__builtin_expect(target_lookup[expressions[j]], 0)) {        \
-                chain[tmp_chain_size] = expressions[j];                        \
+            for (; j < chain_struct.expressions_size[tmp_chain_size]; ++j) {   \
+              if (__builtin_expect(                                            \
+                      d_TARGET_LOOKUP[chain_struct.expressions[j]], 0)) {      \
+                chain_struct.chain[tmp_chain_size] =                           \
+                    chain_struct.expressions[j];                               \
                 tmp_num_unfulfilled_targets--;                                 \
                 tmp_chain_size++;                                              \
                 if (__builtin_expect(!tmp_num_unfulfilled_targets, 0)) {       \
-                  print_chain(chain, target_lookup, tmp_chain_size);           \
+                  chain.length = tmp_chain_size;                               \
+                  uint32_t sol_idx = atomicAdd(solution_count, 1);             \
+                  if (sol_idx < MAX_SOLUTIONS) {                               \
+                    solutions[sol_idx] = chain_struct;                         \
+                  }                                                            \
                   break;                                                       \
                 }                                                              \
                 j++;                                                           \
@@ -131,45 +120,36 @@ __device__ uint8_t d_TARGET_LOOKUP[SIZE];
             }                                                                  \
           }                                                                    \
                                                                                \
-          for (uint32_t i = expressions_size[CS];                              \
-               i < expressions_size[generated_chain_size]; i++) {              \
-            unseen[expressions[i]] = 1;                                        \
+          for (uint32_t i = chain_struct.expressions_size[CS];                 \
+               i < chain_struct.expressions_size[generated_chain_size]; i++) { \
+            chain_struct.unseen[chain_struct.expressions[i]] = 1;              \
           }                                                                    \
                                                                                \
-          choices[CS] += 1 + (target_lookup[chain[CS]] << 16);                 \
-          if (CS <= MAX_LENGTH_FOR_COMPLETION_CHECK) {                         \
-            if (__builtin_expect(CS < stop_chain_size, 0)) {                   \
-              return 0;                                                        \
-            }                                                                  \
-          }                                                                    \
+          chain_struct.choices[CS] +=                                          \
+              1 + (d_TARGET_LOOKUP[chain_struct.chain[CS]] << 16);             \
           goto loop_##CS;                                                      \
         }                                                                      \
       }                                                                        \
                                                                                \
-      num_unfulfilled_targets -= target_lookup[chain[CS]];                     \
+      num_unfulfilled_targets -= d_TARGET_LOOKUP[chain_struct.chain[CS]];      \
                                                                                \
-      choices[NEXT_CS] = choices[CS] + 1;                                      \
-      GENERATE_NEW_EXPRESSIONS(NEXT_CS, chain, expressions_size,               \
-                               ADD_EXPRESSION)                                 \
+      chain_struct.choices[NEXT_CS] = chain_struct.choices[CS] + 1;            \
+      GENERATE_NEW_EXPRESSIONS(NEXT_CS, chain_struct, ADD_EXPRESSION)          \
                                                                                \
-      CAPTURE_STATS_CALL(NEXT_CS)                                              \
       goto loop_##NEXT_CS;                                                     \
     }                                                                          \
                                                                                \
-    done_##CS : if (CS > 4) {                                                  \
-      for (uint32_t i = expressions_size[PREV_CS]; i < expressions_size[CS];   \
-           i++) {                                                              \
-        unseen[expressions[i]] = 1;                                            \
+    if (CS > 6) {                                                              \
+      for (uint32_t i = chain_struct.expressions_size[PREV_CS];                \
+           i < chain_struct.expressions_size[CS]; i++) {                       \
+        chain_struct.unseen[chain_struct.expressions[i]] = 1;                  \
       }                                                                        \
-      num_unfulfilled_targets += target_lookup[chain[PREV_CS]];                \
-      choices[PREV_CS] += 1 + (target_lookup[chain[PREV_CS]] << 16);           \
-      if (__builtin_expect(PREV_CS < stop_chain_size, 0)) {                    \
-        return 0;                                                              \
-      }                                                                        \
+      num_unfulfilled_targets += d_TARGET_LOOKUP[chain_struct.chain[PREV_CS]]; \
+      chain_struct.choices[PREV_CS] +=                                         \
+          1 + (d_TARGET_LOOKUP[chain_struct.chain[PREV_CS]] << 16);            \
       goto loop_##PREV_CS;                                                     \
-    }                                                                          \
-    else {                                                                     \
-      return 0;                                                                \
+    } else {                                                                   \
+      return;                                                                  \
     }                                                                          \
   }
 
@@ -194,8 +174,12 @@ __global__ void find_optimal_chain_kernel(const Chain *initial_chains,
   }
 
   Chain chain = initial_chains[idx];
-  uint8_t start_chain_size = chain.length;
   uint8_t num_unfulfilled_targets = NUM_TARGETS;
+  uint8_t tmp_num_unfulfilled_targets;
+  uint8_t tmp_chain_size;
+  uint8_t generated_chain_size;
+  chain.choices[chain.length] = chain.choices[chain.length - 1] + 1;
+  GENERATE_NEW_EXPRESSIONS(chain.length, chain, ADD_EXPRESSION)
 
   // Calculate how many targets are unfulfilled by this initial chain.
   for (uint32_t i = 0; i < chain.length; i++) {
@@ -205,9 +189,30 @@ __global__ void find_optimal_chain_kernel(const Chain *initial_chains,
   // If the initial chain is already a solution, store it.
   if (num_unfulfilled_targets == 0) {
     uint32_t sol_idx = atomicAdd(solution_count, 1);
-    solutions[sol_idx] = chain;
+    if (sol_idx < MAX_SOLUTIONS) {
+      solutions[sol_idx] = chain;
+    }
     return;
   }
+
+  LOOP(7, 6, 8, chain)
+  LOOP(8, 7, 9, chain)
+  LOOP(9, 8, 10, chain)
+  LOOP(10, 9, 11, chain)
+  LOOP(11, 10, 12, chain)
+  LOOP(12, 11, 13, chain)
+  LOOP(13, 12, 14, chain)
+  LOOP(14, 13, 15, chain)
+  LOOP(15, 14, 16, chain)
+  LOOP(16, 15, 17, chain)
+  LOOP(17, 16, 18, chain)
+  LOOP(18, 17, 19, chain)
+  LOOP(19, 18, 20, chain)
+
+loop_20: // shouldn't be used
+
+loop_6:
+  return;
 }
 
 // --- Host-side C++ Code ---
@@ -314,16 +319,16 @@ int main(int argc, char *argv[]) {
     base_chain.choices[k] = 0xffffffff;
   }
 
-  base_chain.expressions_size = 0;
+  memset(base_chain.expressions_size, 0, sizeof(base_chain.expressions_size));
   // only do it up to length - 1, the length step is done below
   for (int32_t k = 1; k < base_chain.length - 1; k++) {
-    GENERATE_NEW_EXPRESSIONS(k + 1, base_chain, base_chain.expressions_size,
-                             ADD_EXPRESSION);
+    GENERATE_NEW_EXPRESSIONS(k + 1, base_chain, ADD_EXPRESSION);
+    // printf("k: %d, expr size: %d\n", k + 1, base_chain.expressions_size[k +
+    // 1]);
   }
 
   while (base_chain.length < start_indices_size) {
-    GENERATE_NEW_EXPRESSIONS(base_chain.length, base_chain,
-                             base_chain.expressions_size, ADD_EXPRESSION);
+    GENERATE_NEW_EXPRESSIONS(base_chain.length, base_chain, ADD_EXPRESSION);
     base_chain.choices[base_chain.length] = start_indices[base_chain.length];
     base_chain.chain[base_chain.length] =
         base_chain.expressions[base_chain.choices[base_chain.length]];
@@ -339,12 +344,11 @@ int main(int argc, char *argv[]) {
     // printf("generating at depth %d: %d in queue\n", depth, queue.size());
     std::vector<Chain> next_queue;
     for (auto &current : queue) {
+      GENERATE_NEW_EXPRESSIONS(current.length, current, ADD_EXPRESSION);
       // printf("chain: %d length, %d expression size\n", current.length,
-      //        current.expressions_size);
-      GENERATE_NEW_EXPRESSIONS(current.length, base_chain,
-                               base_chain.expressions_size, ADD_EXPRESSION);
+      //        current.expressions_size[current.length]);
       for (uint32_t i = current.choices[current.length - 1] + 1;
-           i < current.expressions_size; ++i) {
+           i < current.expressions_size[current.length]; ++i) {
         current.choices[current.length] = i;
         current.chain[current.length] =
             current.expressions[current.choices[current.length]];
