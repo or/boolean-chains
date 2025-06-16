@@ -2,6 +2,7 @@
 #include <bitset>
 #include <cstdint>
 #include <cuda_runtime.h>
+#include <random>
 #include <stdio.h>
 #include <vector>
 
@@ -9,9 +10,9 @@
 // These constants define the parameters of the search problem.
 
 // N defines the number of bits in the boolean functions.
-#define N 11
+#define N 12
 // The maximum length of the logic chain to search for.
-#define MAX_LENGTH 16
+#define MAX_LENGTH 18
 // The total number of possible functions is 2^(N-1), as f(x) = f(~x).
 #define SIZE (1 << (N - 1))
 // A bitmask representing a tautology (all ones).
@@ -149,7 +150,7 @@ __device__ uint8_t d_TARGET_LOOKUP[SIZE];
           1 + (d_TARGET_LOOKUP[chain_struct.chain[PREV_CS]] << 16);            \
       goto loop_##PREV_CS;                                                     \
     } else {                                                                   \
-      return;                                                                  \
+      continue;                                                                  \
     }                                                                          \
   }
 
@@ -165,54 +166,54 @@ __device__ uint8_t d_TARGET_LOOKUP[SIZE];
  * @param solution_count An atomic counter for the number of solutions found.
  */
 __global__ void find_optimal_chain_kernel(const Chain *initial_chains,
-                                          uint32_t num_tasks, Chain *solutions,
+                                          uint32_t num_tasks,
+                                          uint32_t tasks_per_thread,
+                                          Chain *solutions,
                                           uint32_t *solution_count) {
   // Determine which task this thread is responsible for.
   uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx >= num_tasks) {
-    return;
-  }
+  for (uint32_t task_id = idx * tasks_per_thread; task_id < idx * tasks_per_thread + tasks_per_thread && task_id < num_tasks;
+       task_id++) {
+    Chain chain = initial_chains[task_id];
+    uint8_t num_unfulfilled_targets = NUM_TARGETS;
+    uint8_t tmp_num_unfulfilled_targets;
+    uint8_t tmp_chain_size;
+    uint8_t generated_chain_size;
+    chain.choices[chain.length] = chain.choices[chain.length - 1] + 1;
+    GENERATE_NEW_EXPRESSIONS(chain.length, chain, ADD_EXPRESSION)
 
-  Chain chain = initial_chains[idx];
-  uint8_t num_unfulfilled_targets = NUM_TARGETS;
-  uint8_t tmp_num_unfulfilled_targets;
-  uint8_t tmp_chain_size;
-  uint8_t generated_chain_size;
-  chain.choices[chain.length] = chain.choices[chain.length - 1] + 1;
-  GENERATE_NEW_EXPRESSIONS(chain.length, chain, ADD_EXPRESSION)
-
-  // Calculate how many targets are unfulfilled by this initial chain.
-  for (uint32_t i = 0; i < chain.length; i++) {
-    num_unfulfilled_targets -= d_TARGET_LOOKUP[chain.chain[i]];
-  }
-
-  // If the initial chain is already a solution, store it.
-  if (num_unfulfilled_targets == 0) {
-    uint32_t sol_idx = atomicAdd(solution_count, 1);
-    if (sol_idx < MAX_SOLUTIONS) {
-      solutions[sol_idx] = chain;
+    // Calculate how many targets are unfulfilled by this initial chain.
+    for (uint32_t i = 0; i < chain.length; i++) {
+      num_unfulfilled_targets -= d_TARGET_LOOKUP[chain.chain[i]];
     }
-    return;
+
+    // If the initial chain is already a solution, store it.
+    if (num_unfulfilled_targets == 0) {
+      uint32_t sol_idx = atomicAdd(solution_count, 1);
+      if (sol_idx < MAX_SOLUTIONS) {
+        solutions[sol_idx] = chain;
+      }
+      return;
+    }
+
+    LOOP(8, 7, 9, chain)
+    LOOP(9, 8, 10, chain)
+    LOOP(10, 9, 11, chain)
+    LOOP(11, 10, 12, chain)
+    LOOP(12, 11, 13, chain)
+    LOOP(13, 12, 14, chain)
+    LOOP(14, 13, 15, chain)
+    LOOP(15, 14, 16, chain)
+    LOOP(16, 15, 17, chain)
+    LOOP(17, 16, 18, chain)
+    LOOP(18, 17, 19, chain)
+    LOOP(19, 18, 20, chain)
+
+  loop_20: // shouldn't be used
+
+  loop_7:
+    continue;
   }
-
-  LOOP(7, 6, 8, chain)
-  LOOP(8, 7, 9, chain)
-  LOOP(9, 8, 10, chain)
-  LOOP(10, 9, 11, chain)
-  LOOP(11, 10, 12, chain)
-  LOOP(12, 11, 13, chain)
-  LOOP(13, 12, 14, chain)
-  LOOP(14, 13, 15, chain)
-  LOOP(15, 14, 16, chain)
-  LOOP(16, 15, 17, chain)
-  LOOP(17, 16, 18, chain)
-  LOOP(18, 17, 19, chain)
-  LOOP(19, 18, 20, chain)
-
-loop_20: // shouldn't be used
-
-loop_6:
-  return;
 }
 
 // --- Host-side C++ Code ---
@@ -336,7 +337,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Unroll the first few levels of the search to create independent tasks
-  uint32_t cpu_search_depth = 3;
+  uint32_t cpu_search_depth = 4;
   std::vector<Chain> queue;
   queue.push_back(base_chain);
 
@@ -355,22 +356,19 @@ int main(int argc, char *argv[]) {
         current.length++;
         next_queue.push_back(current);
         current.length--;
-        if (next_queue.size() >= MAX_GPU_TASKS) {
-          break;
-        }
-      }
-      if (next_queue.size() >= MAX_GPU_TASKS) {
-        break;
       }
     }
     queue = next_queue;
-    if (queue.size() >= MAX_GPU_TASKS) {
-      break;
-    }
   }
   initial_tasks = queue;
   printf("Generated %zu tasks to be processed by the GPU.\n",
          initial_tasks.size());
+
+  std::random_device rd;
+  std::default_random_engine rng(rd());
+
+  // Shuffle the vector
+  std::shuffle(initial_tasks.begin(), initial_tasks.end(), rng);
 
   // --- Allocate and Transfer Data to GPU ---
   cudaError_t err;
@@ -404,12 +402,15 @@ int main(int argc, char *argv[]) {
   // --- Launch Kernel ---
   printf("Launching CUDA kernel...\n");
   uint32_t num_tasks = initial_tasks.size();
+  uint32_t tasks_per_thread = num_tasks / MAX_GPU_TASKS + 1;
+  uint32_t num_threads = num_tasks / tasks_per_thread + 1;
   uint32_t threads_per_block = 256;
   uint32_t blocks_per_grid =
-      (num_tasks + threads_per_block - 1) / threads_per_block;
+      (num_threads + threads_per_block - 1) / threads_per_block;
 
   find_optimal_chain_kernel<<<blocks_per_grid, threads_per_block>>>(
-      d_initial_chains, num_tasks, d_solutions, d_solution_count);
+      d_initial_chains, num_tasks, tasks_per_thread, d_solutions,
+      d_solution_count);
 
   // Synchronize to wait for the kernel to finish and check for errors.
   cudaDeviceSynchronize();
