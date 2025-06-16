@@ -24,16 +24,16 @@
 
 // The maximum number of parallel search tasks to generate on the CPU.
 // Each task will be assigned to a CUDA thread.
-#define MAX_GPU_TASKS 65536
+#define MAX_GPU_THREADS 65536
 
 // A structure to store a chain on the GPU.
 struct Chain {
   uint32_t length;
-  uint32_t expressions[1000];
+  uint32_t expressions[600];
   uint32_t expressions_size[MAX_LENGTH];
   uint32_t chain[MAX_LENGTH];
   uint32_t choices[MAX_LENGTH];
-  uint8_t unseen[SIZE];
+  uint8_t *unseen;
 };
 
 // __constant__ memory is fast, read-only memory accessible by all threads.
@@ -150,7 +150,7 @@ __device__ uint8_t d_TARGET_LOOKUP[SIZE];
           1 + (d_TARGET_LOOKUP[chain_struct.chain[PREV_CS]] << 16);            \
       goto loop_##PREV_CS;                                                     \
     } else {                                                                   \
-      continue;                                                                  \
+      continue;                                                                \
     }                                                                          \
   }
 
@@ -170,11 +170,23 @@ __global__ void find_optimal_chain_kernel(const Chain *initial_chains,
                                           uint32_t tasks_per_thread,
                                           Chain *solutions,
                                           uint32_t *solution_count) {
+  uint8_t unseen[SIZE];
   // Determine which task this thread is responsible for.
   uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-  for (uint32_t task_id = idx * tasks_per_thread; task_id < idx * tasks_per_thread + tasks_per_thread && task_id < num_tasks;
+  for (uint32_t task_id = idx * tasks_per_thread;
+       task_id < idx * tasks_per_thread + tasks_per_thread &&
+       task_id < num_tasks;
        task_id++) {
     Chain chain = initial_chains[task_id];
+    chain.unseen = unseen;
+    memset(chain.unseen, 1, SIZE);
+    chain.unseen[0] = 0;
+    for (uint32_t j = 0; j < chain.length; j++) {
+      chain.unseen[chain.chain[j]] = 0;
+    }
+    for (uint32_t j = 0; j < chain.expressions_size[chain.length - 1]; j++) {
+      chain.unseen[chain.expressions[j]] = 0;
+    }
     uint8_t num_unfulfilled_targets = NUM_TARGETS;
     uint8_t tmp_num_unfulfilled_targets;
     uint8_t tmp_chain_size;
@@ -313,7 +325,11 @@ int main(int argc, char *argv[]) {
     start_indices[start_indices_size++] = atoi(argv[i]);
   }
 
-  memset(base_chain.unseen, 1, sizeof(base_chain.unseen));
+  std::vector<uint8_t *> allocated_pointers;
+
+  base_chain.unseen = (uint8_t *)malloc(SIZE);
+  allocated_pointers.push_back(base_chain.unseen);
+  memset(base_chain.unseen, 1, SIZE);
   base_chain.unseen[0] = 0;
   for (int32_t k = 0; k < base_chain.length; k++) {
     base_chain.unseen[base_chain.chain[k]] = 0;
@@ -344,7 +360,12 @@ int main(int argc, char *argv[]) {
   for (uint32_t depth = 0; depth < cpu_search_depth; ++depth) {
     // printf("generating at depth %d: %d in queue\n", depth, queue.size());
     std::vector<Chain> next_queue;
+    std::vector<uint8_t *> next_allocated_pointers;
     for (auto &current : queue) {
+      uint8_t *old_unseen = current.unseen;
+      current.unseen = (uint8_t *)malloc(SIZE);
+      next_allocated_pointers.push_back(current.unseen);
+      memcpy(current.unseen, old_unseen, SIZE);
       GENERATE_NEW_EXPRESSIONS(current.length, current, ADD_EXPRESSION);
       // printf("chain: %d length, %d expression size\n", current.length,
       //        current.expressions_size[current.length]);
@@ -359,6 +380,10 @@ int main(int argc, char *argv[]) {
       }
     }
     queue = next_queue;
+    for (auto &pointer : allocated_pointers) {
+      free(pointer);
+    }
+    allocated_pointers = next_allocated_pointers;
   }
   initial_tasks = queue;
   printf("Generated %zu tasks to be processed by the GPU.\n",
@@ -400,14 +425,15 @@ int main(int argc, char *argv[]) {
   cudaMemcpyToSymbol(d_TARGET_LOOKUP, target_lookup, SIZE * sizeof(uint8_t));
 
   // --- Launch Kernel ---
-  printf("Launching CUDA kernel...\n");
   uint32_t num_tasks = initial_tasks.size();
-  uint32_t tasks_per_thread = num_tasks / MAX_GPU_TASKS + 1;
+  uint32_t tasks_per_thread = num_tasks / MAX_GPU_THREADS + 1;
   uint32_t num_threads = num_tasks / tasks_per_thread + 1;
   uint32_t threads_per_block = 256;
   uint32_t blocks_per_grid =
       (num_threads + threads_per_block - 1) / threads_per_block;
 
+  printf("Planning %d threads x %d tasks\n", num_threads, tasks_per_thread);
+  printf("Launching CUDA kernel...\n");
   find_optimal_chain_kernel<<<blocks_per_grid, threads_per_block>>>(
       d_initial_chains, num_tasks, tasks_per_thread, d_solutions,
       d_solution_count);
@@ -444,6 +470,10 @@ int main(int argc, char *argv[]) {
   cudaFree(d_initial_chains);
   cudaFree(d_solutions);
   cudaFree(d_solution_count);
+
+  for (auto &pointer : allocated_pointers) {
+    free(pointer);
+  }
 
   return 0;
 }
