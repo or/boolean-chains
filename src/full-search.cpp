@@ -439,6 +439,7 @@ int main(int argc, char *argv[]) {
     goto loop_5;
   } else {
     choices[chain_size] = 0;
+    GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
   }
 
   LOOP(4, 3, 5)
