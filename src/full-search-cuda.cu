@@ -30,24 +30,14 @@
 #define STATE_START 0
 #define STATE_SEARCH 1
 
-// A structure to hold the state of a search task on the iterative stack.
-// This allows a thread to perform a depth-first search without recursion.
-struct StackFrame {
-    uint8_t state;
-    uint8_t chain_size;
-    uint8_t num_unfulfilled_targets;
-    uint32_t expressions_size;
-    uint32_t choice;
-};
-
 // A structure to store a chain on the GPU.
 struct Chain {
-    uint32_t length;
-    uint32_t expressions[1000];
-    uint32_t expressions_size;
-    uint32_t chain[MAX_LENGTH];
-    uint32_t choices[MAX_LENGTH];
-    uint8_t unseen[SIZE];
+  uint32_t length;
+  uint32_t expressions[1000];
+  uint32_t expressions_size;
+  uint32_t chain[MAX_LENGTH];
+  uint32_t choices[MAX_LENGTH];
+  uint8_t unseen[SIZE];
 };
 
 // __constant__ memory is fast, read-only memory accessible by all threads.
@@ -58,50 +48,130 @@ __constant__ uint32_t d_TARGETS[NUM_TARGETS];
 // Initialized once from the host.
 __device__ uint8_t d_TARGET_LOOKUP[SIZE];
 
-/**
- * @brief Adds a new, unique expression to the list of available expressions.
- * This function can be called from both host and device code.
- * @param value The new boolean function to add.
- * @param expressions_size Reference to the current size of the expressions
- * array.
- * @param expressions Pointer to the thread's local expressions array.
- * @param unseen Pointer to the thread's local 'unseen' lookup table.
- */
-__host__ __device__ inline void
-add_expression(uint32_t value, uint32_t &expressions_size, Chain &chain) {
-    chain.expressions[expressions_size] = value;
-    expressions_size += chain.unseen[value];
-    chain.unseen[value] = 0;
-}
+#define ADD_EXPRESSION(value, chain, expressions_size)                         \
+  chain.expressions[expressions_size] = value;                                 \
+  expressions_size += chain.unseen[value];                                     \
+  chain.unseen[value] = 0;
 
-/**
- * @brief Generates new expressions from the last element in the chain and all
- * previous elements. This function can be called from both host and device
- * code.
- * @param chain_size The current size of the logic chain.
- * @param chain The current logic chain for this thread.
- * @param expressions_size Reference to the expressions array size.
- * @param expressions The thread's local expressions array.
- * @param unseen The thread's local 'unseen' lookup table.
- * @return The new size of the expressions array.
- */
-__host__ __device__ void generate_new_expressions(uint8_t chain_size,
-                                                  uint32_t &expressions_size,
-                                                  Chain &chain) {
-    const uint32_t h = chain.chain[chain_size - 1];
-    const uint32_t not_h = ~h;
+#define ADD_EXPRESSION_TARGET(value, chain, expressions_size)                  \
+  {                                                                            \
+    const uint32_t v = value;                                                  \
+    const uint32_t a = chain.unseen[v] & target_lookup[v];                     \
+    chain.expressions[expressions_size] = v;                                   \
+    expressions_size += a;                                                     \
+    chain.unseen[v] &= ~a;                                                     \
+  }
 
-    for (uint32_t j = 0; j < chain_size - 1; j++) {
-        const uint32_t g = chain.chain[j];
-        const uint32_t not_g = ~g;
-        // Generate expressions from various bitwise operations.
-        add_expression(g & h, expressions_size, chain);
-        add_expression(g & not_h, expressions_size, chain);
-        add_expression(g ^ h, expressions_size, chain);
-        add_expression(g | h, expressions_size, chain);
-        add_expression(not_g & h, expressions_size, chain);
-    }
-}
+#define GENERATE_NEW_EXPRESSIONS(chain_size, chain_struct, expressions_size,   \
+                                 add_expression)                               \
+  {                                                                            \
+    const uint32_t h = chain_struct.chain[chain_struct.length - 1];            \
+    const uint32_t not_h = ~h;                                                 \
+                                                                               \
+    for (int j = 0; j < chain_struct.length - 1; j++) {                        \
+      const uint32_t g = chain_struct.chain[j];                                \
+      const uint32_t not_g = ~chain_struct.chain[j];                           \
+      add_expression(g & h, chain_struct, expressions_size);                   \
+      add_expression(not_g & h, chain_struct, expressions_size);               \
+      add_expression(g & not_h, chain_struct, expressions_size);               \
+      add_expression(g ^ h, chain_struct, expressions_size);                   \
+      add_expression(g | h, chain_struct, expressions_size);                   \
+    }                                                                          \
+  }
+
+#define LOOP(CS, PREV_CS, NEXT_CS, chain, expressions_size)                    \
+  loop_##CS : if (CS < MAX_LENGTH) {                                           \
+                                                                               \
+    if (choices[CS] < expressions_size[CS]) {                                  \
+      chain[CS] = expressions[choices[CS]];                                    \
+                                                                               \
+      total_chains++;                                                          \
+                                                                               \
+      if (CS == PRINT_PROGRESS_LENGTH) {                                       \
+        PRINT_PROGRESS(CS, choices[CS]);                                       \
+      }                                                                        \
+                                                                               \
+      if (CHECK_SHORTER_THAN_MAX_LENGTH) {                                     \
+        if (__builtin_expect(                                                  \
+                num_unfulfilled_targets - target_lookup[chain[CS]] == 0, 0)) { \
+          print_chain(chain, target_lookup, CS + 1);                           \
+          goto done_##CS;                                                      \
+        }                                                                      \
+      }                                                                        \
+                                                                               \
+      if (CS < MAX_LENGTH - 1 && NEXT_CS >= MAX_LENGTH - NUM_TARGETS) {        \
+        if (__builtin_expect(NEXT_CS + num_unfulfilled_targets -               \
+                                     target_lookup[chain[CS]] ==               \
+                                 MAX_LENGTH,                                   \
+                             1)) {                                             \
+          tmp_chain_size = NEXT_CS;                                            \
+          generated_chain_size = CS;                                           \
+          tmp_num_unfulfilled_targets =                                        \
+              num_unfulfilled_targets - target_lookup[chain[CS]];              \
+          uint32_t j = choices[CS] + 1;                                        \
+                                                                               \
+          next_##CS : if (__builtin_expect(tmp_chain_size < MAX_LENGTH, 1)) {  \
+            GENERATE_NEW_EXPRESSIONS(tmp_chain_size, chain, expressions_size,  \
+                                     ADD_EXPRESSION_TARGET)                    \
+            generated_chain_size = tmp_chain_size;                             \
+                                                                               \
+            for (; j < expressions_size[tmp_chain_size]; ++j) {                \
+              total_chains++;                                                  \
+              if (__builtin_expect(target_lookup[expressions[j]], 0)) {        \
+                chain[tmp_chain_size] = expressions[j];                        \
+                tmp_num_unfulfilled_targets--;                                 \
+                tmp_chain_size++;                                              \
+                if (__builtin_expect(!tmp_num_unfulfilled_targets, 0)) {       \
+                  print_chain(chain, target_lookup, tmp_chain_size);           \
+                  break;                                                       \
+                }                                                              \
+                j++;                                                           \
+                goto next_##CS;                                                \
+              }                                                                \
+            }                                                                  \
+          }                                                                    \
+                                                                               \
+          for (uint32_t i = expressions_size[CS];                              \
+               i < expressions_size[generated_chain_size]; i++) {              \
+            unseen[expressions[i]] = 1;                                        \
+          }                                                                    \
+                                                                               \
+          choices[CS] += 1 + (target_lookup[chain[CS]] << 16);                 \
+          if (CS <= MAX_LENGTH_FOR_COMPLETION_CHECK) {                         \
+            if (__builtin_expect(CS < stop_chain_size, 0)) {                   \
+              return 0;                                                        \
+            }                                                                  \
+          }                                                                    \
+          goto loop_##CS;                                                      \
+        }                                                                      \
+      }                                                                        \
+                                                                               \
+      num_unfulfilled_targets -= target_lookup[chain[CS]];                     \
+                                                                               \
+      choices[NEXT_CS] = choices[CS] + 1;                                      \
+      GENERATE_NEW_EXPRESSIONS(NEXT_CS, chain, expressions_size,               \
+                               ADD_EXPRESSION)                                 \
+                                                                               \
+      CAPTURE_STATS_CALL(NEXT_CS)                                              \
+      goto loop_##NEXT_CS;                                                     \
+    }                                                                          \
+                                                                               \
+    done_##CS : if (CS > 4) {                                                  \
+      for (uint32_t i = expressions_size[PREV_CS]; i < expressions_size[CS];   \
+           i++) {                                                              \
+        unseen[expressions[i]] = 1;                                            \
+      }                                                                        \
+      num_unfulfilled_targets += target_lookup[chain[PREV_CS]];                \
+      choices[PREV_CS] += 1 + (target_lookup[chain[PREV_CS]] << 16);           \
+      if (__builtin_expect(PREV_CS < stop_chain_size, 0)) {                    \
+        return 0;                                                              \
+      }                                                                        \
+      goto loop_##PREV_CS;                                                     \
+    }                                                                          \
+    else {                                                                     \
+      return 0;                                                                \
+    }                                                                          \
+  }
 
 /**
  * @brief The main CUDA kernel for finding optimal logic chains.
@@ -117,338 +187,258 @@ __host__ __device__ void generate_new_expressions(uint8_t chain_size,
 __global__ void find_optimal_chain_kernel(const Chain *initial_chains,
                                           uint32_t num_tasks, Chain *solutions,
                                           uint32_t *solution_count) {
-    // Determine which task this thread is responsible for.
-    uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= num_tasks) {
-        return;
-    }
-    StackFrame
-        search_stack[MAX_LENGTH]; // Max depth of search defines stack size.
-    uint32_t stack_ptr = 0;
+  // Determine which task this thread is responsible for.
+  uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+  if (idx >= num_tasks) {
+    return;
+  }
 
-    Chain chain = initial_chains[idx];
-    uint8_t start_chain_size = chain.length;
-    uint8_t num_unfulfilled_targets = NUM_TARGETS;
+  Chain chain = initial_chains[idx];
+  uint8_t start_chain_size = chain.length;
+  uint8_t num_unfulfilled_targets = NUM_TARGETS;
 
-    // Calculate how many targets are unfulfilled by this initial chain.
-    for (uint32_t i = 0; i < chain.length; i++) {
-        num_unfulfilled_targets -= d_TARGET_LOOKUP[chain.chain[i]];
-    }
+  // Calculate how many targets are unfulfilled by this initial chain.
+  for (uint32_t i = 0; i < chain.length; i++) {
+    num_unfulfilled_targets -= d_TARGET_LOOKUP[chain.chain[i]];
+  }
 
-    // If the initial chain is already a solution, store it.
-    if (num_unfulfilled_targets == 0) {
-        uint32_t sol_idx = atomicAdd(solution_count, 1);
-        solutions[sol_idx] = chain;
-        return;
-    }
-
-    // Push the initial state onto this thread's search stack.
-    search_stack[stack_ptr++] = {
-        STATE_START, start_chain_size, num_unfulfilled_targets,
-        chain.expressions_size, chain.choices[chain.length - 1] + 1};
-
-    //  --- Main Iterative Search Loop (replaces recursion) ---
-    while (stack_ptr > 0) {
-        // Get the current search level from the top of the stack.
-        StackFrame *current_level = &search_stack[stack_ptr - 1];
-        uint8_t chain_size = current_level->chain_size;
-
-        // If this is the first time at this level, generate new expressions.
-        if (current_level->state == STATE_START) {
-            generate_new_expressions(chain_size,
-                                     current_level->expressions_size, chain);
-            current_level->state = STATE_SEARCH;
-        }
-
-        // Check if there are more expressions to explore at this level.
-        if (current_level->choice < current_level->expressions_size) {
-            uint32_t chosen_expr = chain.expressions[current_level->choice];
-            chain.chain[chain_size] = chosen_expr;
-
-            uint8_t next_chain_size = chain_size + 1;
-            uint8_t next_num_unfulfilled_targets =
-                current_level->num_unfulfilled_targets -
-                d_TARGET_LOOKUP[chosen_expr];
-
-            // Pruning: if the chain is already too long to be a better
-            // solution, abandon this path.
-            if (next_chain_size + next_num_unfulfilled_targets >=
-                MAX_LENGTH + 1) {
-                current_level->choice++;
-                continue;
-            }
-
-            if (next_num_unfulfilled_targets == 0) {
-                uint32_t sol_idx = atomicAdd(solution_count, 1);
-                // Limit stored solutions to prevent overflow
-                if (sol_idx < MAX_SOLUTIONS) {
-                    solutions[sol_idx].length = next_chain_size;
-                    for (uint32_t i = 0; i < next_chain_size; i++) {
-                        solutions[sol_idx].chain[i] = chain.chain[i];
-                    }
-                }
-                current_level->choice++;
-            } else {
-                // "Recurse deeper": Push a new frame onto the stack for the
-                // next level.
-                search_stack[stack_ptr++] = {
-                    STATE_START, next_chain_size, next_num_unfulfilled_targets,
-                    current_level->expressions_size, current_level->choice + 1};
-            }
-        } else {
-            if (stack_ptr == 1) {
-                break;
-            }
-            // "Return from recursion": All expressions at this level have been
-            // checked. Backtrack by restoring the 'unseen' status of the
-            // expressions generated at this level.
-            for (uint32_t i = current_level[-1].expressions_size;
-                 i < current_level->expressions_size; i++) {
-                chain.unseen[chain.expressions[i]] = 1; // Mark as unseen again.
-            }
-
-            // if the previous step was a target, then we stop altogether at
-            // that level; we do this by incrementing choice far enough to be
-            // for sure outside of the expressions_size range
-            current_level[-1].choice +=
-                1 +
-                (d_TARGET_LOOKUP[chain.expressions[current_level[-1].choice]]
-                 << 16);
-
-            // Pop the stack to return to the previous level.
-            stack_ptr--;
-        }
-    }
+  // If the initial chain is already a solution, store it.
+  if (num_unfulfilled_targets == 0) {
+    uint32_t sol_idx = atomicAdd(solution_count, 1);
+    solutions[sol_idx] = chain;
+    return;
+  }
 }
 
 // --- Host-side C++ Code ---
 
 // Helper to print a chain's binary representation.
 void print_chain(const Chain &s, const uint8_t *target_lookup) {
-    printf("chain (%d):\n", s.length);
-    for (uint32_t i = 0; i < s.length; i++) {
-        printf("x%d", i + 1);
-        for (uint32_t j = 0; j < i; j++) {
-            for (uint32_t k = j + 1; k < i; k++) {
-                char op = 0;
-                if (s.chain[i] == (s.chain[j] & s.chain[k])) {
-                    op = '&';
-                } else if (s.chain[i] == (s.chain[j] | s.chain[k])) {
-                    op = '|';
-                } else if (s.chain[i] == (s.chain[j] ^ s.chain[k])) {
-                    op = '^';
-                } else if (s.chain[i] == ((~s.chain[j]) & s.chain[k])) {
-                    op = '<';
-                } else if (s.chain[i] == (s.chain[j] & (~s.chain[k]))) {
-                    op = '>';
-                } else {
-                    continue;
-                }
+  printf("chain (%d):\n", s.length);
+  for (uint32_t i = 0; i < s.length; i++) {
+    printf("x%d", i + 1);
+    for (uint32_t j = 0; j < i; j++) {
+      for (uint32_t k = j + 1; k < i; k++) {
+        char op = 0;
+        if (s.chain[i] == (s.chain[j] & s.chain[k])) {
+          op = '&';
+        } else if (s.chain[i] == (s.chain[j] | s.chain[k])) {
+          op = '|';
+        } else if (s.chain[i] == (s.chain[j] ^ s.chain[k])) {
+          op = '^';
+        } else if (s.chain[i] == ((~s.chain[j]) & s.chain[k])) {
+          op = '<';
+        } else if (s.chain[i] == (s.chain[j] & (~s.chain[k]))) {
+          op = '>';
+        } else {
+          continue;
+        }
 
-                printf(" = x%d %c x%d", j + 1, op, k + 1);
-            }
-        }
-        printf(" = %s", std::bitset<N>(s.chain[i]).to_string().c_str());
-        if (target_lookup[s.chain[i]]) {
-            printf(" [target]");
-        }
-        printf("\n");
+        printf(" = x%d %c x%d", j + 1, op, k + 1);
+      }
     }
+    printf(" = %s", std::bitset<N>(s.chain[i]).to_string().c_str());
+    if (target_lookup[s.chain[i]]) {
+      printf(" [target]");
+    }
+    printf("\n");
+  }
 }
 
 int main(int argc, char *argv[]) {
-    printf("Starting logic chain synthesis for N=%d\n", N);
-    printf("Max length: %d, Num targets: %d\n", MAX_LENGTH, NUM_TARGETS);
+  printf("Starting logic chain synthesis for N=%d\n", N);
+  printf("Max length: %d, Num targets: %d\n", MAX_LENGTH, NUM_TARGETS);
 
-    // --- CUDA Device Setup ---
-    uint32_t dev_id = 0;
-    cudaDeviceProp props;
-    cudaSetDevice(dev_id);
-    cudaGetDeviceProperties(&props, dev_id);
-    printf("Using GPU: %s\n", props.name);
-    if (props.major < 3) {
-        printf("Error: This code requires a GPU with compute capability 3.0 or "
-               "higher.\n");
-        return 1;
-    }
+  // --- CUDA Device Setup ---
+  uint32_t dev_id = 0;
+  cudaDeviceProp props;
+  cudaSetDevice(dev_id);
+  cudaGetDeviceProperties(&props, dev_id);
+  printf("Using GPU: %s\n", props.name);
+  if (props.major < 3) {
+    printf("Error: This code requires a GPU with compute capability 3.0 or "
+           "higher.\n");
+    return 1;
+  }
 
-    // --- Host-side Data Initialization ---
-    uint32_t host_targets[NUM_TARGETS] = {
-        ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY,
-        ((~(uint32_t)0b1111100111100100) >> (16 - N)) & TAUTOLOGY,
-        ((~(uint32_t)0b1101111111110100) >> (16 - N)) & TAUTOLOGY,
-        ((~(uint32_t)0b1011011011011110) >> (16 - N)) & TAUTOLOGY,
-        ((~(uint32_t)0b1010001010111111) >> (16 - N)) & TAUTOLOGY,
-        ((~(uint32_t)0b1000111111110011) >> (16 - N)) & TAUTOLOGY,
-        (((uint32_t)0b0011111011111111) >> (16 - N)) & TAUTOLOGY,
-    };
+  // --- Host-side Data Initialization ---
+  uint32_t host_targets[NUM_TARGETS] = {
+      ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY,
+      ((~(uint32_t)0b1111100111100100) >> (16 - N)) & TAUTOLOGY,
+      ((~(uint32_t)0b1101111111110100) >> (16 - N)) & TAUTOLOGY,
+      ((~(uint32_t)0b1011011011011110) >> (16 - N)) & TAUTOLOGY,
+      ((~(uint32_t)0b1010001010111111) >> (16 - N)) & TAUTOLOGY,
+      ((~(uint32_t)0b1000111111110011) >> (16 - N)) & TAUTOLOGY,
+      (((uint32_t)0b0011111011111111) >> (16 - N)) & TAUTOLOGY,
+  };
 
-    uint8_t target_lookup[SIZE] = {0};
-    for (uint32_t i = 0; i < NUM_TARGETS; i++) {
-        target_lookup[host_targets[i]] = 1;
-    }
+  uint8_t target_lookup[SIZE] = {0};
+  for (uint32_t i = 0; i < NUM_TARGETS; i++) {
+    target_lookup[host_targets[i]] = 1;
+  }
 
-    uint32_t start_i = 1;
-    // -c for chunk mode, only complete one slice of the depth given by the
-    // progress vector
-    if (argc > 1 && strcmp(argv[1], "-c") == 0) {
-        start_i++;
-    }
+  uint32_t start_i = 1;
+  // -c for chunk mode, only complete one slice of the depth given by the
+  // progress vector
+  if (argc > 1 && strcmp(argv[1], "-c") == 0) {
+    start_i++;
+  }
 
-    uint32_t start_indices_size __attribute__((aligned(64))) = 0;
-    uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
+  uint32_t start_indices_size __attribute__((aligned(64))) = 0;
+  uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
 
-    // --- Generate Initial Search Tasks on the CPU ---
-    printf("Generating initial search tasks on the CPU...\n");
-    std::vector<Chain> initial_tasks;
+  // --- Generate Initial Search Tasks on the CPU ---
+  printf("Generating initial search tasks on the CPU...\n");
+  std::vector<Chain> initial_tasks;
 
-    Chain base_chain;
-    base_chain.length = 4;
-    base_chain.chain[0] = 0b0000000011111111 >> (16 - N);
-    base_chain.chain[1] = 0b0000111100001111 >> (16 - N);
-    base_chain.chain[2] = 0b0011001100110011 >> (16 - N);
-    base_chain.chain[3] = 0b0101010101010101 >> (16 - N);
+  Chain base_chain;
+  base_chain.length = 4;
+  base_chain.chain[0] = 0b0000000011111111 >> (16 - N);
+  base_chain.chain[1] = 0b0000111100001111 >> (16 - N);
+  base_chain.chain[2] = 0b0011001100110011 >> (16 - N);
+  base_chain.chain[3] = 0b0101010101010101 >> (16 - N);
 
-    for (uint32_t i = 0; i < base_chain.length; i++) {
-        start_indices[start_indices_size++] = 0;
-    }
+  for (uint32_t i = 0; i < base_chain.length; i++) {
+    start_indices[start_indices_size++] = 0;
+  }
 
-    // read the progress vector, e.g 5 2 9, commas will be ignored: 5, 2, 9
-    for (uint32_t i = start_i; i < argc; i++) {
-        start_indices[start_indices_size++] = atoi(argv[i]);
-    }
+  // read the progress vector, e.g 5 2 9, commas will be ignored: 5, 2, 9
+  for (uint32_t i = start_i; i < argc; i++) {
+    start_indices[start_indices_size++] = atoi(argv[i]);
+  }
 
-    memset(base_chain.unseen, 1, sizeof(base_chain.unseen));
-    base_chain.unseen[0] = 0;
-    for (int32_t k = 0; k < base_chain.length; k++) {
-        base_chain.unseen[base_chain.chain[k]] = 0;
-        base_chain.choices[k] = 0xffffffff;
-    }
+  memset(base_chain.unseen, 1, sizeof(base_chain.unseen));
+  base_chain.unseen[0] = 0;
+  for (int32_t k = 0; k < base_chain.length; k++) {
+    base_chain.unseen[base_chain.chain[k]] = 0;
+    base_chain.choices[k] = 0xffffffff;
+  }
 
-    base_chain.expressions_size = 0;
-    // only do it up to length - 1, the length step is done below
-    for (int32_t k = 1; k < base_chain.length - 1; k++) {
-        generate_new_expressions(k + 1, base_chain.expressions_size,
-                                 base_chain);
-    }
+  base_chain.expressions_size = 0;
+  // only do it up to length - 1, the length step is done below
+  for (int32_t k = 1; k < base_chain.length - 1; k++) {
+    GENERATE_NEW_EXPRESSIONS(k + 1, base_chain, base_chain.expressions_size,
+                             ADD_EXPRESSION);
+  }
 
-    while (base_chain.length < start_indices_size) {
-        generate_new_expressions(base_chain.length, base_chain.expressions_size,
-                                 base_chain);
-        base_chain.choices[base_chain.length] = start_indices[base_chain.length];
-        base_chain.chain[base_chain.length] = base_chain.expressions[base_chain.choices[base_chain.length]];
-        base_chain.length++;
-    }
+  while (base_chain.length < start_indices_size) {
+    GENERATE_NEW_EXPRESSIONS(base_chain.length, base_chain,
+                             base_chain.expressions_size, ADD_EXPRESSION);
+    base_chain.choices[base_chain.length] = start_indices[base_chain.length];
+    base_chain.chain[base_chain.length] =
+        base_chain.expressions[base_chain.choices[base_chain.length]];
+    base_chain.length++;
+  }
 
-    // Unroll the first few levels of the search to create independent tasks
-    uint32_t cpu_search_depth = 3;
-    std::vector<Chain> queue;
-    queue.push_back(base_chain);
+  // Unroll the first few levels of the search to create independent tasks
+  uint32_t cpu_search_depth = 3;
+  std::vector<Chain> queue;
+  queue.push_back(base_chain);
 
-    for (uint32_t depth = 0; depth < cpu_search_depth; ++depth) {
-        // printf("generating at depth %d: %d in queue\n", depth, queue.size());
-        std::vector<Chain> next_queue;
-        for (auto &current : queue) {
-            // printf("chain: %d length, %d expression size\n", current.length,
-            //        current.expressions_size);
-            generate_new_expressions(current.length, current.expressions_size,
-                                     current);
-            for (uint32_t i = current.choices[current.length - 1] + 1;
-                 i < current.expressions_size; ++i) {
-                current.choices[current.length] = i;
-                current.chain[current.length] =
-                    current.expressions[current.choices[current.length]];
-                current.length++;
-                next_queue.push_back(current);
-                current.length--;
-                if (next_queue.size() >= MAX_GPU_TASKS) {
-                    break;
-                }
-            }
-            if (next_queue.size() >= MAX_GPU_TASKS) {
-                break;
-            }
+  for (uint32_t depth = 0; depth < cpu_search_depth; ++depth) {
+    // printf("generating at depth %d: %d in queue\n", depth, queue.size());
+    std::vector<Chain> next_queue;
+    for (auto &current : queue) {
+      // printf("chain: %d length, %d expression size\n", current.length,
+      //        current.expressions_size);
+      GENERATE_NEW_EXPRESSIONS(current.length, base_chain,
+                               base_chain.expressions_size, ADD_EXPRESSION);
+      for (uint32_t i = current.choices[current.length - 1] + 1;
+           i < current.expressions_size; ++i) {
+        current.choices[current.length] = i;
+        current.chain[current.length] =
+            current.expressions[current.choices[current.length]];
+        current.length++;
+        next_queue.push_back(current);
+        current.length--;
+        if (next_queue.size() >= MAX_GPU_TASKS) {
+          break;
         }
-        queue = next_queue;
-        if (queue.size() >= MAX_GPU_TASKS) {
-            break;
-        }
+      }
+      if (next_queue.size() >= MAX_GPU_TASKS) {
+        break;
+      }
     }
-    initial_tasks = queue;
-    printf("Generated %zu tasks to be processed by the GPU.\n",
-           initial_tasks.size());
-
-    // --- Allocate and Transfer Data to GPU ---
-    cudaError_t err;
-
-    Chain *d_initial_chains;
-    err = cudaMalloc(&d_initial_chains, initial_tasks.size() * sizeof(Chain));
-    if (err != cudaSuccess) {
-        printf("cudaMalloc failed: %s\n", cudaGetErrorString(err));
-        return 1;
+    queue = next_queue;
+    if (queue.size() >= MAX_GPU_TASKS) {
+      break;
     }
+  }
+  initial_tasks = queue;
+  printf("Generated %zu tasks to be processed by the GPU.\n",
+         initial_tasks.size());
 
-    err = cudaMemcpy(d_initial_chains, initial_tasks.data(),
-                     initial_tasks.size() * sizeof(Chain),
-                     cudaMemcpyHostToDevice);
-    if (err != cudaSuccess) {
-        printf("cudaMemcpy failed: %s\n", cudaGetErrorString(err));
-        return 1;
+  // --- Allocate and Transfer Data to GPU ---
+  cudaError_t err;
+
+  Chain *d_initial_chains;
+  err = cudaMalloc(&d_initial_chains, initial_tasks.size() * sizeof(Chain));
+  if (err != cudaSuccess) {
+    printf("cudaMalloc failed: %s\n", cudaGetErrorString(err));
+    return 1;
+  }
+
+  err =
+      cudaMemcpy(d_initial_chains, initial_tasks.data(),
+                 initial_tasks.size() * sizeof(Chain), cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) {
+    printf("cudaMemcpy failed: %s\n", cudaGetErrorString(err));
+    return 1;
+  }
+
+  Chain *d_solutions;
+  cudaMalloc(&d_solutions, MAX_SOLUTIONS * sizeof(Chain));
+
+  uint32_t *d_solution_count;
+  cudaMalloc(&d_solution_count, sizeof(uint32_t));
+  cudaMemset(d_solution_count, 0, sizeof(uint32_t));
+
+  // Copy data to __constant__ and __device__ global memory
+  cudaMemcpyToSymbol(d_TARGETS, host_targets, NUM_TARGETS * sizeof(uint32_t));
+  cudaMemcpyToSymbol(d_TARGET_LOOKUP, target_lookup, SIZE * sizeof(uint8_t));
+
+  // --- Launch Kernel ---
+  printf("Launching CUDA kernel...\n");
+  uint32_t num_tasks = initial_tasks.size();
+  uint32_t threads_per_block = 256;
+  uint32_t blocks_per_grid =
+      (num_tasks + threads_per_block - 1) / threads_per_block;
+
+  find_optimal_chain_kernel<<<blocks_per_grid, threads_per_block>>>(
+      d_initial_chains, num_tasks, d_solutions, d_solution_count);
+
+  // Synchronize to wait for the kernel to finish and check for errors.
+  cudaDeviceSynchronize();
+  err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    printf("Kernel launch failed: %s\n", cudaGetErrorString(err));
+  }
+
+  // --- Retrieve and Print Results ---
+  printf("Kernel finished. Retrieving results...\n");
+  int solution_count_host = 0;
+  cudaMemcpy(&solution_count_host, d_solution_count, sizeof(uint32_t),
+             cudaMemcpyDeviceToHost);
+  printf("found %d solutions, only kept up to %d\n", solution_count_host,
+         MAX_SOLUTIONS);
+  solution_count_host = std::min(solution_count_host, MAX_SOLUTIONS);
+
+  if (solution_count_host > 0) {
+    std::vector<Chain> solutions_host(solution_count_host);
+    cudaMemcpy(solutions_host.data(), d_solutions,
+               solution_count_host * sizeof(Chain), cudaMemcpyDeviceToHost);
+
+    for (const auto &s : solutions_host) {
+      print_chain(s, target_lookup);
     }
+  } else {
+    printf("No solutions found.\n");
+  }
 
-    Chain *d_solutions;
-    cudaMalloc(&d_solutions, MAX_SOLUTIONS * sizeof(Chain));
+  // --- Cleanup ---
+  cudaFree(d_initial_chains);
+  cudaFree(d_solutions);
+  cudaFree(d_solution_count);
 
-    uint32_t *d_solution_count;
-    cudaMalloc(&d_solution_count, sizeof(uint32_t));
-    cudaMemset(d_solution_count, 0, sizeof(uint32_t));
-
-    // Copy data to __constant__ and __device__ global memory
-    cudaMemcpyToSymbol(d_TARGETS, host_targets, NUM_TARGETS * sizeof(uint32_t));
-    cudaMemcpyToSymbol(d_TARGET_LOOKUP, target_lookup, SIZE * sizeof(uint8_t));
-
-    // --- Launch Kernel ---
-    printf("Launching CUDA kernel...\n");
-    uint32_t num_tasks = initial_tasks.size();
-    uint32_t threads_per_block = 256;
-    uint32_t blocks_per_grid =
-        (num_tasks + threads_per_block - 1) / threads_per_block;
-
-    find_optimal_chain_kernel<<<blocks_per_grid, threads_per_block>>>(
-        d_initial_chains, num_tasks, d_solutions, d_solution_count);
-
-    // Synchronize to wait for the kernel to finish and check for errors.
-    cudaDeviceSynchronize();
-    err = cudaGetLastError();
-    if (err != cudaSuccess) {
-        printf("Kernel launch failed: %s\n", cudaGetErrorString(err));
-    }
-
-    // --- Retrieve and Print Results ---
-    printf("Kernel finished. Retrieving results...\n");
-    int solution_count_host = 0;
-    cudaMemcpy(&solution_count_host, d_solution_count, sizeof(uint32_t),
-               cudaMemcpyDeviceToHost);
-    printf("found %d solutions, only kept up to %d\n", solution_count_host,
-           MAX_SOLUTIONS);
-    solution_count_host = std::min(solution_count_host, MAX_SOLUTIONS);
-
-    if (solution_count_host > 0) {
-        std::vector<Chain> solutions_host(solution_count_host);
-        cudaMemcpy(solutions_host.data(), d_solutions,
-                   solution_count_host * sizeof(Chain), cudaMemcpyDeviceToHost);
-
-        for (const auto &s : solutions_host) {
-            print_chain(s, target_lookup);
-        }
-    } else {
-        printf("No solutions found.\n");
-    }
-
-    // --- Cleanup ---
-    cudaFree(d_initial_chains);
-    cudaFree(d_solutions);
-    cudaFree(d_solution_count);
-
-    return 0;
+  return 0;
 }
