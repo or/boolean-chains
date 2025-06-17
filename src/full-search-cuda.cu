@@ -164,19 +164,17 @@ __device__ uint8_t d_TARGET_LOOKUP[SIZE];
  * @param num_tasks The total number of starting chains to process.
  * @param solutions A device buffer to store found solutions.
  * @param solution_count An atomic counter for the number of solutions found.
+ * @param next_index An atomic index for the next task, so threads can work at all times.
  */
 __global__ void find_optimal_chain_kernel(const Chain *initial_chains,
                                           uint32_t num_tasks,
-                                          uint32_t tasks_per_thread,
                                           Chain *solutions,
-                                          uint32_t *solution_count) {
+                                          uint32_t *solution_count,
+                                          uint32_t *next_index) {
   uint8_t unseen[SIZE];
-  // Determine which task this thread is responsible for.
-  uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-  for (uint32_t task_id = idx * tasks_per_thread;
-       task_id < idx * tasks_per_thread + tasks_per_thread &&
+  for (uint32_t task_id = atomicAdd(next_index, 1);
        task_id < num_tasks;
-       task_id++) {
+       task_id = atomicAdd(next_index, 1)) {
     Chain chain = initial_chains[task_id];
     chain.unseen = unseen;
     memset(chain.unseen, 1, SIZE);
@@ -419,6 +417,9 @@ int main(int argc, char *argv[]) {
   uint32_t *d_solution_count;
   cudaMalloc(&d_solution_count, sizeof(uint32_t));
   cudaMemset(d_solution_count, 0, sizeof(uint32_t));
+  uint32_t *d_next_index;
+  cudaMalloc(&d_next_index, sizeof(uint32_t));
+  cudaMemset(d_next_index, 0xffffffff, sizeof(uint32_t));
 
   // Copy data to __constant__ and __device__ global memory
   cudaMemcpyToSymbol(d_TARGETS, host_targets, NUM_TARGETS * sizeof(uint32_t));
@@ -426,17 +427,16 @@ int main(int argc, char *argv[]) {
 
   // --- Launch Kernel ---
   uint32_t num_tasks = initial_tasks.size();
-  uint32_t tasks_per_thread = num_tasks / MAX_GPU_THREADS + 1;
-  uint32_t num_threads = num_tasks / tasks_per_thread + 1;
   uint32_t threads_per_block = 256;
+  uint32_t num_threads = (num_tasks < MAX_GPU_THREADS) ? num_tasks : MAX_GPU_THREADS;
   uint32_t blocks_per_grid =
       (num_threads + threads_per_block - 1) / threads_per_block;
 
-  printf("Planning %d threads x %d tasks\n", num_threads, tasks_per_thread);
+  printf("Planning %d threads\n", num_threads);
   printf("Launching CUDA kernel...\n");
   find_optimal_chain_kernel<<<blocks_per_grid, threads_per_block>>>(
-      d_initial_chains, num_tasks, tasks_per_thread, d_solutions,
-      d_solution_count);
+      d_initial_chains, num_tasks, d_solutions,
+      d_solution_count, d_next_index);
 
   // Synchronize to wait for the kernel to finish and check for errors.
   cudaDeviceSynchronize();
@@ -470,6 +470,7 @@ int main(int argc, char *argv[]) {
   cudaFree(d_initial_chains);
   cudaFree(d_solutions);
   cudaFree(d_solution_count);
+  cudaFree(d_next_index);
 
   for (auto &pointer : allocated_pointers) {
     free(pointer);
