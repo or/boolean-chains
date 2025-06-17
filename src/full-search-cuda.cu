@@ -428,7 +428,10 @@ int main(int argc, char *argv[]) {
   // --- Launch Kernel ---
   uint32_t num_tasks = initial_tasks.size();
   uint32_t threads_per_block = 256;
-  uint32_t num_threads = (num_tasks < MAX_GPU_THREADS) ? num_tasks : MAX_GPU_THREADS;
+  uint32_t num_threads = props.multiProcessorCount * props.maxThreadsPerMultiProcessor;
+  if (num_tasks < num_threads) {
+    num_threads = num_tasks;
+  }
   uint32_t blocks_per_grid =
       (num_threads + threads_per_block - 1) / threads_per_block;
 
