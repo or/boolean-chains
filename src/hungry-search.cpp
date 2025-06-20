@@ -327,7 +327,7 @@ int main(int argc, char *argv[]) {
   uint32_t expressions[MAX_LENGTH][50000] __attribute__((aligned(64)));
   uint32_t expressions_size[MAX_LENGTH] __attribute__((aligned(64)));
   vector<uint32_t> priorities[MAX_LENGTH] __attribute__((aligned(64)));
-  uint32_t choices[MAX_LENGTH] __attribute__((aligned(64)));
+  uint32_t choices[MAX_LENGTH] __attribute__((aligned(64))) = {0};
   size_t start_indices_size __attribute__((aligned(64))) = 0;
   uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
   size_t current_best_length = 1000;
@@ -403,7 +403,7 @@ int main(int argc, char *argv[]) {
 
   // restore progress
   if (start_indices_size > start_chain_length) {
-    while (chain_size < start_indices_size - 1) {
+    while (chain_size < start_indices_size) {
       GENERATE_NEW_EXPRESSIONS
       choices[chain_size] = start_indices[chain_size];
       chain[chain_size] =
@@ -412,20 +412,7 @@ int main(int argc, char *argv[]) {
       chain_size++;
     }
 
-    GENERATE_NEW_EXPRESSIONS
-
-    // will be incremented again in the main loop
-    choices[chain_size] = start_indices[chain_size] - 1;
-
-    // this will be counted again
-    total_chains--;
-
-    // this must not be inside the while loop, otherwise it destroys the
-    // compiler's ability to optimize, making it only about half as fast
-    goto restore_progress;
-  } else {
-    // so that the first addition in the loop results in 0 for the first choice
-    choices[chain_size] = 0xffffffff;
+    choices[chain_size] = 0;
   }
 
 start:
@@ -451,61 +438,63 @@ start:
     GENERATE_NEW_EXPRESSIONS
   }
 
-restore_progress:
-  do {
-    choices[chain_size]++;
-    while (choices[chain_size] < bite_size[chain_size] &&
-           choices[chain_size] < priorities[chain_size].size()) {
-      chain[chain_size] =
-          expressions[chain_size][priorities[chain_size][choices[chain_size]]];
+next:
+  if (choices[chain_size] < bite_size[chain_size] &&
+      choices[chain_size] < priorities[chain_size].size()) {
+    chain[chain_size] =
+        expressions[chain_size][priorities[chain_size][choices[chain_size]]];
 
-      total_chains++;
-      if (__builtin_expect(chain_size <= 8, 0)) {
-        for (size_t j = start_chain_length; j < chain_size; ++j) {
-          printf("%d, ", choices[j]);
-        }
-        printf("%d [best: %zu] %" PRIu64 "\n", choices[chain_size],
-               current_best_length, total_chains);
-        fflush(stdout);
+    total_chains++;
+    if (__builtin_expect(chain_size <= 10, 0)) {
+      for (size_t j = start_chain_length; j < chain_size; ++j) {
+        printf("%d, ", choices[j]);
       }
-
-      num_unfulfilled_targets -= target_lookup[chain[chain_size]];
-      if (__builtin_expect(chain_size + num_unfulfilled_targets >= MAX_LENGTH,
-                           0)) {
-        // no need to do this, as it must have been 0 to end up in this path
-        // num_unfulfilled_targets += target_lookup[chain[chain_size]];
-        choices[chain_size]++;
-        continue;
-      }
-
-      if (__builtin_expect(!num_unfulfilled_targets, 0)) {
-        print_chain(chain, chain_size + 1);
-        if (chain_size + 1 < current_best_length) {
-          current_best_length = chain_size + 1;
-        }
-        // it must have been 1 to end up in this path, so we can just increment
-        // num_unfulfilled_targets += target_lookup[chain[chain_size]];
-        num_unfulfilled_targets++;
-        choices[chain_size]++;
-        continue;
-      }
-
-      chain_size++;
-      // will be incremented right away again on the first loop, starting at 0
-      choices[chain_size] = 0xffffffff;
-      goto start;
+      printf("%d [best: %zu] %" PRIu64 "\n", choices[chain_size],
+             current_best_length, total_chains);
+      fflush(stdout);
     }
 
-    chain_size--;
-    num_unfulfilled_targets += target_lookup[chain[chain_size]];
-    // if it was a target function, then we can skip all other choices at this
-    // length, because the target function needs to be taken at some point,
-    // might as well be now
-    //
-    // the trick here is to simply add a large number to
-    // the choices at that level if target_lookup is 1, this avoids branching
-    choices[chain_size] += target_lookup[chain[chain_size]] << 16;
-  } while (__builtin_expect(chain_size >= stop_chain_size, 1));
+    num_unfulfilled_targets -= target_lookup[chain[chain_size]];
+    if (__builtin_expect(chain_size + num_unfulfilled_targets >= MAX_LENGTH,
+                         0)) {
+      // no need to do this, as it must have been 0 to end up in this path
+      // num_unfulfilled_targets += target_lookup[chain[chain_size]];
+      choices[chain_size]++;
+      goto next;
+    }
+
+    if (__builtin_expect(!num_unfulfilled_targets, 0)) {
+      print_chain(chain, chain_size + 1);
+      if (chain_size + 1 < current_best_length) {
+        current_best_length = chain_size + 1;
+      }
+      // it must have been 1 to end up in this path, so we can just increment
+      // num_unfulfilled_targets += target_lookup[chain[chain_size]];
+      num_unfulfilled_targets++;
+      choices[chain_size]++;
+      goto next;
+    }
+
+    chain_size++;
+    choices[chain_size] = 0;
+    goto start;
+  }
+
+  chain_size--;
+  num_unfulfilled_targets += target_lookup[chain[chain_size]];
+  // if it was a target function, then we can skip all other choices at this
+  // length, because the target function needs to be taken at some point,
+  // might as well be now
+  //
+  // the trick here is to simply add a large number to
+  // the choices at that level if target_lookup is 1, this avoids branching
+  choices[chain_size] += 1 + (target_lookup[chain[chain_size]] << 16);
+
+  if (__builtin_expect(chain_size < stop_chain_size, 0)) {
+    return 0;
+  }
+
+  goto next;
 
   return 0;
 }
