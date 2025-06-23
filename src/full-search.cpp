@@ -31,9 +31,9 @@
 #define CAPTURE_STATS_CALL(chain_size)
 #endif
 
-constexpr uint32_t N = 12;
+constexpr uint32_t N = 16;
 constexpr uint32_t SIZE = 1 << (N - 1);
-constexpr uint32_t MAX_LENGTH = 18;
+constexpr uint32_t MAX_LENGTH = 22;
 constexpr uint32_t PRINT_PROGRESS_LENGTH = 5;
 // That check is not needed for most leaf processing; but if this is too low,
 // then the chunk completion won't be detected properly, namely if it is lower
