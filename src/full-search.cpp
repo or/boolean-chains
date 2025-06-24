@@ -13,6 +13,8 @@
 #define PLAN_MODE 0
 #endif
 
+#define CHUNK_START_LENGTH 8
+
 #if CAPTURE_STATS
 #define CAPTURE_STATS_CALL(chain_size)                                         \
   {                                                                            \
@@ -34,7 +36,7 @@
 constexpr uint32_t N = 16;
 constexpr uint32_t SIZE = 1 << (N - 1);
 constexpr uint32_t MAX_LENGTH = 22;
-constexpr uint32_t PRINT_PROGRESS_LENGTH = 5;
+constexpr uint32_t PRINT_PROGRESS_LENGTH = 10;
 // That check is not needed for most leaf processing; but if this is too low,
 // then the chunk completion won't be detected properly, namely if it is lower
 // than the chunk length provided... chunks likely will be 4 + 1, 2, 3, 4, or 5,
@@ -143,6 +145,10 @@ uint64_t stats_num_data_points[25] = {0};
     }                                                                          \
   }
 
+// needed to allow building the label based on the value of the input symbol
+#define _LOOP_LABEL(CS) loop_##CS
+#define LOOP_LABEL(CS) _LOOP_LABEL(CS)
+
 #define LOOP(CS, PREV_CS, NEXT_CS)                                             \
   loop_##CS : if (CS < MAX_LENGTH) {                                           \
                                                                                \
@@ -150,10 +156,9 @@ uint64_t stats_num_data_points[25] = {0};
       chain[CS] = expressions[choices[CS]];                                    \
                                                                                \
       if (PLAN_MODE) {                                                         \
-        if (CS + 1 - start_chain_length >= plan_depth) {                       \
-          printf("-c");                                                        \
+        if (CS + 1 >= CHUNK_START_LENGTH) {                                    \
           for (uint32_t j = start_chain_length; j <= CS; ++j) {                \
-            printf(" %d", choices[j]);                                         \
+            printf("%d ", choices[j]);                                         \
           }                                                                    \
           printf("\n");                                                        \
           choices[CS]++;                                                       \
@@ -163,7 +168,7 @@ uint64_t stats_num_data_points[25] = {0};
                                                                                \
       total_chains++;                                                          \
                                                                                \
-      if (CS == PRINT_PROGRESS_LENGTH) {                                       \
+      if (!PLAN_MODE && CS + 1 == PRINT_PROGRESS_LENGTH) {                     \
         PRINT_PROGRESS(CS, choices[CS]);                                       \
       }                                                                        \
                                                                                \
@@ -213,7 +218,7 @@ uint64_t stats_num_data_points[25] = {0};
                                                                                \
           choices[CS] += 1 + (target_lookup[chain[CS]] << 16);                 \
           if (CS <= MAX_LENGTH_FOR_COMPLETION_CHECK) {                         \
-            if (__builtin_expect(CS < stop_chain_size, 0)) {                   \
+            if (!PLAN_MODE && __builtin_expect(CS < CHUNK_START_LENGTH, 0)) {  \
               return 0;                                                        \
             }                                                                  \
           }                                                                    \
@@ -237,7 +242,7 @@ uint64_t stats_num_data_points[25] = {0};
       }                                                                        \
       num_unfulfilled_targets += target_lookup[chain[PREV_CS]];                \
       choices[PREV_CS] += 1 + (target_lookup[chain[PREV_CS]] << 16);           \
-      if (__builtin_expect(PREV_CS < stop_chain_size, 0)) {                    \
+      if (!PLAN_MODE && __builtin_expect(PREV_CS < CHUNK_START_LENGTH, 0)) {   \
         return 0;                                                              \
       }                                                                        \
       goto loop_##PREV_CS;                                                     \
@@ -313,9 +318,7 @@ void on_exit() {
 void signal_handler(int signal) { exit(signal); }
 
 int main(int argc, char *argv[]) {
-  bool chunk_mode = false;
   uint32_t num_unfulfilled_targets = NUM_TARGETS;
-  uint32_t stop_chain_size;
   uint32_t start_indices_size __attribute__((aligned(64))) = 0;
   uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
   uint32_t choices[30] __attribute__((aligned(64)));
@@ -341,26 +344,20 @@ int main(int argc, char *argv[]) {
   uint32_t chain_size = 4;
   start_chain_length = chain_size;
 
-#if PLAN_MODE
-  if (argc > 1) {
-    plan_depth = atoi(argv[1]);
-  }
-#else
-  uint32_t start_i = 1;
-  // -c for chunk mode, only complete one slice of the depth given by the
-  // progress vector
-  if (argc > 1 && strcmp(argv[1], "-c") == 0) {
-    start_i++;
-    chunk_mode = true;
-  }
-
+#if !PLAN_MODE
   for (uint32_t i = 0; i < chain_size; i++) {
     start_indices[start_indices_size++] = 0;
   }
 
   // read the progress vector, e.g 5 2 9, commas will be ignored: 5, 2, 9
-  for (uint32_t i = start_i; i < argc; i++) {
+  for (uint32_t i = 1; i < argc; i++) {
     start_indices[start_indices_size++] = atoi(argv[i]);
+  }
+
+  if (start_indices_size != CHUNK_START_LENGTH) {
+    printf("expected %d integers as chunk prefix\n",
+           CHUNK_START_LENGTH - chain_size);
+    return -1;
   }
 #endif
 
@@ -414,14 +411,9 @@ int main(int argc, char *argv[]) {
   CAPTURE_STATS_CALL(chain_size)
   chain_size++;
 
-  stop_chain_size = start_chain_length;
-  if (chunk_mode) {
-    stop_chain_size = start_indices_size;
-  }
-
   // restore progress
   if (start_indices_size > start_chain_length) {
-    while (chain_size < start_indices_size - 1) {
+    while (chain_size < start_indices_size) {
       GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
       choices[chain_size] = start_indices[chain_size];
       chain[chain_size] = expressions[choices[chain_size]];
@@ -430,16 +422,12 @@ int main(int argc, char *argv[]) {
     }
 
     GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
+    choices[chain_size] = start_indices[chain_size - 1] + 1;
 
-    choices[chain_size] = start_indices[chain_size];
-
-    // this will be counted again
-    total_chains--;
-
-    goto loop_5;
+    goto LOOP_LABEL(CHUNK_START_LENGTH);
   } else {
-    choices[chain_size] = 0;
     GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
+    choices[chain_size] = 0;
   }
 
   LOOP(4, 3, 5)
