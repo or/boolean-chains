@@ -415,6 +415,34 @@ int main(int argc, char *argv[]) {
   if (start_indices_size > start_chain_length) {
     while (chain_size < start_indices_size) {
       GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
+      // this can be used to output the first expressions with the index,
+      // which allows some custom order for promising expressions
+      // if (chain_size == 4) {
+      //   for (int m = 0; m < expressions_size[4]; m++) {
+      //     uint32_t e = expressions[m];
+      //     printf("%d: ", m);
+      //     for (uint32_t j = 0; j < 4; j++) {
+      //       for (uint32_t k = j + 1; k < 4; k++) {
+      //         char op = 0;
+      //         if (e == (chain[j] & chain[k])) {
+      //           op = '&';
+      //         } else if (e == (chain[j] | chain[k])) {
+      //           op = '|';
+      //         } else if (e == (chain[j] ^ chain[k])) {
+      //           op = '^';
+      //         } else if (e == ((~chain[j]) & chain[k])) {
+      //           op = '<';
+      //         } else if (e == (chain[j] & (~chain[k]))) {
+      //           op = '>';
+      //         } else {
+      //           continue;
+      //         }
+      //         printf(" = x%d %c x%d", j + 1, op, k + 1);
+      //       }
+      //     }
+      //     printf("\n");
+      //   }
+      // }
       choices[chain_size] = start_indices[chain_size];
       chain[chain_size] = expressions[choices[chain_size]];
       num_unfulfilled_targets -= target_lookup[chain[chain_size]];
