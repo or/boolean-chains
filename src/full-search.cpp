@@ -13,7 +13,7 @@
 #define PLAN_MODE 0
 #endif
 
-#define CHUNK_START_LENGTH 8
+#define CHUNK_START_LENGTH 9
 
 #if CAPTURE_STATS
 #define CAPTURE_STATS_CALL(chain_size)                                         \
@@ -411,52 +411,52 @@ int main(int argc, char *argv[]) {
   CAPTURE_STATS_CALL(chain_size)
   chain_size++;
 
+#if PLAN_MODE
+  GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
+  choices[chain_size] = 0;
+#else
   // restore progress
-  if (start_indices_size > start_chain_length) {
-    while (chain_size < start_indices_size) {
-      GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
-      // this can be used to output the first expressions with the index,
-      // which allows some custom order for promising expressions
-      // if (chain_size == 4) {
-      //   for (int m = 0; m < expressions_size[4]; m++) {
-      //     uint32_t e = expressions[m];
-      //     printf("%d: ", m);
-      //     for (uint32_t j = 0; j < 4; j++) {
-      //       for (uint32_t k = j + 1; k < 4; k++) {
-      //         char op = 0;
-      //         if (e == (chain[j] & chain[k])) {
-      //           op = '&';
-      //         } else if (e == (chain[j] | chain[k])) {
-      //           op = '|';
-      //         } else if (e == (chain[j] ^ chain[k])) {
-      //           op = '^';
-      //         } else if (e == ((~chain[j]) & chain[k])) {
-      //           op = '<';
-      //         } else if (e == (chain[j] & (~chain[k]))) {
-      //           op = '>';
-      //         } else {
-      //           continue;
-      //         }
-      //         printf(" = x%d %c x%d", j + 1, op, k + 1);
-      //       }
-      //     }
-      //     printf("\n");
-      //   }
-      // }
-      choices[chain_size] = start_indices[chain_size];
-      chain[chain_size] = expressions[choices[chain_size]];
-      num_unfulfilled_targets -= target_lookup[chain[chain_size]];
-      chain_size++;
-    }
-
+  while (chain_size < start_indices_size) {
     GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
-    choices[chain_size] = start_indices[chain_size - 1] + 1;
-
-    goto LOOP_LABEL(CHUNK_START_LENGTH);
-  } else {
-    GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
-    choices[chain_size] = 0;
+    // this can be used to output the first expressions with the index,
+    // which allows some custom order for promising expressions
+    // if (chain_size == 4) {
+    //   for (int m = 0; m < expressions_size[4]; m++) {
+    //     uint32_t e = expressions[m];
+    //     printf("%d: ", m);
+    //     for (uint32_t j = 0; j < 4; j++) {
+    //       for (uint32_t k = j + 1; k < 4; k++) {
+    //         char op = 0;
+    //         if (e == (chain[j] & chain[k])) {
+    //           op = '&';
+    //         } else if (e == (chain[j] | chain[k])) {
+    //           op = '|';
+    //         } else if (e == (chain[j] ^ chain[k])) {
+    //           op = '^';
+    //         } else if (e == ((~chain[j]) & chain[k])) {
+    //           op = '<';
+    //         } else if (e == (chain[j] & (~chain[k]))) {
+    //           op = '>';
+    //         } else {
+    //           continue;
+    //         }
+    //         printf(" = x%d %c x%d", j + 1, op, k + 1);
+    //       }
+    //     }
+    //     printf("\n");
+    //   }
+    // }
+    choices[chain_size] = start_indices[chain_size];
+    chain[chain_size] = expressions[choices[chain_size]];
+    num_unfulfilled_targets -= target_lookup[chain[chain_size]];
+    chain_size++;
   }
+
+  GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
+  choices[chain_size] = start_indices[chain_size - 1] + 1;
+
+  goto LOOP_LABEL(CHUNK_START_LENGTH);
+#endif
 
   LOOP(4, 3, 5)
   LOOP(5, 4, 6)
