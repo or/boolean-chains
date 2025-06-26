@@ -13,7 +13,7 @@
 #define PLAN_MODE 0
 #endif
 
-#define CHUNK_START_LENGTH 9
+#define CHUNK_START_LENGTH 10
 
 #if CAPTURE_STATS
 #define CAPTURE_STATS_CALL(chain_size)                                         \
