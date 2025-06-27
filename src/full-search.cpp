@@ -37,12 +37,6 @@ constexpr uint32_t N = 16;
 constexpr uint32_t SIZE = 1 << (N - 1);
 constexpr uint32_t MAX_LENGTH = 22;
 constexpr uint32_t PRINT_PROGRESS_LENGTH = 10;
-// That check is not needed for most leaf processing; but if this is too low,
-// then the chunk completion won't be detected properly, namely if it is lower
-// than the chunk length provided... chunks likely will be 4 + 1, 2, 3, 4, or 5,
-// so 9 is a good value.
-constexpr uint32_t MAX_LENGTH_FOR_COMPLETION_CHECK = 9;
-constexpr bool CHECK_SHORTER_THAN_MAX_LENGTH = false;
 constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
 constexpr uint32_t TARGET_1 =
     ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY;
@@ -103,7 +97,7 @@ uint64_t stats_num_data_points[25] = {0};
     const uint32_t not_h = ~h;                                                 \
                                                                                \
     uint32_t j = 0;                                                            \
-    _Pragma("clang loop unroll(full)") for (; j < chain_size - 4; j += 4) {    \
+    for (; j < chain_size - 4; j += 4) {                                       \
       const uint32_t g0 = chain[j], g1 = chain[j + 1], g2 = chain[j + 2],      \
                      g3 = chain[j + 3];                                        \
       const uint32_t not_g0 = ~g0, not_g1 = ~g1, not_g2 = ~g2, not_g3 = ~g3;   \
@@ -134,7 +128,7 @@ uint64_t stats_num_data_points[25] = {0};
       add_expression(g3 | h, chain_size);                                      \
     }                                                                          \
                                                                                \
-    _Pragma("clang loop unroll(full)") for (; j < chain_size - 1; j++) {       \
+    for (; j < chain_size - 1; j++) {                                          \
       const uint32_t g = chain[j];                                             \
       const uint32_t not_g = ~chain[j];                                        \
       add_expression(g & h, chain_size);                                       \
@@ -145,111 +139,79 @@ uint64_t stats_num_data_points[25] = {0};
     }                                                                          \
   }
 
-// needed to allow building the label based on the value of the input symbol
-#define _LOOP_LABEL(CS) loop_##CS
-#define LOOP_LABEL(CS) _LOOP_LABEL(CS)
-
-#define LOOP(CS, PREV_CS, NEXT_CS)                                             \
-  loop_##CS : if (CS < MAX_LENGTH) {                                           \
+#define FORWARD_DFS(CS, PREV_CS, NEXT_CS)                                      \
+  GENERATE_NEW_EXPRESSIONS(CS, ADD_EXPRESSION)                                 \
+  CAPTURE_STATS_CALL(CS)                                                       \
                                                                                \
-    if (choices[CS] < expressions_size[CS]) {                                  \
-      chain[CS] = expressions[choices[CS]];                                    \
+  for (uint32_t i##CS = i##PREV_CS + 1; i##CS < expressions_size[CS];          \
+       ++i##CS) {                                                              \
+    chain[CS] = expressions[i##CS];                                            \
+    choices[CS] = i##CS;                                                       \
                                                                                \
-      if (PLAN_MODE) {                                                         \
-        if (CS + 1 >= CHUNK_START_LENGTH) {                                    \
-          for (uint32_t j = start_chain_length; j <= CS; ++j) {                \
-            printf("%d ", choices[j]);                                         \
-          }                                                                    \
-          printf("\n");                                                        \
-          choices[CS]++;                                                       \
-          goto loop_##CS;                                                      \
+    if (PLAN_MODE) {                                                           \
+      if (CS >= CHUNK_START_LENGTH - 1) {                                      \
+        for (uint32_t j = start_chain_length; j <= CS; ++j) {                  \
+          printf("%d ", choices[j]);                                           \
         }                                                                      \
+        printf("\n");                                                          \
+        continue;                                                              \
       }                                                                        \
+    }                                                                          \
                                                                                \
-      total_chains++;                                                          \
+    total_chains++;                                                            \
                                                                                \
-      if (!PLAN_MODE && CS + 1 == PRINT_PROGRESS_LENGTH) {                     \
-        PRINT_PROGRESS(CS, choices[CS]);                                       \
-      }                                                                        \
+    if (!PLAN_MODE && CS + 1 == PRINT_PROGRESS_LENGTH) {                       \
+      PRINT_PROGRESS(CS, i##CS);                                               \
+    }                                                                          \
                                                                                \
-      if (CHECK_SHORTER_THAN_MAX_LENGTH) {                                     \
-        if (__builtin_expect(                                                  \
-                num_unfulfilled_targets - target_lookup[chain[CS]] == 0, 0)) { \
-          print_chain(chain, target_lookup, CS + 1);                           \
-          goto done_##CS;                                                      \
-        }                                                                      \
-      }                                                                        \
+    num_unfulfilled_targets -= target_lookup[chain[CS]];                       \
+    if (CS < MAX_LENGTH - 1 && NEXT_CS >= MAX_LENGTH - NUM_TARGETS) {          \
+      if (__builtin_expect(NEXT_CS + num_unfulfilled_targets == MAX_LENGTH,    \
+                           1)) {                                               \
+        tmp_chain_size = NEXT_CS;                                              \
+        generated_chain_size = CS;                                             \
+        tmp_num_unfulfilled_targets = num_unfulfilled_targets;                 \
+        uint32_t j = i##CS + 1;                                                \
                                                                                \
-      if (CS < MAX_LENGTH - 1 && NEXT_CS >= MAX_LENGTH - NUM_TARGETS) {        \
-        if (__builtin_expect(NEXT_CS + num_unfulfilled_targets -               \
-                                     target_lookup[chain[CS]] ==               \
-                                 MAX_LENGTH,                                   \
-                             1)) {                                             \
-          tmp_chain_size = NEXT_CS;                                            \
-          generated_chain_size = CS;                                           \
-          tmp_num_unfulfilled_targets =                                        \
-              num_unfulfilled_targets - target_lookup[chain[CS]];              \
-          uint32_t j = choices[CS] + 1;                                        \
+        next_##CS : if (__builtin_expect(tmp_chain_size < MAX_LENGTH, 1)) {    \
+          GENERATE_NEW_EXPRESSIONS(tmp_chain_size, ADD_EXPRESSION_TARGET)      \
+          generated_chain_size = tmp_chain_size;                               \
                                                                                \
-          next_##CS : if (__builtin_expect(tmp_chain_size < MAX_LENGTH, 1)) {  \
-            GENERATE_NEW_EXPRESSIONS(tmp_chain_size, ADD_EXPRESSION_TARGET)    \
-            generated_chain_size = tmp_chain_size;                             \
-                                                                               \
-            for (; j < expressions_size[tmp_chain_size]; ++j) {                \
-              total_chains++;                                                  \
-              if (__builtin_expect(target_lookup[expressions[j]], 0)) {        \
-                chain[tmp_chain_size] = expressions[j];                        \
-                tmp_num_unfulfilled_targets--;                                 \
-                tmp_chain_size++;                                              \
-                if (__builtin_expect(!tmp_num_unfulfilled_targets, 0)) {       \
-                  print_chain(chain, target_lookup, tmp_chain_size);           \
-                  break;                                                       \
-                }                                                              \
-                j++;                                                           \
-                goto next_##CS;                                                \
+          for (; j < expressions_size[tmp_chain_size]; ++j) {                  \
+            total_chains++;                                                    \
+            if (__builtin_expect(target_lookup[expressions[j]], 0)) {          \
+              chain[tmp_chain_size] = expressions[j];                          \
+              tmp_num_unfulfilled_targets--;                                   \
+              tmp_chain_size++;                                                \
+              if (__builtin_expect(!tmp_num_unfulfilled_targets, 0)) {         \
+                print_chain(chain, target_lookup, tmp_chain_size);             \
+                break;                                                         \
               }                                                                \
+              j++;                                                             \
+              goto next_##CS;                                                  \
             }                                                                  \
           }                                                                    \
-                                                                               \
-          for (uint32_t i = expressions_size[CS];                              \
-               i < expressions_size[generated_chain_size]; i++) {              \
-            unseen[expressions[i]] = 1;                                        \
-          }                                                                    \
-                                                                               \
-          choices[CS] += 1 + (target_lookup[chain[CS]] << 16);                 \
-          if (CS <= MAX_LENGTH_FOR_COMPLETION_CHECK) {                         \
-            if (!PLAN_MODE && __builtin_expect(CS < CHUNK_START_LENGTH, 0)) {  \
-              return 0;                                                        \
-            }                                                                  \
-          }                                                                    \
-          goto loop_##CS;                                                      \
         }                                                                      \
+                                                                               \
+        for (uint32_t i = expressions_size[CS];                                \
+             i < expressions_size[generated_chain_size]; i++) {                \
+          unseen[expressions[i]] = 1;                                          \
+        }                                                                      \
+                                                                               \
+        num_unfulfilled_targets += target_lookup[chain[CS]];                   \
+        i##CS += (target_lookup[chain[CS]] << 16);                             \
+        continue;                                                              \
       }                                                                        \
+    }
+
+#define BACKTRACK_DFS(CS, PREV_CS, NEXT_CS)                                    \
+  num_unfulfilled_targets += target_lookup[chain[CS]];                         \
+  i##CS += (target_lookup[chain[CS]] << 16);                                   \
+  }                                                                            \
                                                                                \
-      num_unfulfilled_targets -= target_lookup[chain[CS]];                     \
-                                                                               \
-      choices[NEXT_CS] = choices[CS] + 1;                                      \
-      GENERATE_NEW_EXPRESSIONS(NEXT_CS, ADD_EXPRESSION)                        \
-                                                                               \
-      CAPTURE_STATS_CALL(NEXT_CS)                                              \
-      goto loop_##NEXT_CS;                                                     \
-    }                                                                          \
-                                                                               \
-    done_##CS : if (CS > 4) {                                                  \
-      for (uint32_t i = expressions_size[PREV_CS]; i < expressions_size[CS];   \
-           i++) {                                                              \
-        unseen[expressions[i]] = 1;                                            \
-      }                                                                        \
-      num_unfulfilled_targets += target_lookup[chain[PREV_CS]];                \
-      choices[PREV_CS] += 1 + (target_lookup[chain[PREV_CS]] << 16);           \
-      if (!PLAN_MODE && __builtin_expect(PREV_CS < CHUNK_START_LENGTH, 0)) {   \
-        return 0;                                                              \
-      }                                                                        \
-      goto loop_##PREV_CS;                                                     \
-    }                                                                          \
-    else {                                                                     \
-      return 0;                                                                \
-    }                                                                          \
+  for (uint32_t i = expressions_size[PREV_CS]; i < expressions_size[CS];       \
+       i++) {                                                                  \
+    unseen[expressions[i]] = 1;                                                \
   }
 
 void print_chain(const uint32_t *chain, const uint8_t *target_lookup,
@@ -412,8 +374,7 @@ int main(int argc, char *argv[]) {
   chain_size++;
 
 #if PLAN_MODE
-  GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
-  choices[chain_size] = 0;
+  uint32_t i3 = 0xffffffff;
 #else
   // restore progress
   while (chain_size < start_indices_size) {
@@ -452,34 +413,53 @@ int main(int argc, char *argv[]) {
     chain_size++;
   }
 
-  GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
-  choices[chain_size] = start_indices[chain_size - 1] + 1;
+  uint32_t i9 = choices[chain_size - 1];
 
-  goto LOOP_LABEL(CHUNK_START_LENGTH);
 #endif
 
-  LOOP(4, 3, 5)
-  LOOP(5, 4, 6)
-  LOOP(6, 5, 7)
-  LOOP(7, 6, 8)
-  LOOP(8, 7, 9)
-  LOOP(9, 8, 10)
-  LOOP(10, 9, 11)
-  LOOP(11, 10, 12)
-  LOOP(12, 11, 13)
-  LOOP(13, 12, 14)
-  LOOP(14, 13, 15)
-  LOOP(15, 14, 16)
-  LOOP(16, 15, 17)
-  LOOP(17, 16, 18)
-  LOOP(18, 17, 19)
-  LOOP(19, 18, 20)
-  LOOP(20, 19, 21)
-  LOOP(21, 20, 22)
-  LOOP(22, 21, 23)
+#if PLAN_MODE
+  FORWARD_DFS(4, 3, 5)
+  FORWARD_DFS(5, 4, 6)
+  FORWARD_DFS(6, 5, 7)
+  FORWARD_DFS(7, 6, 8)
+  FORWARD_DFS(8, 7, 9)
+  FORWARD_DFS(9, 8, 10)
+#endif
+  FORWARD_DFS(10, 9, 11)
+  FORWARD_DFS(11, 10, 12)
+  FORWARD_DFS(12, 11, 13)
+  FORWARD_DFS(13, 12, 14)
+  FORWARD_DFS(14, 13, 15)
+  FORWARD_DFS(15, 14, 16)
+  FORWARD_DFS(16, 15, 17)
+  FORWARD_DFS(17, 16, 18)
+  FORWARD_DFS(18, 17, 19)
+  FORWARD_DFS(19, 18, 20)
+  FORWARD_DFS(20, 19, 21)
+  FORWARD_DFS(21, 20, 22)
+  FORWARD_DFS(22, 21, 23)
 
-loop_23: // shouldn't be used
+  BACKTRACK_DFS(22, 21, 23)
+  BACKTRACK_DFS(21, 20, 22)
+  BACKTRACK_DFS(20, 19, 21)
+  BACKTRACK_DFS(19, 18, 20)
+  BACKTRACK_DFS(18, 17, 19)
+  BACKTRACK_DFS(17, 16, 18)
+  BACKTRACK_DFS(16, 15, 17)
+  BACKTRACK_DFS(15, 14, 16)
+  BACKTRACK_DFS(14, 13, 15)
+  BACKTRACK_DFS(13, 12, 14)
+  BACKTRACK_DFS(12, 11, 13)
+  BACKTRACK_DFS(11, 10, 12)
+  BACKTRACK_DFS(10, 9, 11)
+#if PLAN_MODE
+  BACKTRACK_DFS(9, 8, 10)
+  BACKTRACK_DFS(8, 7, 9)
+  BACKTRACK_DFS(7, 6, 8)
+  BACKTRACK_DFS(6, 5, 7)
+  BACKTRACK_DFS(5, 4, 6)
+  BACKTRACK_DFS(4, 3, 5)
+#endif
 
-loop_3:
   return 0;
 }
