@@ -103,7 +103,7 @@ uint64_t stats_num_data_points[25] = {0};
     const uint32_t not_h = ~h;                                                 \
                                                                                \
     uint32_t j = 0;                                                            \
-    for (; j < chain_size - 4; j += 4) {                                       \
+    _Pragma("clang loop unroll(full)") for (; j < chain_size - 4; j += 4) {    \
       const uint32_t g0 = chain[j], g1 = chain[j + 1], g2 = chain[j + 2],      \
                      g3 = chain[j + 3];                                        \
       const uint32_t not_g0 = ~g0, not_g1 = ~g1, not_g2 = ~g2, not_g3 = ~g3;   \
@@ -134,7 +134,7 @@ uint64_t stats_num_data_points[25] = {0};
       add_expression(g3 | h, chain_size);                                      \
     }                                                                          \
                                                                                \
-    for (; j < chain_size - 1; j++) {                                          \
+    _Pragma("clang loop unroll(full)") for (; j < chain_size - 1; j++) {       \
       const uint32_t g = chain[j];                                             \
       const uint32_t not_g = ~chain[j];                                        \
       add_expression(g & h, chain_size);                                       \
