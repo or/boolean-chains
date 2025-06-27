@@ -147,6 +147,7 @@ uint64_t stats_num_data_points[25] = {0};
        ++i##CS) {                                                              \
     chain[CS] = expressions[i##CS];                                            \
     choices[CS] = i##CS;                                                       \
+    const uint8_t is_target = target_lookup[chain[CS]];                        \
                                                                                \
     if (PLAN_MODE) {                                                           \
       if (CS >= CHUNK_START_LENGTH - 1) {                                      \
@@ -164,7 +165,7 @@ uint64_t stats_num_data_points[25] = {0};
       PRINT_PROGRESS(CS, i##CS);                                               \
     }                                                                          \
                                                                                \
-    num_unfulfilled_targets -= target_lookup[chain[CS]];                       \
+    num_unfulfilled_targets -= is_target;                                      \
     if (CS < MAX_LENGTH - 1 && NEXT_CS >= MAX_LENGTH - NUM_TARGETS) {          \
       if (__builtin_expect(NEXT_CS + num_unfulfilled_targets == MAX_LENGTH,    \
                            1)) {                                               \
@@ -198,15 +199,15 @@ uint64_t stats_num_data_points[25] = {0};
           unseen[expressions[i]] = 1;                                          \
         }                                                                      \
                                                                                \
-        num_unfulfilled_targets += target_lookup[chain[CS]];                   \
-        i##CS += (target_lookup[chain[CS]] << 16);                             \
+        num_unfulfilled_targets += is_target;                                  \
+        i##CS += (is_target << 16);                                            \
         continue;                                                              \
       }                                                                        \
     }
 
 #define BACKTRACK_DFS(CS, PREV_CS, NEXT_CS)                                    \
-  num_unfulfilled_targets += target_lookup[chain[CS]];                         \
-  i##CS += (target_lookup[chain[CS]] << 16);                                   \
+  num_unfulfilled_targets += is_target;                                        \
+  i##CS += (is_target << 16);                                                  \
   }                                                                            \
                                                                                \
   for (uint32_t i = expressions_size[PREV_CS]; i < expressions_size[CS];       \
