@@ -94,13 +94,14 @@ uint64_t stats_num_data_points[25] = {0};
   {                                                                            \
     expressions_size[chain_size] = expressions_size[chain_size - 1];           \
     const uint32_t h = chain[chain_size - 1];                                  \
-    const uint32_t not_h = ~h;                                                 \
+    const uint32_t not_h = not_chain[chain_size - 1];                          \
                                                                                \
     uint32_t j = 0;                                                            \
     for (; j < chain_size - 4; j += 4) {                                       \
       const uint32_t g0 = chain[j], g1 = chain[j + 1], g2 = chain[j + 2],      \
                      g3 = chain[j + 3];                                        \
-      const uint32_t not_g0 = ~g0, not_g1 = ~g1, not_g2 = ~g2, not_g3 = ~g3;   \
+      const uint32_t not_g0 = not_chain[j], not_g1 = not_chain[j + 1],         \
+                     not_g2 = not_chain[j + 2], not_g3 = not_chain[j + 3];     \
                                                                                \
       add_expression(g0 & h, chain_size);                                      \
       add_expression(g1 & h, chain_size);                                      \
@@ -130,7 +131,7 @@ uint64_t stats_num_data_points[25] = {0};
                                                                                \
     for (; j < chain_size - 1; j++) {                                          \
       const uint32_t g = chain[j];                                             \
-      const uint32_t not_g = ~chain[j];                                        \
+      const uint32_t not_g = not_chain[j];                                     \
       add_expression(g & h, chain_size);                                       \
       add_expression(not_g & h, chain_size);                                   \
       add_expression(g & not_h, chain_size);                                   \
@@ -146,6 +147,7 @@ uint64_t stats_num_data_points[25] = {0};
   for (uint32_t i##CS = i##PREV_CS + 1; i##CS < expressions_size[CS];          \
        ++i##CS) {                                                              \
     chain[CS] = expressions[i##CS];                                            \
+    not_chain[CS] = ~chain[CS];                                                \
     choices[CS] = i##CS;                                                       \
     const uint8_t is_target = target_lookup[chain[CS]];                        \
                                                                                \
@@ -182,6 +184,7 @@ uint64_t stats_num_data_points[25] = {0};
             total_chains++;                                                    \
             if (__builtin_expect(target_lookup[expressions[j]], 0)) {          \
               chain[tmp_chain_size] = expressions[j];                          \
+              not_chain[tmp_chain_size] = ~chain[tmp_chain_size];              \
               tmp_num_unfulfilled_targets--;                                   \
               tmp_chain_size++;                                                \
               if (__builtin_expect(!tmp_num_unfulfilled_targets, 0)) {         \
@@ -288,6 +291,7 @@ int main(int argc, char *argv[]) {
   uint8_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
   uint8_t unseen[SIZE] __attribute__((aligned(64)));
   uint32_t chain[25] __attribute__((aligned(64)));
+  uint32_t not_chain[25] __attribute__((aligned(64)));
   uint32_t expressions[600] __attribute__((aligned(64)));
   uint32_t expressions_size[25] __attribute__((aligned(64)));
   uint32_t tmp_chain_size;
@@ -304,6 +308,10 @@ int main(int argc, char *argv[]) {
   chain[1] = 0b0000111100001111 >> (16 - N);
   chain[2] = 0b0011001100110011 >> (16 - N);
   chain[3] = 0b0101010101010101 >> (16 - N);
+  not_chain[0] = ~chain[0];
+  not_chain[1] = ~chain[1];
+  not_chain[2] = ~chain[2];
+  not_chain[3] = ~chain[3];
   uint32_t chain_size = 4;
   start_chain_length = chain_size;
 
@@ -357,10 +365,10 @@ int main(int argc, char *argv[]) {
   expressions_size[chain_size] = 0;
   for (uint32_t k = 1; k < chain_size; k++) {
     const uint32_t h = chain[k];
-    const uint32_t not_h = ~h;
+    const uint32_t not_h = not_chain[k];
     for (uint32_t j = 0; j < k; j++) {
       const uint32_t g = chain[j];
-      const uint32_t not_g = ~g;
+      const uint32_t not_g = not_chain[j];
 
       ADD_EXPRESSION(g & h, chain_size)
       ADD_EXPRESSION(g & not_h, chain_size)
@@ -410,6 +418,7 @@ int main(int argc, char *argv[]) {
     // }
     choices[chain_size] = start_indices[chain_size];
     chain[chain_size] = expressions[choices[chain_size]];
+    not_chain[chain_size] = ~chain[chain_size];
     num_unfulfilled_targets -= target_lookup[chain[chain_size]];
     chain_size++;
   }
