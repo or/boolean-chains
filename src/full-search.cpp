@@ -97,7 +97,7 @@ uint64_t stats_num_data_points[25] = {0};
     const uint32_t not_h = not_chain[chain_size - 1];                          \
                                                                                \
     uint32_t j = 0;                                                            \
-    for (; j < chain_size - 4; j += 4) {                                       \
+    _Pragma("loop unroll(full)") for (; j < chain_size - 4; j += 4) {          \
       const uint32_t g0 = chain[j], g1 = chain[j + 1], g2 = chain[j + 2],      \
                      g3 = chain[j + 3];                                        \
       const uint32_t not_g0 = not_chain[j], not_g1 = not_chain[j + 1],         \
@@ -129,7 +129,7 @@ uint64_t stats_num_data_points[25] = {0};
       add_expression(g3 | h, chain_size);                                      \
     }                                                                          \
                                                                                \
-    for (; j < chain_size - 1; j++) {                                          \
+    _Pragma("loop unroll(full)") for (; j < chain_size - 1; j++) {             \
       const uint32_t g = chain[j];                                             \
       const uint32_t not_g = not_chain[j];                                     \
       add_expression(g & h, chain_size);                                       \
