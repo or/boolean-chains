@@ -344,7 +344,7 @@ int main(int argc, char *argv[]) {
   bite_size[10] = 5;
   bite_size[11] = 5;
   bite_size[12] = 5;
-  bite_size[13] = 4;
+  bite_size[13] = 5;
   bite_size[14] = 4;
   bite_size[15] = 4;
   bite_size[16] = 4;
