@@ -13,7 +13,7 @@
 #define PLAN_MODE 0
 #endif
 
-#define CHUNK_START_LENGTH 9
+#define CHUNK_START_LENGTH 10
 
 #if CAPTURE_STATS
 #define CAPTURE_STATS_CALL(chain_size)                                         \
@@ -36,7 +36,7 @@
 constexpr uint32_t N = 16;
 constexpr uint32_t SIZE = 1 << (N - 1);
 constexpr uint32_t MAX_LENGTH = 22;
-constexpr uint32_t PRINT_PROGRESS_LENGTH = 10;
+constexpr uint32_t PRINT_PROGRESS_LENGTH = 11;
 constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
 constexpr uint32_t TARGET_1 =
     ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY;
@@ -423,7 +423,7 @@ int main(int argc, char *argv[]) {
     chain_size++;
   }
 
-  uint32_t i8 = choices[chain_size - 1];
+  uint32_t i9 = choices[chain_size - 1];
 
 #endif
 
@@ -433,8 +433,8 @@ int main(int argc, char *argv[]) {
   FORWARD_DFS(6, 5, 7)
   FORWARD_DFS(7, 6, 8)
   FORWARD_DFS(8, 7, 9)
-#endif
   FORWARD_DFS(9, 8, 10)
+#endif
   FORWARD_DFS(10, 9, 11)
   FORWARD_DFS(11, 10, 12)
   FORWARD_DFS(12, 11, 13)
@@ -462,8 +462,8 @@ int main(int argc, char *argv[]) {
   BACKTRACK_DFS(12, 11, 13)
   BACKTRACK_DFS(11, 10, 12)
   BACKTRACK_DFS(10, 9, 11)
-  BACKTRACK_DFS(9, 8, 10)
 #if PLAN_MODE
+  BACKTRACK_DFS(9, 8, 10)
   BACKTRACK_DFS(8, 7, 9)
   BACKTRACK_DFS(7, 6, 8)
   BACKTRACK_DFS(6, 5, 7)
