@@ -4,7 +4,7 @@ OPT_FLAGS = -std=c++20 -O3 -march=native -flto -ffast-math -fomit-frame-pointer 
 PROFILE_FLAGS = -O0 -fprofile-instr-generate=default.profraw
 OPTIMIZED_PROFILE_FLAGS = -fprofile-instr-use=default.profdata
 
-all: target/full-search target/full-search-plan target/hungry-search target/reverse-hungry-search
+all: target/full-search target/full-search-plan target/hungry-search target/reverse-hungry-search target/reverse-full-search
 
 target/full-search: src/full-search.cpp Makefile
 	$(COMPILER) -o target/full-search src/full-search.cpp $(OPT_FLAGS) 2>&1
@@ -23,6 +23,9 @@ target/hungry-search: src/hungry-search.cpp src/*.h Makefile
 
 target/reverse-hungry-search: src/reverse-hungry-search.cpp src/*.h Makefile
 	$(COMPILER) -o target/reverse-hungry-search src/reverse-hungry-search.cpp $(OPT_FLAGS) 2>&1
+
+target/reverse-full-search: src/reverse-full-search.cpp src/*.h Makefile
+	$(COMPILER) -o target/reverse-full-search src/reverse-full-search.cpp $(OPT_FLAGS) 2>&1
 
 target/hungry-search-debug: src/hungry-search.cpp src/*.h Makefile
 	$(COMPILER) -o target/hungry-search-debug src/hungry-search.cpp -std=c++20 -g 2>&1
