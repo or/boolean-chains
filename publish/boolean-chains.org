@@ -801,7 +801,7 @@ With bite sizes 31, 31, 31, 11, 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 3, 3, 2, 1.
 |           | length | chains found | unique chains | chains generated | computation time | progress |               capacity |
 |           |    <r> |          <r> |           <r> |              <r> |              <r> |      <r> |                    <r> |
 |-----------+--------+--------------+---------------+------------------+------------------+----------+------------------------|
-| 16 digits |     18 |            0 |             0 |    7,814,908,813 |       1,454 days |      24% | BOINC Central, various |
+| 16 digits |     18 |            0 |             0 |   64,876,842,388 |           12,080 |      95% | BOINC Central, various |
 
 ** Branching
 :PROPERTIES:
