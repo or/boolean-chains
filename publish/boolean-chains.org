@@ -754,18 +754,18 @@ programming.
 :PROPERTIES:
 :CUSTOM_ID: results-full
 :END:
-|           | optimal |        unique | unique chains |       chains generated | computation | progress |                   capacity |
-|           |  length | function sets |               |                        |        time |          |                            |
-|           |     <r> |           <r> |           <r> |                    <r> |         <r> |      <r> |                        <r> |
-|-----------+---------+---------------+---------------+------------------------+-------------+----------+----------------------------|
-| 10 digits |      11 |             3 |            40 |              7,461,658 |   0.03 secs |     100% | MacBook Air 15" (M2, 2023) |
-| 11 digits |      12 |            91 |         1,079 |            344,252,541 |   0.78 secs |     100% | MacBook Air 15" (M2, 2023) |
-| 12 digits |      14 |             6 |            75 |        263,675,232,692 |      9 mins |     100% | MacBook Air 15" (M2, 2023) |
-| 13 digits |      15 |             1 |             4 |     15,586,512,093,540 |   7.6 hours |     100% | MacBook Air 15" (M2, 2023) |
-| 14 digits |      16 |            35 |            71 |  1,172,393,232,657,510 |    156 days |     100% |        AWS ECS, 1 vCPU/job |
-| 15 digits |      17 |             1 |             1 | 30,968,277,080,052,517 |  1,436 days |          |        AWS ECS, 1 vCPU/job |
-|           |         |               |               | 37,444,981,252,103,000 |  2,139 days |     100% |     BOINC Central, various |
-| 16 digits |      18 |             0 |             0 | 89,630,330,486,978,459 |  5,228 days |       3% |     BOINC Central, various |
+|           | optimal |        unique | unique chains |        chains generated | computation | progress |                   capacity |
+|           |  length | function sets |               |                         |        time |          |                            |
+|           |     <r> |           <r> |           <r> |                     <r> |         <r> |      <r> |                        <r> |
+|-----------+---------+---------------+---------------+-------------------------+-------------+----------+----------------------------|
+| 10 digits |      11 |             3 |            40 |               7,461,658 |   0.03 secs |     100% | MacBook Air 15" (M2, 2023) |
+| 11 digits |      12 |            91 |         1,079 |             344,252,541 |   0.78 secs |     100% | MacBook Air 15" (M2, 2023) |
+| 12 digits |      14 |             6 |            75 |         263,675,232,692 |      9 mins |     100% | MacBook Air 15" (M2, 2023) |
+| 13 digits |      15 |             1 |             4 |      15,586,512,093,540 |   7.6 hours |     100% | MacBook Air 15" (M2, 2023) |
+| 14 digits |      16 |            35 |            71 |   1,172,393,232,657,510 |    156 days |     100% |        AWS ECS, 1 vCPU/job |
+| 15 digits |      17 |             1 |             1 |  30,968,277,080,052,517 |  1,436 days |          |        AWS ECS, 1 vCPU/job |
+|           |         |               |               |  37,444,981,252,103,000 |  2,139 days |     100% |     BOINC Central, various |
+| 16 digits |      18 |             0 |             0 | 151,497,326,265,120,696 |  9,725 days |       5% |     BOINC Central, various |
 Note: those times and numbers are based on the full search version that didn't
 yet stop the branch after finding a target function; the number of chains to
 generate then reduces to about 56-59% of the figures here.
@@ -802,7 +802,7 @@ With bite sizes 31, 31, 31, 11, 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 3, 3, 2, 1.
 |           | length | chains found | unique chains | chains generated | computation time | progress |               capacity |
 |           |    <r> |          <r> |           <r> |              <r> |              <r> |      <r> |                    <r> |
 |-----------+--------+--------------+---------------+------------------+------------------+----------+------------------------|
-| 16 digits |     18 |            0 |             0 |   64,876,842,388 |           12,080 |      95% | BOINC Central, various |
+| 16 digits |     18 |            0 |             0 |   39,538,812,404 |            7,482 |    99.6% | BOINC Central, various |
 
 ** Branching
 :PROPERTIES:
