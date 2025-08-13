@@ -765,7 +765,7 @@ programming.
 | 14 digits |      16 |            35 |            71 |   1,172,393,232,657,510 |    156 days |     100% |        AWS ECS, 1 vCPU/job |
 | 15 digits |      17 |             1 |             1 |  30,968,277,080,052,517 |  1,436 days |          |        AWS ECS, 1 vCPU/job |
 |           |         |               |               |  37,444,981,252,103,000 |  2,139 days |     100% |     BOINC Central, various |
-| 16 digits |      18 |             0 |             0 | 151,497,326,265,120,696 |  9,725 days |       5% |     BOINC Central, various |
+| 16 digits |      18 |             0 |             0 | 194,744,009,047,251,952 | 12,845 days |       5% |     BOINC Central, various |
 Note: those times and numbers are based on the full search version that didn't
 yet stop the branch after finding a target function; the number of chains to
 generate then reduces to about 56-59% of the figures here.
