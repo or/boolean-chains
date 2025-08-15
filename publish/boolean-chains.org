@@ -802,7 +802,13 @@ With bite sizes 31, 31, 31, 11, 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 3, 3, 2, 1.
 |           | length | chains found | unique chains | chains generated | computation time | progress |               capacity |
 |           |    <r> |          <r> |           <r> |              <r> |              <r> |      <r> |                    <r> |
 |-----------+--------+--------------+---------------+------------------+------------------+----------+------------------------|
-| 16 digits |     18 |            0 |             0 |   39,538,812,404 |            7,482 |    99.6% | BOINC Central, various |
+| 16 digits |     18 |            0 |             0 |   39,660,805,920 |            7,497 |   100.0% | BOINC Central, various |
+No chains were found for those bite sizes. I think that's a strong indicator
+that there are no solutions of length 18, because the first 4 bite sizes were
+pretty big and would've found all the optimal solutions for lower number of
+digits. Nonetheless this is no proof, I'm still running the full search above
+for 16 digits, but with the size of that search space I'm limiting it to picking
+the four most likely first expressions.
 
 ** Branching
 :PROPERTIES:
