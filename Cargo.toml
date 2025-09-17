@@ -1,0 +1,9 @@
+[package]
+name = "boolean-chains"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+walkdir = "2"
+regex = "1"
+num-format = "0.4"

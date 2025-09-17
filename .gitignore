@@ -5,3 +5,8 @@ logs
 generated*
 boinc-build
 boinc-central/search*
+
+
+# Added by cargo
+
+/target
