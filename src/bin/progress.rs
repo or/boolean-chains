@@ -1,33 +1,51 @@
 use rayon::prelude::*;
-use regex::Regex;
 use std::fs;
 use std::io::{self, BufRead};
+use std::path::Path;
 use walkdir::WalkDir;
 
 #[derive(Default)]
 struct Stats {
-    solutions: Vec<String>,
     total_chains: u64,
     total_secs: f64,
 }
 
-fn process_file(
-    path: &std::path::Path,
-    re_x1: &Regex,
-    re_chains: &Regex,
-    re_real: &Regex,
-) -> Stats {
+/// Parse a "real" time field like "12.34", "1m23s", "10s"
+fn parse_time(field: &str) -> Option<f64> {
+    if let Some(idx) = field.find('m') {
+        // Format "MmSs"
+        let (mins, rest) = field.split_at(idx);
+        let secs = rest.trim_start_matches('m').trim_end_matches('s');
+        let mins: f64 = mins.parse().ok()?;
+        let secs: f64 = if secs.is_empty() {
+            0.0
+        } else {
+            secs.parse().ok()?
+        };
+        Some(mins * 60.0 + secs)
+    } else {
+        // Format "Ss.s" or "S"
+        let s = field.trim_end_matches('s');
+        s.parse::<f64>().ok()
+    }
+}
+
+fn process_file(path: &Path) -> Stats {
     let mut stats = Stats::default();
 
     if let Ok(file) = fs::File::open(path) {
         let reader = io::BufReader::new(file);
 
         for line in reader.lines().flatten() {
-            if re_x1.is_match(&line) {
-                stats.solutions.push(line.clone());
+            if line.starts_with("x1 = ") {
+                // Print immediately with filename prefix
+                if let Some(fname) = path.file_name().and_then(|n| n.to_str()) {
+                    println!("{}:\n{}", fname, line);
+                }
             }
 
-            if re_chains.is_match(&line) {
+            if line.starts_with("total chains") {
+                // 3rd whitespace‑separated field
                 if let Some(field) = line.split_whitespace().nth(2) {
                     if field != "18446744073709551615" {
                         if let Ok(val) = field.parse::<u64>() {
@@ -37,22 +55,11 @@ fn process_file(
                 }
             }
 
-            if re_real.is_match(&line) {
+            if line.starts_with("real") {
+                // 2nd whitespace‑separated field
                 if let Some(field) = line.split_whitespace().nth(1) {
-                    if field.contains('m') {
-                        let parts: Vec<_> = field.split('m').collect();
-                        if parts.len() == 2 {
-                            if let Ok(mins) = parts[0].parse::<f64>() {
-                                let secs_str = parts[1].trim_end_matches('s');
-                                if let Ok(secs) = secs_str.parse::<f64>() {
-                                    stats.total_secs += mins * 60.0 + secs;
-                                }
-                            }
-                        }
-                    } else {
-                        if let Ok(secs) = field.trim_end_matches('s').parse::<f64>() {
-                            stats.total_secs += secs;
-                        }
+                    if let Some(secs) = parse_time(field) {
+                        stats.total_secs += secs;
                     }
                 }
             }
@@ -63,11 +70,7 @@ fn process_file(
 }
 
 fn main() {
-    let re_x1 = Regex::new(r"x1").unwrap();
-    let re_chains = Regex::new(r"\bchains\b").unwrap();
-    let re_real = Regex::new(r"\breal\b").unwrap();
-
-    // Collect all matching files first
+    // Collect all *output files
     let files: Vec<_> = WalkDir::new(".")
         .into_iter()
         .filter_map(Result::ok)
@@ -82,24 +85,14 @@ fn main() {
         .map(|e| e.into_path())
         .collect();
 
-    // Process files in parallel
-    let final_stats = files
-        .par_iter()
-        .map(|path| process_file(path, &re_x1, &re_chains, &re_real))
-        .reduce(
-            || Stats::default(),
-            |mut a, b| {
-                a.solutions.extend(b.solutions);
-                a.total_chains += b.total_chains;
-                a.total_secs += b.total_secs;
-                a
-            },
-        );
-
-    println!("solutions:");
-    for s in final_stats.solutions {
-        println!("{s}");
-    }
+    let final_stats = files.par_iter().map(|path| process_file(path)).reduce(
+        || Stats::default(),
+        |mut a, b| {
+            a.total_chains += b.total_chains;
+            a.total_secs += b.total_secs;
+            a
+        },
+    );
 
     println!();
     println!("total number of chains: {}", final_stats.total_chains);
