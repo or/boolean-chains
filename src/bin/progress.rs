@@ -1,4 +1,5 @@
 use rayon::prelude::*;
+use std::collections::HashSet;
 use std::fs;
 use std::io::{self, BufRead};
 use std::path::Path;
@@ -8,6 +9,7 @@ use walkdir::WalkDir;
 struct Stats {
     total_chains: u64,
     total_secs: f64,
+    jobs: HashSet<String>,
 }
 
 /// Parse a "real" time field like "12.34", "1m23s", "10s"
@@ -38,14 +40,12 @@ fn process_file(path: &Path) -> Stats {
 
         for line in reader.lines().flatten() {
             if line.starts_with("x1 = ") {
-                // Print immediately with filename prefix
                 if let Some(fname) = path.file_name().and_then(|n| n.to_str()) {
                     println!("{}:\n{}", fname, line);
                 }
             }
 
             if line.starts_with("total chains") {
-                // 3rd whitespace‑separated field
                 if let Some(field) = line.split_whitespace().nth(2) {
                     if field != "18446744073709551615" {
                         if let Ok(val) = field.parse::<u64>() {
@@ -56,10 +56,21 @@ fn process_file(path: &Path) -> Stats {
             }
 
             if line.starts_with("real") {
-                // 2nd whitespace‑separated field
                 if let Some(field) = line.split_whitespace().nth(1) {
                     if let Some(secs) = parse_time(field) {
                         stats.total_secs += secs;
+                    }
+                }
+            }
+
+            if line.starts_with("Running command:") {
+                let mut parts = line.splitn(4, ' ');
+                parts.next(); // "Running"
+                parts.next(); // "command:"
+                parts.next(); // executable
+                if let Some(args) = parts.next() {
+                    if !args.is_empty() {
+                        stats.jobs.insert(args.to_string());
                     }
                 }
             }
@@ -90,6 +101,7 @@ fn main() {
         |mut a, b| {
             a.total_chains += b.total_chains;
             a.total_secs += b.total_secs;
+            a.jobs.extend(b.jobs);
             a
         },
     );
@@ -99,6 +111,16 @@ fn main() {
 
     let total_days = final_stats.total_secs / 3600.0 / 24.0;
     println!("total number of days:   {}", total_days.round() as u64);
+
+    println!("total number of jobs:   {}", final_stats.jobs.len());
+
+    // // Print sorted job args list
+    // let mut jobs: Vec<_> = final_stats.jobs.into_iter().collect();
+    // jobs.sort();
+    // for job in jobs {
+    //     println!("job args: {}", job);
+    // }
+
     println!();
 
     if final_stats.total_secs > 0.0 {
