@@ -1,5 +1,6 @@
 FROM debian AS build
 
+ARG TARGETARCH
 RUN apt update && apt install -y clang make
 
 WORKDIR /
@@ -8,6 +9,6 @@ COPY Makefile .
 COPY src src
 
 RUN mkdir target
-RUN make target/full-search target/full-search-plan target/hungry-search
+RUN make DOCKER_ARCH="${TARGETARCH}" target/full-search target/full-search-plan target/hungry-search
 
 RUN target/full-search-plan > plan.txt

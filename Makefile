@@ -1,5 +1,18 @@
+DOCKER_ARCH ?= native
+
+# Map Docker arch → clang march flag
+ifeq ($(DOCKER_ARCH),amd64)
+  MARCH_FLAG = -march=x86-64
+else ifeq ($(DOCKER_ARCH),arm64)
+  MARCH_FLAG = -march=armv8-a
+else ifeq ($(DOCKER_ARCH),arm)
+  MARCH_FLAG = -march=armv7-a
+else
+  MARCH_FLAG =
+endif
+
 COMPILER = clang++
-OPT_FLAGS = -std=c++20 -O3 -march=native -flto -ffast-math -fomit-frame-pointer -funroll-loops -fno-sanitize=all -fno-builtin-memcpy -fno-stack-protector -fno-strict-aliasing -fno-delete-null-pointer-checks -fno-exceptions -fno-rtti
+OPT_FLAGS = -std=c++20 -O3 $(MARCH_FLAG) -flto -ffast-math -fomit-frame-pointer -funroll-loops -fno-sanitize=all -fno-builtin-memcpy -fno-stack-protector -fno-strict-aliasing -fno-delete-null-pointer-checks -fno-exceptions -fno-rtti
 
 PROFILE_FLAGS = -O0 -fprofile-instr-generate=default.profraw
 OPTIMIZED_PROFILE_FLAGS = -fprofile-instr-use=default.profdata
