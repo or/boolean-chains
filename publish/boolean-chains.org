@@ -1160,8 +1160,3 @@ Here is the first one found:
 :CUSTOM_ID: source-code
 :END:
 The code can be found on GitHub: https://github.com/or/boolean-chains
-
-Initially I used this to learn a bit of Rust, then re-implemented it in C++,
-then switched over to C++ completely as I made better progress. I wonder whether
-it could be even faster in Rust, however, if written by someone who knows Rust
-better than me.
