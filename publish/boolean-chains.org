@@ -7,6 +7,8 @@
 #+html_head_extra: <meta content="./boolean-chains-favicon.png" property="og:image">
 
 #+link: hungry-search-at https://github.com/or/boolean-chains/blob/%s/src/hungry-search.cpp
+#+link: full-search-at https://github.com/or/boolean-chains/blob/%s/src/full-search.cpp
+#+link: old-full-search-at https://github.com/or/boolean-chains/blob/%s/src/boolean-chains-full-fast.cpp
 
 #+begin_export html
 <a href=".." style="position: fixed; top: 10px; left: 10px; background: #eee; padding: 5px 10px; border-radius: 5px; text-decoration: none;">Home</a>
@@ -756,23 +758,22 @@ programming.
 :PROPERTIES:
 :CUSTOM_ID: results-full
 :END:
-|           | optimal |        unique | unique chains |        chains generated | computation | progress |                   capacity | version |
-|           |  length | function sets |               |                         |        time |          |                            |         |
-|           |     <r> |           <r> |           <r> |                     <r> |         <r> |      <r> |                        <r> |     <r> |
-|-----------+---------+---------------+---------------+-------------------------+-------------+----------+----------------------------+---------|
-| 10 digits |      11 |             3 |            40 |               7,461,658 |   0.03 secs |     100% | MacBook Air 15" (M2, 2023) |         |
-| 11 digits |      12 |            91 |         1,079 |             344,252,541 |   0.78 secs |     100% | MacBook Air 15" (M2, 2023) |         |
-| 12 digits |      14 |             6 |            75 |         263,675,232,692 |      9 mins |     100% | MacBook Air 15" (M2, 2023) |         |
-| 13 digits |      15 |             1 |             4 |      15,586,512,093,540 |   7.6 hours |     100% | MacBook Air 15" (M2, 2023) |         |
-| 14 digits |      16 |            35 |            71 |   1,172,393,232,657,510 |    156 days |     100% |        AWS ECS, 1 vCPU/job |         |
-| 15 digits |      17 |             1 |             1 |  30,968,277,080,052,517 |  3.93 years |          |        AWS ECS, 1 vCPU/job |         |
-|           |         |               |               |  37,444,981,252,103,000 |  5.86 years |     100% |     BOINC Central, various |         |
-| 16 digits |      18 |             0 |             0 | 651,765,115,810,355,821 |   129 years |    17.7% |     BOINC Central, various |         |
-Note: those times and numbers are based on the full search version that didn't
-yet stop the branch after finding a target function; the number of chains to
-generate then reduces to about 56-59% of the figures here.
-An exception is the 15-digit run, which started with the old version for the
-first 10%, then switched to the new version to save time.
+|           | optimal |        unique | unique chains |        chains generated | computation | progress |                   capacity |  version |
+|           |  length | function sets |               |                         |        time |          |                            |          |
+|           |     <r> |           <r> |           <r> |                     <r> |         <r> |      <r> |                        <r> |      <r> |
+|-----------+---------+---------------+---------------+-------------------------+-------------+----------+----------------------------+----------|
+| 10 digits |      11 |             3 |            40 |               1,914,846 |  0.016 secs |     100% | MacBook Air 15" (M2, 2023) | [[full-search-at:c1bef22e][c1bef22e]] |
+| 11 digits |      12 |            91 |         1,079 |              96,137,844 |   0.33 secs |     100% | MacBook Air 15" (M2, 2023) | [[full-search-at:c1bef22e][c1bef22e]] |
+| 12 digits |      14 |             6 |            75 |          93,976,359,707 |   3.87 mins |     100% | MacBook Air 15" (M2, 2023) | [[full-search-at:c1bef22e][c1bef22e]] |
+| 13 digits |      15 |             1 |             4 |       7,100,011,078,016 |  3.78 hours |     100% | MacBook Air 15" (M2, 2023) | [[full-search-at:c1bef22e][c1bef22e]] |
+| 14 digits |      16 |            35 |            71 |   1,172,393,232,657,510 |    156 days |     100% |        AWS ECS, 1 vCPU/job | [[old-full-search-at:4ab3460f][4ab3460f]] |
+| 15 digits |      17 |             1 |             1 |  30,968,277,080,052,517 |  3.93 years |          |        AWS ECS, 1 vCPU/job | [[old-full-search-at:4ab3460f][4ab3460f]] |
+|           |         |               |               |  37,444,981,252,103,000 |  5.86 years |     100% |     BOINC Central, various | [[full-search-at:ba16ebb4][ba16ebb4]] |
+| 16 digits |      18 |             0 |             0 | 651,765,115,810,355,821 |   129 years |    17.7% |     BOINC Central, various | [[full-search-at:ba16ebb4][ba16ebb4]] |
+Note: the runs of 14 digits and the first 10% of the 15 digits on
+AWS ECS use the version that didn't yet stop the branch after finding a
+target function; that version generated about 70-80% more chains than the newer
+version.
 
 Thanks to [[https://boinc.berkeley.edu/central/][BOINC Central]] for providing computing capacity for this search!
 
