@@ -758,18 +758,18 @@ programming.
 :PROPERTIES:
 :CUSTOM_ID: results-full
 :END:
-|           | optimal |        unique | unique chains |        chains generated | computation | progress |                   capacity |  version |
-|           |  length | function sets |               |                         |        time |          |                            |          |
-|           |     <r> |           <r> |           <r> |                     <r> |         <r> |      <r> |                        <r> |      <r> |
-|-----------+---------+---------------+---------------+-------------------------+-------------+----------+----------------------------+----------|
-| 10 digits |      11 |             3 |            40 |               1,914,846 |  0.016 secs |     100% | MacBook Air 15" (M2, 2023) | [[full-search-at:c1bef22e][c1bef22e]] |
-| 11 digits |      12 |            91 |         1,079 |              96,137,844 |   0.33 secs |     100% | MacBook Air 15" (M2, 2023) | [[full-search-at:c1bef22e][c1bef22e]] |
-| 12 digits |      14 |             6 |            75 |          93,976,359,707 |   3.87 mins |     100% | MacBook Air 15" (M2, 2023) | [[full-search-at:c1bef22e][c1bef22e]] |
-| 13 digits |      15 |             1 |             4 |       7,100,011,078,016 |  3.78 hours |     100% | MacBook Air 15" (M2, 2023) | [[full-search-at:c1bef22e][c1bef22e]] |
-| 14 digits |      16 |            35 |            71 |   1,172,393,232,657,510 |    156 days |     100% |        AWS ECS, 1 vCPU/job | [[old-full-search-at:4ab3460f][4ab3460f]] |
-| 15 digits |      17 |             1 |             1 |  30,968,277,080,052,517 |  3.93 years |          |        AWS ECS, 1 vCPU/job | [[old-full-search-at:4ab3460f][4ab3460f]] |
-|           |         |               |               |  37,444,981,252,103,000 |  5.86 years |     100% |     BOINC Central, various | [[full-search-at:ba16ebb4][ba16ebb4]] |
-| 16 digits |      18 |             0 |             0 | 651,765,115,810,355,821 |   129 years |    17.7% |     BOINC Central, various | [[full-search-at:ba16ebb4][ba16ebb4]] |
+|           | optimal |        unique | unique chains |          chains generated | computation | progress |                   capacity |  version |
+|           |  length | function sets |               |                           |        time |          |                            |          |
+|           |     <r> |           <r> |           <r> |                       <r> |         <r> |      <r> |                        <r> |      <r> |
+|-----------+---------+---------------+---------------+---------------------------+-------------+----------+----------------------------+----------|
+| 10 digits |      11 |             3 |            40 |                 1,914,846 |  0.016 secs |     100% | MacBook Air 15" (M2, 2023) | [[full-search-at:c1bef22e][c1bef22e]] |
+| 11 digits |      12 |            91 |         1,079 |                96,137,844 |   0.33 secs |     100% | MacBook Air 15" (M2, 2023) | [[full-search-at:c1bef22e][c1bef22e]] |
+| 12 digits |      14 |             6 |            75 |            93,976,359,707 |   3.87 mins |     100% | MacBook Air 15" (M2, 2023) | [[full-search-at:c1bef22e][c1bef22e]] |
+| 13 digits |      15 |             1 |             4 |         7,100,011,078,016 |  3.78 hours |     100% | MacBook Air 15" (M2, 2023) | [[full-search-at:c1bef22e][c1bef22e]] |
+| 14 digits |      16 |            35 |            71 |     1,172,393,232,657,510 |    156 days |     100% |        AWS ECS, 1 vCPU/job | [[old-full-search-at:4ab3460f][4ab3460f]] |
+| 15 digits |      17 |             1 |             1 |    30,968,277,080,052,517 |  3.93 years |          |        AWS ECS, 1 vCPU/job | [[old-full-search-at:4ab3460f][4ab3460f]] |
+|           |         |               |               |    37,444,981,252,103,000 |  5.86 years |     100% |     BOINC Central, various | [[full-search-at:ba16ebb4][ba16ebb4]] |
+| 16 digits |      18 |             0 |             0 | 1,235,078,144,854,147,718 |   243 years |    41.5% |     BOINC Central, various | [[full-search-at:ba16ebb4][ba16ebb4]] |
 Note: the runs of 14 digits and the first 10% of the 15 digits on
 AWS ECS use the version that didn't yet stop the branch after finding a
 target function; that version generated about 70-80% more chains than the newer
@@ -781,7 +781,7 @@ Thanks to [[https://boinc.berkeley.edu/central/][BOINC Central]] for providing c
 :PROPERTIES:
 :CUSTOM_ID: results-hungry
 :END:
-With bite sizes 15. 14, 13, 12, 11, 10, 2, 2, 2, 2, 2, 2, 1, ...
+With bite sizes 15, 14, 13, 12, 11, 10, 2, 2, 2, 2, 2, 2, 1, ...
 |           | length | chains found |        unique | chains generated | computation time |                   capacity |  version |
 |           |        |              | function sets |                  |                  |                            |          |
 |           |    <r> |          <r> |           <r> |              <r> |              <r> |                        <r> |      <r> |
@@ -790,7 +790,7 @@ With bite sizes 15. 14, 13, 12, 11, 10, 2, 2, 2, 2, 2, 2, 1, ...
 | 11 digits |     12 |          182 |            47 |          264,537 |       11.17 secs | MacBook Air 15" (M2, 2023) | [[hungry-search-at:bdaa899d][bdaa899d]] |
 | 12 digits |     14 |            4 |             3 |        4,072,870 |       13.72 mins | MacBook Air 15" (M2, 2023) | [[hungry-search-at:bdaa899d][bdaa899d]] |
 
-With bite sizes 15. 15, 13, 13, 10, 10, 8, 8, 6, 6, 3, 3, 1, ...
+With bite sizes 15, 15, 13, 13, 10, 10, 8, 8, 6, 6, 3, 3, 1, ...
 |           | length | chains found |        unique | chains generated | computation time |            capacity |  version |
 |           |        |              | function sets |                  |                  |                     |          |
 |           |    <r> |          <r> |           <r> |              <r> |              <r> |                 <r> |      <r> |
