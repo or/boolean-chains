@@ -769,7 +769,7 @@ programming.
 | 14 digits |      16 |            35 |            71 |     1,172,393,232,657,510 |    156 days |     100% |        AWS ECS, 1 vCPU/job | [[old-full-search-at:4ab3460f][4ab3460f]] |
 | 15 digits |      17 |             1 |             1 |    30,968,277,080,052,517 |  3.93 years |          |        AWS ECS, 1 vCPU/job | [[old-full-search-at:4ab3460f][4ab3460f]] |
 |           |         |               |               |    37,444,981,252,103,000 |  5.86 years |     100% |     BOINC Central, various | [[full-search-at:ba16ebb4][ba16ebb4]] |
-| 16 digits |      18 |             0 |             0 | 1,235,078,144,854,147,718 |   243 years |    41.5% |     BOINC Central, various | [[full-search-at:ba16ebb4][ba16ebb4]] |
+| 16 digits |      18 |             0 |             0 | 1,327,714,737,766,669,895 |   260 years |    45.4% |     BOINC Central, various | [[full-search-at:ba16ebb4][ba16ebb4]] |
 Note: the runs of 14 digits and the first 10% of the 15 digits on
 AWS ECS use the version that didn't yet stop the branch after finding a
 target function; that version generated about 70-80% more chains than the newer
