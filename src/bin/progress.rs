@@ -108,11 +108,15 @@ fn main() {
 
     println!();
     println!("total number of chains: {}", final_stats.total_chains);
+    println!("total number of jobs:   {}", final_stats.jobs.len());
 
     let total_days = final_stats.total_secs / 3600.0 / 24.0;
-    println!("total number of days:   {}", total_days.round() as u64);
-
-    println!("total number of jobs:   {}", final_stats.jobs.len());
+    let total_years = total_days / 365.2524;
+    println!(
+        "total duration:         {} days / {:.2} years",
+        total_days.round() as u64,
+        total_years
+    );
 
     // // Print sorted job args list
     // let mut jobs: Vec<_> = final_stats.jobs.into_iter().collect();
