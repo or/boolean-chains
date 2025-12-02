@@ -11,15 +11,17 @@ for arg in "$@"; do
   fi
 done
 
-IFS="$DELIMITER" read -ra COMMANDS <<< "$JOINED_ARGS"
+IFS="$DELIMITER" read -ra COMMANDS <<<"$JOINED_ARGS"
 for cmd in "${COMMANDS[@]}"; do
   cmd=$(echo "$cmd" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
 
   if [ -n "$cmd" ]; then
-    echo "Running command: $cmd" | tee -a output
-    echo "----------------------------------------" | tee -a output
-    (time $cmd) 2>&1 | tee -a output
-    echo "----------------------------------------" | tee -a output
-    echo "" | tee -a output
+    {
+      echo "Running command: $cmd"
+      echo "----------------------------------------"
+      (time $cmd) 2>&1
+      echo "----------------------------------------"
+      echo ""
+    } >>output
   fi
 done
