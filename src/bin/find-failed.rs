@@ -1,21 +1,66 @@
 use rayon::prelude::*;
-use regex::Regex;
 use std::env;
 use std::fs;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
-fn transform_filename(filename: &str) -> Option<String> {
-    let re = Regex::new(r"^(.*?)/results/batch_\d+__job_(job-\d+)_errors$").expect("Invalid regex");
+/// Given
+///   batch-16-22-v4-0644_1048/results/batch_1048__job_job-000821_errors
+/// return
+///   (batch-16-22-v4-0644_1048, 821)
+fn parse_error_path(path: &Path) -> Option<(PathBuf, usize)> {
+    let file_name = path.file_name()?.to_str()?;
 
-    if let Some(captures) = re.captures(filename) {
-        let base_path = captures.get(1)?.as_str();
-        let job_id = captures.get(2)?.as_str();
-        let path = Path::new(base_path).join(job_id).join("cmdline");
-        Some(path.to_string_lossy().into_owned())
-    } else {
-        None
+    // extract job number
+    let job_part = file_name.strip_suffix("_errors")?.split("job-").nth(1)?;
+
+    let job_index: usize = job_part.parse().ok()?;
+
+    // go up: results/
+    let base_dir = path.parent()?.parent()?.to_path_buf();
+
+    Some((base_dir, job_index))
+}
+
+fn process_error_file(path: &Path) {
+    let (base_dir, job_index) = match parse_error_path(path) {
+        Some(v) => v,
+        None => {
+            eprintln!("failed to parse path: {}", path.display());
+            return;
+        }
+    };
+
+    let commands_path = base_dir.join("commands");
+
+    let data = match fs::read_to_string(&commands_path) {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("failed to read {}: {}", commands_path.display(), e);
+            return;
+        }
+    };
+
+    let line = match data.lines().nth(job_index) {
+        Some(l) => l,
+        None => {
+            eprintln!(
+                "commands file too short ({}): {}",
+                job_index,
+                commands_path.display()
+            );
+            return;
+        }
+    };
+
+    for chunk in line.split("##") {
+        let chunk = chunk.trim();
+
+        // drop first word
+        if let Some((_, rest)) = chunk.split_once(' ') {
+            println!("{}", rest.trim());
+        }
     }
 }
 
@@ -26,39 +71,27 @@ fn main() -> io::Result<()> {
         std::process::exit(1);
     }
 
-    let files: Vec<String> = args[1..]
+    let error_files: Vec<PathBuf> = args[1..]
         .iter()
         .flat_map(|dir| {
             WalkDir::new(dir)
                 .into_iter()
                 .filter_map(Result::ok)
                 .filter(|e| e.file_type().is_file())
-                .filter(|e| e.path().to_string_lossy().ends_with("_errors"))
-                .map(|e| e.path().to_string_lossy().to_string())
+                .filter(|e| {
+                    e.path()
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .is_some_and(|s| s.ends_with("_errors"))
+                })
+                .map(|e| e.into_path())
                 .collect::<Vec<_>>()
         })
         .collect();
 
-    files
+    error_files
         .par_iter()
-        .for_each(|path_str| match transform_filename(path_str) {
-            Some(cmdline_path) => match fs::read_to_string(&cmdline_path) {
-                Ok(data) => {
-                    for line in data.split("##") {
-                        let line = line.trim();
-                        if let Some((_, chunk)) = line.split_once(' ') {
-                            println!("{}", chunk);
-                        }
-                    }
-                }
-                Err(err) => {
-                    eprintln!("failed to read '{}': {}", cmdline_path, err);
-                }
-            },
-            None => {
-                eprintln!("failed to parse filename: {}", path_str);
-            }
-        });
+        .for_each(|path| process_error_file(path));
 
     Ok(())
 }
