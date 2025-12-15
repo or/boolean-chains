@@ -35,6 +35,8 @@ struct Stats {
 }
 
 static JOBS_TO_IGNORE: Set<&'static str> = phf_set! {
+    // Mark6stark
+    // https://boinc.berkeley.edu/central/show_host_detail.php?hostid=43350
     "batch_1009__job_job-000453",
     "batch_1054__job_job-000326",
     "batch_1055__job_job-000074",
@@ -403,6 +405,22 @@ static JOBS_TO_IGNORE: Set<&'static str> = phf_set! {
     "batch_1207__job_job-000759",
     "batch_1209__job_job-000907",
     "batch_1209__job_job-000919",
+    "batch_1350__job_job-000280",
+    // M4dm4ni4c
+    // https://boinc.berkeley.edu/central/show_host_detail.php?hostid=42504
+    "batch_1405__job_job-000366",
+    "batch_1425__job_job-000211",
+    "batch_1426__job_job-000601",
+    "batch_1430__job_job-000835",
+    "batch_1433__job_job-000413",
+    "batch_1433__job_job-000845",
+    "batch_1477__job_job-000154",
+    "batch_1477__job_job-000466",
+    "batch_1477__job_job-000676",
+    "batch_1478__job_job-000987",
+    "batch_1483__job_job-000473",
+    "batch_1492__job_job-000892",
+    "batch_1493__job_job-000780",
 };
 
 /// Parse a "real" time field like "12.34", "1m23s", "10s"
