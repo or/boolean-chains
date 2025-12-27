@@ -45,3 +45,9 @@ target/hungry-search-debug: src/hungry-search.cpp src/*.h Makefile
 
 target/full-search-debug: src/full-search.cpp src/*.h Makefile
 	$(COMPILER) -o target/full-search-debug src/full-search.cpp -std=c++20 -g 2>&1
+
+target/full-search-x86_64: src/full-search.cpp Makefile
+	zig c++ src/full-search.cpp -o target/full-search-x86_64 -std=c++20 -O3 -flto -ffast-math -fomit-frame-pointer -funroll-loops -fno-sanitize=all -fno-builtin-memcpy -fno-delete-null-pointer-checks -fno-exceptions -fno-rtti -target x86_64-linux
+
+target/full-search-arm64: src/full-search.cpp Makefile
+	zig c++ src/full-search.cpp -o target/full-search-arm64 -std=c++20 -O3 -flto -ffast-math -fomit-frame-pointer -funroll-loops -fno-sanitize=all -fno-builtin-memcpy -fno-delete-null-pointer-checks -fno-exceptions -fno-rtti -target aarch64-linux

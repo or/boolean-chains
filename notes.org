@@ -28,3 +28,5 @@ hyperfine --warmup 5 'target/full-search -c 8 31'
 - should be more cache friendly, appears to improve performance by ~1-2% for N=12
 - potentially has a slightly bigger impact for larger N, when the size of those
   arrays grows
+** full-search-16-22-v6
+- started at batch 1509
