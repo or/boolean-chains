@@ -421,6 +421,8 @@ static JOBS_TO_IGNORE: Set<&'static str> = phf_set! {
     "batch_1483__job_job-000473",
     "batch_1492__job_job-000892",
     "batch_1493__job_job-000780",
+    //
+    "batch_1630__job_job-000292",
 };
 
 /// Parse a "real" time field like "12.34", "1m23s", "10s"
@@ -441,69 +443,129 @@ fn parse_time(field: &str) -> Option<f64> {
     }
 }
 
+#[derive(Default)]
+struct Chunk {
+    args: Option<String>,
+    total_chains: Option<u64>,
+    secs: Option<f64>,
+    in_matrix: bool,
+    matrix: HashMap<u32, MatrixRow>,
+    real_seen: bool,
+    ignore: bool, // true if the chunk should be ignored (sentinel seen)
+}
+
+fn finalize_chunk_into_stats(chunk: &Chunk, stats: &mut Stats) {
+    if chunk.ignore {
+        return;
+    }
+    if let (Some(chains), Some(secs)) = (chunk.total_chains, chunk.secs) {
+        // Only finalize complete chunks
+        stats.total_chains += chains;
+        stats.total_secs += secs;
+        if let Some(ref args) = chunk.args {
+            if !args.is_empty() {
+                stats.jobs.insert(args.clone());
+            }
+        }
+
+        // merge matrix rows
+        for (k, row) in chunk.matrix.iter() {
+            stats
+                .matrix
+                .entry(*k)
+                .and_modify(|row_a| row_a.merge(row))
+                .or_insert_with(|| row.clone());
+        }
+    }
+}
+
 fn process_file(path: &Path) -> Stats {
     let mut stats = Stats::default();
-    let mut in_matrix = false;
+    let mut current = Chunk::default();
 
     if let Ok(file) = fs::File::open(path) {
         let reader = io::BufReader::new(file);
 
         for line in reader.lines().flatten() {
-            if line.starts_with("x1 = ") {
+            let line_trim = line.trim_end();
+
+            // Re-add: print x1 lines with filename
+            if line_trim.starts_with("x1 = ") {
                 if let Some(fname) = path.file_name().and_then(|n| n.to_str()) {
-                    println!("{}:\n{}", fname, line);
+                    println!("{}:\n{}", fname, line_trim);
                 }
-            } else if line.starts_with("total chains") {
-                if let Some(field) = line.split_whitespace().nth(2) {
-                    if field != "18446744073709551615" {
-                        if let Ok(val) = field.parse::<u64>() {
-                            stats.total_chains += val;
-                        }
+            } else if line_trim.starts_with("Running command:") {
+                // Finalize previous chunk if it was complete and not ignored
+                if current.real_seen && current.total_chains.is_some() && !current.ignore {
+                    finalize_chunk_into_stats(&current, &mut stats);
+                }
+                // Start a new chunk
+                current = Chunk::default();
+
+                // Extract args: everything after "Running command:"; drop the first token (executable)
+                let rest = line_trim["Running command:".len()..].trim();
+                if !rest.is_empty() {
+                    let mut tokens = rest.split_whitespace();
+                    // drop executable
+                    let _exe = tokens.next();
+                    let args_vec: Vec<&str> = tokens.collect();
+                    if !args_vec.is_empty() {
+                        current.args = Some(args_vec.join(" "));
+                    } else {
+                        current.args = Some(String::new());
                     }
                 }
-            } else if line.starts_with("real") {
-                in_matrix = false;
-                if let Some(field) = line.split_whitespace().nth(1) {
+            } else if line_trim.starts_with("total chains") {
+                // parse last token; ignore sentinel
+                if let Some(tok) = line_trim.split_whitespace().last() {
+                    if tok == "18446744073709551615" {
+                        current.ignore = true;
+                    } else if let Ok(val) = tok.parse::<u64>() {
+                        current.total_chains = Some(val);
+                    }
+                }
+            } else if line_trim.starts_with("real") {
+                // parse time token (second token)
+                if let Some(field) = line_trim.split_whitespace().nth(1) {
                     if let Some(secs) = parse_time(field) {
-                        stats.total_secs += secs;
+                        current.secs = Some(secs);
+                        current.real_seen = true;
                     }
                 }
-            } else if line.starts_with("Running command:") {
-                let mut parts = line.splitn(4, ' ');
-                parts.next(); // "Running"
-                parts.next(); // "command:"
-                parts.next(); // executable
-                if let Some(args) = parts.next() {
-                    if !args.is_empty() {
-                        stats.jobs.insert(args.to_string());
-                    }
+                // On 'real' we consider the chunk ended, so finalize if it had total_chains and not ignored
+                if current.real_seen && current.total_chains.is_some() && !current.ignore {
+                    finalize_chunk_into_stats(&current, &mut stats);
                 }
-            } else if line.starts_with("new expressions at chain length:") {
-                in_matrix = true;
-                continue;
-            } else if in_matrix {
-                // Matrix ends when we hit an empty line or "real"/"sys"
-                if line.is_empty() || line.starts_with("---") {
-                    in_matrix = false;
+                // Reset current chunk after finalizing
+                current = Chunk::default();
+            } else if line_trim.starts_with("new expressions at chain length:") {
+                current.in_matrix = true;
+            } else if current.in_matrix {
+                // Matrix rows
+                if line_trim.is_empty() || line_trim.starts_with("---") {
+                    current.in_matrix = false;
                     continue;
                 }
 
                 // Expected row format like:
                 // " 4:                0                        15                0               14               15"
-                let parts: Vec<_> = line
-                    .split_whitespace()
-                    .filter(|s| !s.ends_with(':'))
-                    .collect();
-                if parts.len() == 5 {
-                    if let (Ok(n_id), Ok(n), Ok(sum), Ok(_avg), Ok(min), Ok(max)) = (
-                        line.split(':').next().unwrap_or("").trim().parse::<u32>(),
-                        parts[0].parse::<u64>(),
-                        parts[1].parse::<u64>(),
-                        parts[2].parse::<f64>(),
-                        parts[3].parse::<u64>(),
-                        parts[4].parse::<u64>(),
-                    ) {
-                        stats.matrix.insert(n_id, MatrixRow { n, sum, min, max });
+                if let Some(colon_idx) = line_trim.find(':') {
+                    let n_id_str = line_trim[..colon_idx].trim();
+                    if let Ok(n_id) = n_id_str.parse::<u32>() {
+                        let rest = line_trim[colon_idx + 1..].trim();
+                        let cols: Vec<&str> = rest.split_whitespace().collect();
+                        if cols.len() == 5 {
+                            if let (Ok(n), Ok(sum), Ok(_avg), Ok(min), Ok(max)) = (
+                                cols[0].parse::<u64>(),
+                                cols[1].parse::<u64>(),
+                                cols[2].parse::<f64>(),
+                                cols[3].parse::<u64>(),
+                                cols[4].parse::<u64>(),
+                            ) {
+                                let row = MatrixRow { n, sum, min, max };
+                                current.matrix.insert(n_id, row);
+                            }
+                        }
                     }
                 }
             }
@@ -576,13 +638,6 @@ fn main() {
         total_years
     );
 
-    // // Print sorted job args list
-    // let mut jobs: Vec<_> = final_stats.jobs.into_iter().collect();
-    // jobs.sort();
-    // for job in jobs {
-    //     println!("job args: {}", job);
-    // }
-
     println!();
 
     if final_stats.total_secs > 0.0 {
@@ -612,5 +667,20 @@ fn main() {
             row.min,
             row.max
         );
+    }
+
+    // Write processed chunk args to file
+    let mut jobs: Vec<_> = final_stats.jobs.into_iter().collect();
+    jobs.sort();
+    let out_path = Path::new(".").join("processed-chunks.txt");
+    let content = if jobs.is_empty() {
+        String::new()
+    } else {
+        jobs.join("\n") + "\n" // Add trailing newline
+    };
+    if let Err(e) = fs::write(&out_path, content) {
+        eprintln!("Failed to write {}: {}", out_path.display(), e);
+    } else {
+        println!("\nWrote processed-chunks to {}", out_path.display());
     }
 }
