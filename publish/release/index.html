@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2025-12-28 Sun 11:34 -->
+<!-- 2026-01-14 Wed 23:48 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Boolean Chains</title>
@@ -380,17 +380,17 @@ Here&rsquo;s pythonesque pseudo-code to illustrate the general approach. The
 
 <div class="org-src-container">
 <pre class="src src-python"><span style="color: #56697A;"># </span><span style="color: #56697A;">the first 4 are irrelevant, as x1, x2, x3, x4 are given
-</span><span style="color: #6c71c4;">BYTE_SIZE</span> = [0, 0, 0, 0, 5, 5, 5, 5, 5, 3, 3, 3, 3, 1, 1, 1, ...]
+</span><span style="color: #6c71c4;">BYTE_SIZE</span> <span style="color: #cb4b16;">=</span> [0, 0, 0, 0, 5, 5, 5, 5, 5, 3, 3, 3, 3, 1, 1, 1, ...]
 
 <span style="color: #859900; font-weight: bold;">def</span> <span style="color: #268bd2;">hungry_search</span>(chain):
     <span style="color: #859900; font-weight: bold;">if</span> complete(chain):
         <span style="color: #268bd2;">print</span>(chain)
         <span style="color: #859900; font-weight: bold;">return</span>
 
-    <span style="color: #6c71c4;">next_instructions</span>, <span style="color: #6c71c4;">footprints</span>, <span style="color: #6c71c4;">minimal_costs</span> = algorithm_U(chain)
+    <span style="color: #6c71c4;">next_instructions</span>, <span style="color: #6c71c4;">footprints</span>, <span style="color: #6c71c4;">minimal_costs</span> <span style="color: #cb4b16;">=</span> algorithm_U(chain)
     sort(next_instructions, footprints, minimal_costs)
     <span style="color: #859900; font-weight: bold;">for</span> i <span style="color: #859900; font-weight: bold;">in</span> <span style="color: #268bd2;">range</span>(BITE_SIZE[<span style="color: #268bd2;">len</span>(chain)]):
-         hungry_search(chain + [next_instructions[i]])
+         hungry_search(chain <span style="color: #cb4b16;">+</span> [next_instructions[i]])
 
 hungry_search([x1, x2, x3, x4])
 </pre>
@@ -1306,9 +1306,9 @@ programming.
 <td class="org-right">18</td>
 <td class="org-right">0</td>
 <td class="org-right">0</td>
-<td class="org-right">2,095,816,086,967,777,775</td>
-<td class="org-right">380 years</td>
-<td class="org-right">77.9%</td>
+<td class="org-right">2,500,016,525,716,072,267</td>
+<td class="org-right">446 years</td>
+<td class="org-right">94.5%</td>
 <td class="org-right">BOINC Central, various</td>
 <td class="org-right"><a href="https://github.com/or/boolean-chains/blob/ba16ebb4/src/full-search.cpp">ba16ebb4</a></td>
 </tr>
@@ -1864,7 +1864,7 @@ and fewer branches make it to those higher lengths.
 \end{aligned}
 
 
-<div id="orgc9599c3" class="figure">
+<div id="orge78eb2b" class="figure">
 <p><img src="./10-digits-segments.svg" alt="10-digits-segments.svg" class="org-svg" width="550px" />
 </p>
 </div>
@@ -1897,7 +1897,7 @@ All 40 unique optimal chains of length 11: <a href="chains-10-15.txt">chains-10-
 \end{aligned}
 
 
-<div id="orgd1bd468" class="figure">
+<div id="org1e79870" class="figure">
 <p><img src="./11-digits-segments.svg" alt="11-digits-segments.svg" class="org-svg" width="550px" />
 </p>
 </div>
@@ -1932,7 +1932,7 @@ All 1,079 unique optimal chains of length 12: <a href="chains-11-16.txt">chains-
 \end{aligned}
 
 
-<div id="orge57e5d0" class="figure">
+<div id="orge4cb7ac" class="figure">
 <p><img src="./12-digits-segments.svg" alt="12-digits-segments.svg" class="org-svg" width="550px" />
 </p>
 </div>
@@ -1969,7 +1969,7 @@ All 75 unique optimal chains of length 14: <a href="chains-12-18.txt">chains-12-
 \end{aligned}
 
 
-<div id="org4bb5ef5" class="figure">
+<div id="org6e04cc2" class="figure">
 <p><img src="./13-digits-segments.svg" alt="13-digits-segments.svg" class="org-svg" width="550px" />
 </p>
 </div>
@@ -2013,7 +2013,7 @@ close!
 </p>
 
 
-<div id="orgf16b211" class="figure">
+<div id="org7df2ddc" class="figure">
 <p><img src="./14-digits-segments.svg" alt="14-digits-segments.svg" class="org-svg" width="550px" />
 </p>
 </div>
@@ -2053,7 +2053,7 @@ All 71 unique optimal chains of length 16: <a href="chains-14-20.txt">chains-14-
 \end{aligned}
 
 
-<div id="org2a0c3a5" class="figure">
+<div id="org475860f" class="figure">
 <p><img src="./15-digits-segments.svg" alt="15-digits-segments.svg" class="org-svg" width="550px" />
 </p>
 </div>
@@ -2108,7 +2108,7 @@ exhaustive, not proven to be optimal.
 </p>
 
 
-<div id="orgf39c8e3" class="figure">
+<div id="orgcce14dc" class="figure">
 <p><img src="./16-digits-segments.svg" alt="16-digits-segments.svg" class="org-svg" width="550px" />
 </p>
 </div>
@@ -2202,7 +2202,7 @@ The code can be found on GitHub: <a href="https://github.com/or/boolean-chains">
 <div id="postamble" class="status">
 <p class="date">Date: 2025-03-01 Sat 00:00</p>
 <p class="author">Author: Oliver Runge</p>
-<p class="date">Created: 2025-12-28 Sun 11:34</p>
+<p class="date">Created: 2026-01-14 Wed 23:48</p>
 </div>
 </body>
 </html>
