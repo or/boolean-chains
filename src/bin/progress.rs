@@ -421,6 +421,7 @@ static JOBS_TO_IGNORE: Set<&'static str> = phf_set! {
     "batch_1483__job_job-000473",
     "batch_1492__job_job-000892",
     "batch_1493__job_job-000780",
+    "batch_1787__job_job-000189",
     //
     "batch_1630__job_job-000292",
 };
