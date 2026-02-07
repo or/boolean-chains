@@ -2,7 +2,7 @@ use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::{self, BufRead, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use walkdir::WalkDir;
 
@@ -61,16 +61,20 @@ fn parse_time(field: &str) -> Option<f64> {
 #[derive(Default)]
 struct Chunk {
     args: Option<String>,
+    chunk_id: Vec<u64>,
     total_chains: Option<u64>,
     secs: Option<f64>,
     in_matrix: bool,
+    in_progress: bool,
     matrix: HashMap<u32, MatrixRow>,
     real_seen: bool,
     ignore: bool,
+    corrupt: bool,
+    last_tuple: Vec<u64>,
 }
 
 fn finalize_chunk_into_stats(chunk: &Chunk, stats: &mut Stats) {
-    if chunk.ignore {
+    if chunk.ignore || chunk.corrupt {
         return;
     }
     if let (Some(chains), Some(secs)) = (chunk.total_chains, chunk.secs) {
@@ -93,7 +97,7 @@ fn finalize_chunk_into_stats(chunk: &Chunk, stats: &mut Stats) {
 }
 
 fn finalize_chunk_into_results(chunk: &Chunk, results: &mut ChunkResults) {
-    if chunk.ignore {
+    if chunk.ignore || chunk.corrupt {
         return;
     }
     if let (Some(chains), Some(_secs)) = (chunk.total_chains, chunk.secs) {
@@ -109,10 +113,11 @@ fn finalize_chunk_into_results(chunk: &Chunk, results: &mut ChunkResults) {
     }
 }
 
-fn process_file(path: &Path) -> (Stats, ChunkResults) {
+fn process_file(path: &Path) -> (Stats, ChunkResults, bool) {
     let mut stats = Stats::default();
     let mut results = ChunkResults::default();
     let mut current = Chunk::default();
+    let mut file_has_corrupt = false;
 
     if let Ok(file) = fs::File::open(path) {
         let reader = io::BufReader::new(file);
@@ -125,7 +130,15 @@ fn process_file(path: &Path) -> (Stats, ChunkResults) {
                     println!("{}:\n{}", fname, line_trim);
                 }
             } else if line_trim.contains("Running command:") {
-                if current.total_chains.is_some() && current.real_seen && !current.ignore {
+                if current.corrupt {
+                    file_has_corrupt = true;
+                }
+                if current.total_chains.is_some()
+                    && current.total_chains.unwrap() > 0
+                    && current.real_seen
+                    && !current.ignore
+                    && !current.corrupt
+                {
                     finalize_chunk_into_stats(&current, &mut stats);
                     finalize_chunk_into_results(&current, &mut results);
                 }
@@ -141,11 +154,17 @@ fn process_file(path: &Path) -> (Stats, ChunkResults) {
                     let args_vec: Vec<&str> = tokens.collect();
                     if !args_vec.is_empty() {
                         current.args = Some(args_vec.join(" "));
+                        // Parse chunk ID
+                        current.chunk_id = args_vec
+                            .iter()
+                            .filter_map(|s| s.parse::<u64>().ok())
+                            .collect();
                     } else {
                         current.args = Some(String::new());
                     }
                 }
             } else if line_trim.starts_with("total chains") {
+                current.in_progress = false;
                 if let Some(tok) = line_trim.split_whitespace().last() {
                     if tok == "18446744073709551615" {
                         current.ignore = true;
@@ -160,12 +179,21 @@ fn process_file(path: &Path) -> (Stats, ChunkResults) {
                         current.real_seen = true;
                     }
                 }
-                if current.real_seen && current.total_chains.is_some() && !current.ignore {
+                if current.corrupt {
+                    file_has_corrupt = true;
+                }
+                if current.real_seen
+                    && current.total_chains.is_some()
+                    && current.total_chains.unwrap() > 0
+                    && !current.ignore
+                    && !current.corrupt
+                {
                     finalize_chunk_into_stats(&current, &mut stats);
                     finalize_chunk_into_results(&current, &mut results);
                 }
                 current = Chunk::default();
             } else if line_trim.starts_with("new expressions at chain length:") {
+                current.in_progress = false;
                 current.in_matrix = true;
             } else if current.in_matrix {
                 if line_trim.is_empty() || line_trim.starts_with("---") {
@@ -192,11 +220,62 @@ fn process_file(path: &Path) -> (Stats, ChunkResults) {
                         }
                     }
                 }
+            } else if current.in_progress {
+                // Validate progress lines
+                if let Some(space_idx) = line_trim.rfind(' ') {
+                    let tuple_part = &line_trim[..space_idx];
+                    let numbers: Vec<u64> = tuple_part
+                        .split(',')
+                        .map(|s| s.trim())
+                        .filter_map(|s| s.parse::<u64>().ok())
+                        .collect();
+
+                    if numbers.len() >= current.chunk_id.len() + 1 {
+                        // Check if it starts with chunk ID
+                        let prefix_matches =
+                            numbers[..current.chunk_id.len()] == current.chunk_id[..];
+
+                        if prefix_matches {
+                            // Check if tuple is strictly increasing
+                            let mut valid_tuple = true;
+                            for i in 1..numbers.len() {
+                                if numbers[i] <= numbers[i - 1] {
+                                    valid_tuple = false;
+                                    break;
+                                }
+                            }
+
+                            if valid_tuple {
+                                // Check if this tuple is greater than the last one
+                                if !current.last_tuple.is_empty() {
+                                    if numbers <= current.last_tuple {
+                                        current.corrupt = true;
+                                    }
+                                }
+                                current.last_tuple = numbers;
+                            } else {
+                                current.corrupt = true;
+                            }
+                        } else {
+                            current.corrupt = true;
+                        }
+                    }
+                }
+            } else if line_trim.starts_with("---") {
+                // Entering progress section after first ---
+                if current.args.is_some() && !current.in_progress {
+                    current.in_progress = true;
+                    current.last_tuple.clear();
+                }
             }
+        }
+
+        if current.corrupt {
+            file_has_corrupt = true;
         }
     }
 
-    (stats, results)
+    (stats, results, file_has_corrupt)
 }
 
 fn main() {
@@ -229,11 +308,16 @@ fn main() {
         .collect();
 
     let all_results = Mutex::new(ChunkResults::default());
+    let corrupt_files = Mutex::new(HashSet::<PathBuf>::new());
 
     let final_stats = files
         .par_iter()
         .map(|path| {
-            let (stats, results) = process_file(path);
+            let (stats, results, has_corrupt) = process_file(path);
+
+            if has_corrupt {
+                corrupt_files.lock().unwrap().insert(path.clone());
+            }
 
             let mut all_res = all_results.lock().unwrap();
             for (chunk_id, chains) in results.results {
@@ -373,5 +457,23 @@ fn main() {
             println!("Wrote mismatching-chunks to {}", mismatching_path.display());
         }
         Err(e) => eprintln!("Failed to create {}: {}", mismatching_path.display(), e),
+    }
+
+    let corrupt_path = Path::new(".").join("corrupt-output-files.txt");
+    match fs::File::create(&corrupt_path) {
+        Ok(mut file) => {
+            let corrupt = corrupt_files.lock().unwrap();
+            for path in corrupt.iter() {
+                if let Err(e) = writeln!(file, "{}", path.display()) {
+                    eprintln!("Failed to write line: {}", e);
+                }
+            }
+            println!(
+                "Wrote corrupt-output-files to {} ({} files)",
+                corrupt_path.display(),
+                corrupt.len()
+            );
+        }
+        Err(e) => eprintln!("Failed to create {}: {}", corrupt_path.display(), e),
     }
 }
