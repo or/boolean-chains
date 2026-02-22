@@ -32,9 +32,17 @@ One row per valid chunk found inside an output file.
 | ~bad~          | INTEGER | Boolean — manually flagged as a bad result                         |
 | ~corrupt~      | INTEGER | Boolean — detected corrupt during parsing                          |
 | ~ignore~       | INTEGER | Boolean — manually set to indicate that the file should be ignored |
+| ~verified~     | INTEGER | Boolean — manually set to indicate that the result was verified    |
+| ~wrong~        | INTEGER | Boolean — manually set to indicate that the result is wrong        |
 
 An index on ~chunk_id~ supports fast lookup when comparing runs of the same
 chunk across multiple files.
+
+A covering index on ~(ignore, corrupt, chunk_id, total_chains)~ supports the
+verified/wrong population queries with a pure index scan.
+
+An index on ~(chunk_id, verified)~ supports fast lookup of verified results by
+chunk ID when populating the ~wrong~ flag.
 
 An index on ~(ignore, corrupt)~ in the ~files~ table supports fast filtering on
 both columns. As ~ignore~ is the leftmost column, it also covers queries that
@@ -67,4 +75,67 @@ SET ignore = (
     FROM files f
     WHERE f.id = chunks.file_id
 );
+#+end_src
+*** Set verified and wrong flags
+#+begin_src sql
+-- verified
+UPDATE chunks
+SET verified = 1
+WHERE ignore = 0
+  AND corrupt = 0
+  AND EXISTS (
+      SELECT 1 FROM chunks c2
+      WHERE c2.chunk_id = chunks.chunk_id
+        AND c2.total_chains = chunks.total_chains
+        AND c2.ignore = 0
+        AND c2.corrupt = 0
+        AND c2.id != chunks.id
+  );
+
+-- wrong
+UPDATE chunks
+SET wrong = 1
+WHERE ignore = 0
+  AND corrupt = 0
+  AND verified = 0
+  AND EXISTS (
+      SELECT 1 FROM chunks c2
+      WHERE c2.chunk_id = chunks.chunk_id
+        AND c2.verified = 1
+        AND c2.total_chains != chunks.total_chains
+  );
+#+end_src
+*** Find unverified files
+#+begin_src sql
+SELECT COUNT(*) AS unverified_files
+FROM files f
+WHERE f.ignore = 0
+  AND f.corrupt = 0
+  AND NOT EXISTS (
+      SELECT 1 FROM chunks c
+      WHERE c.file_id = f.id
+        AND c.verified = 1
+  );
+#+end_src
+*** Set files.ignore = 1 if at least one chunk was wrong
+#+begin_src sql
+UPDATE files
+SET ignore = 1
+WHERE id IN (
+    SELECT DISTINCT file_id
+    FROM chunks
+    WHERE verified = 0
+      AND wrong = 1
+);
+
+UPDATE chunks
+SET ignore = (
+    SELECT f.ignore
+    FROM files f
+    WHERE f.id = chunks.file_id
+);
+#+end_src
+*** List processed chunks
+#+begin_src shell
+sqlite3 results.sqlite3 "SELECT DISTINCT chunk_id FROM chunks WHERE ignore = 0 AND corrupt = 0 ORDER BY chunk_id;" > processed-chunks.txt
 #+end_src

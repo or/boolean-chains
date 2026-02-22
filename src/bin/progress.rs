@@ -276,6 +276,8 @@ fn open_db(path: &str) -> Connection {
             ignore  INTEGER NOT NULL DEFAULT 0
         );
 
+        CREATE INDEX IF NOT EXISTS files_ignore_corrupt_idx ON files(ignore, corrupt);
+
         CREATE TABLE IF NOT EXISTS chunks (
             id           INTEGER PRIMARY KEY,
             file_id      INTEGER NOT NULL REFERENCES files(id),
@@ -284,12 +286,16 @@ fn open_db(path: &str) -> Connection {
             secs         REAL NOT NULL,
             bad          INTEGER NOT NULL DEFAULT 0,
             corrupt      INTEGER NOT NULL DEFAULT 0,
-            ignore       INTEGER NOT NULL DEFAULT 0
+            ignore       INTEGER NOT NULL DEFAULT 0,
+            verified     INTEGER NOT NULL DEFAULT 0,
+            wrong        INTEGER NOT NULL DEFAULT 0
         );
 
         CREATE INDEX IF NOT EXISTS chunks_chunk_id_idx ON chunks(chunk_id);
-        CREATE INDEX IF NOT EXISTS files_ignore_corrupt_idx ON files(ignore, corrupt);
-        CREATE INDEX chunks_covering_idx ON chunks(ignore, corrupt, chunk_id, total_chains);
+        CREATE INDEX IF NOT EXISTS chunks_covering_idx ON chunks(ignore, corrupt, chunk_id, total_chains);
+        CREATE INDEX IF NOT EXISTS chunks_chunk_id_verified_idx ON chunks(chunk_id, verified, wrong);
+        CREATE INDEX IF NOT EXISTS chunks_file_id_verified_idx ON chunks(file_id, verified, wrong);
+        CREATE INDEX IF NOT EXISTS chunks_wrong_idx ON chunks(wrong);
 
         CREATE TABLE IF NOT EXISTS chunk_matrix (
             id           INTEGER PRIMARY KEY,
