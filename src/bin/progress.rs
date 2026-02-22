@@ -415,6 +415,22 @@ fn main() {
 
     let conn = open_db(&db_path);
 
+    // Resolve the DB directory and current working directory once, so all
+    // stored paths are relative to the DB file's location.
+    let db_dir = Path::new(&db_path)
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or(Path::new("."))
+        .canonicalize()
+        .unwrap_or_else(|e| {
+            eprintln!("Failed to resolve db directory: {}", e);
+            std::process::exit(1);
+        });
+    let cwd = Path::new(".").canonicalize().unwrap_or_else(|e| {
+        eprintln!("Failed to resolve current directory: {}", e);
+        std::process::exit(1);
+    });
+
     // Fetch all already-processed file paths in one query.
     let seen: HashSet<String> = {
         let mut stmt = conn
@@ -445,14 +461,41 @@ fn main() {
                 return false;
             }
 
-            let path_str = e.path().display().to_string();
+            // Compute path relative to DB dir without per-file canonicalize.
+            let rel_to_cwd = match e.path().strip_prefix(".") {
+                Ok(r) => r.to_path_buf(),
+                Err(_) => e.path().to_path_buf(),
+            };
+            let abs = cwd.join(&rel_to_cwd);
+            let rel = match abs.strip_prefix(&db_dir) {
+                Ok(r) => r.to_path_buf(),
+                Err(_) => {
+                    eprintln!(
+                        "Path {} is not relative to db directory {}",
+                        abs.display(),
+                        db_dir.display()
+                    );
+                    std::process::exit(1);
+                }
+            };
+
+            let path_str = format!("./{}", rel.display());
             if seen.contains(&path_str) {
                 return false;
             }
 
             true
         })
-        .map(|e| e.into_path())
+        .filter_map(|e| {
+            let rel_to_cwd = match e.path().strip_prefix(".") {
+                Ok(r) => r.to_path_buf(),
+                Err(_) => e.path().to_path_buf(),
+            };
+            let abs = cwd.join(&rel_to_cwd);
+            abs.strip_prefix(&db_dir)
+                .map(|r| PathBuf::from(format!("./{}", r.display())))
+                .ok()
+        })
         .collect();
 
     let pb = ProgressBar::new(files.len() as u64);
