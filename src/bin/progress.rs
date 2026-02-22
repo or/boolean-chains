@@ -67,7 +67,8 @@ struct Chunk {
     args: Option<String>,
     chunk_id: Vec<u64>,
     total_chains: Option<u64>,
-    secs: Option<f64>,
+    real_secs: Option<f64>,
+    user_secs: Option<f64>,
     in_matrix: bool,
     in_progress: bool,
     matrix: HashMap<u32, MatrixRow>,
@@ -81,7 +82,13 @@ fn finalize_chunk(chunk: &Chunk, stats: &mut Stats, parsed: &mut Vec<ParsedChunk
     if chunk.ignore {
         return;
     }
-    if let (Some(chains), Some(secs)) = (chunk.total_chains, chunk.secs) {
+    let secs = match (chunk.real_secs, chunk.user_secs) {
+        (Some(r), Some(u)) => Some(r.max(u)),
+        (Some(r), None) => Some(r),
+        (None, Some(u)) => Some(u),
+        (None, None) => None,
+    };
+    if let (Some(chains), Some(secs)) = (chunk.total_chains, secs) {
         let chunk_id = chunk.args.as_deref().unwrap_or("").to_string();
 
         if !chunk.corrupt {
@@ -163,23 +170,17 @@ fn process_file(path: &Path) -> (Stats, Vec<ParsedChunk>, bool) {
                         current.total_chains = Some(val);
                     }
                 }
+            } else if line_trim.starts_with("user") {
+                if let Some(field) = line_trim.split_whitespace().nth(1) {
+                    current.user_secs = parse_time(field);
+                }
             } else if line_trim.starts_with("real") {
                 if let Some(field) = line_trim.split_whitespace().nth(1) {
-                    if let Some(secs) = parse_time(field) {
-                        current.secs = Some(secs);
+                    if let Some(real) = parse_time(field) {
+                        current.real_secs = Some(real);
                         current.real_seen = true;
                     }
                 }
-                if current.corrupt {
-                    file_has_corrupt = true;
-                }
-                if current.real_seen
-                    && current.total_chains.is_some()
-                    && current.total_chains.unwrap() > 0
-                {
-                    finalize_chunk(&current, &mut stats, &mut parsed);
-                }
-                current = Chunk::default();
             } else if line_trim.starts_with("new expressions at chain length:") {
                 current.in_progress = false;
                 current.in_matrix = true;
@@ -245,8 +246,20 @@ fn process_file(path: &Path) -> (Stats, Vec<ParsedChunk>, bool) {
                 }
             } else if line_trim.starts_with("---") {
                 if current.args.is_some() && !current.in_progress {
-                    current.in_progress = true;
-                    current.last_tuple.clear();
+                    if current.real_seen {
+                        // Closing separator — all time lines parsed, finalize.
+                        if current.corrupt {
+                            file_has_corrupt = true;
+                        }
+                        if current.total_chains.is_some() && current.total_chains.unwrap() > 0 {
+                            finalize_chunk(&current, &mut stats, &mut parsed);
+                        }
+                        current = Chunk::default();
+                    } else {
+                        // Opening separator — enter progress section.
+                        current.in_progress = true;
+                        current.last_tuple.clear();
+                    }
                 }
             }
         }
