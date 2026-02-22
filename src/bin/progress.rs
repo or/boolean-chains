@@ -498,6 +498,8 @@ fn main() {
         })
         .collect();
 
+    println!("Files to parse: {}", files.len());
+
     let pb = ProgressBar::new(files.len() as u64);
     pb.set_style(
         ProgressStyle::with_template(
@@ -505,6 +507,7 @@ fn main() {
         )
         .unwrap(),
     );
+    pb.tick();
 
     const BATCH_SIZE: usize = 1000;
 
