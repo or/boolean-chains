@@ -50,4 +50,5 @@ raw output is omitted — it is derivable as ~sum / n~.
 | ~min~          | INTEGER | Minimum expression count                |
 | ~max~          | INTEGER | Maximum expression count                |
 
-~(chunk_row_id, chain_length)~ is unique.
+~(chunk_row_id, chain_length)~ is unique. Only rows where ~sum > 0~ are stored;
+all-zero chain-length entries from the raw output are omitted.

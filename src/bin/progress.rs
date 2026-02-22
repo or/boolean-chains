@@ -307,67 +307,82 @@ fn open_db(path: &str) -> Connection {
     conn
 }
 
-fn write_file_to_db(conn: &Connection, path_str: &str, parsed: &[ParsedChunk], file_corrupt: bool) {
-    conn.execute(
-        "INSERT OR IGNORE INTO files (path, corrupt) VALUES (?1, ?2)",
-        params![path_str, file_corrupt as i64],
-    )
-    .unwrap_or_else(|e| {
-        eprintln!("Failed to insert file {}: {}", path_str, e);
-        0
-    });
+fn write_batch_to_db(conn: &Connection, batch: &[(String, Vec<ParsedChunk>, bool)]) {
+    let mut file_stmt = conn
+        .prepare_cached("INSERT OR IGNORE INTO files (path, corrupt) VALUES (?1, ?2)")
+        .expect("Failed to prepare file insert");
 
-    let file_id: i64 = conn
-        .query_row(
-            "SELECT id FROM files WHERE path = ?1",
-            params![path_str],
-            |r| r.get(0),
-        )
-        .unwrap_or_else(|e| {
-            eprintln!("Failed to fetch file id for {}: {}", path_str, e);
-            std::process::exit(1);
-        });
+    let mut file_id_stmt = conn
+        .prepare_cached("SELECT id FROM files WHERE path = ?1")
+        .expect("Failed to prepare file id query");
 
-    for chunk in parsed {
-        conn.execute(
+    let mut chunk_stmt = conn
+        .prepare_cached(
             "INSERT INTO chunks (file_id, chunk_id, total_chains, secs, corrupt)
              VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![
-                file_id,
-                chunk.chunk_id,
-                chunk.total_chains as i64,
-                chunk.secs,
-                chunk.corrupt as i64,
-            ],
         )
-        .unwrap_or_else(|e| {
-            eprintln!("Failed to insert chunk {}: {}", chunk.chunk_id, e);
-            0
-        });
+        .expect("Failed to prepare chunk insert");
 
-        let chunk_row_id = conn.last_insert_rowid();
+    let mut matrix_stmt = conn
+        .prepare_cached(
+            "INSERT OR IGNORE INTO chunk_matrix
+             (chunk_row_id, chain_length, n, sum, min, max)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        )
+        .expect("Failed to prepare chunk_matrix insert");
 
-        for (chain_length, row) in &chunk.matrix {
-            conn.execute(
-                "INSERT OR IGNORE INTO chunk_matrix
-                 (chunk_row_id, chain_length, n, sum, min, max)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                params![
-                    chunk_row_id,
-                    *chain_length as i64,
-                    row.n as i64,
-                    row.sum as i64,
-                    row.min as i64,
-                    row.max as i64,
-                ],
-            )
+    for (path_str, parsed, file_corrupt) in batch {
+        file_stmt
+            .execute(params![path_str, *file_corrupt as i64])
             .unwrap_or_else(|e| {
-                eprintln!(
-                    "Failed to insert chunk_matrix row for chunk {}: {}",
-                    chunk.chunk_id, e
-                );
+                eprintln!("Failed to insert file {}: {}", path_str, e);
                 0
             });
+
+        let file_id: i64 = file_id_stmt
+            .query_row(params![path_str], |r| r.get(0))
+            .unwrap_or_else(|e| {
+                eprintln!("Failed to fetch file id for {}: {}", path_str, e);
+                std::process::exit(1);
+            });
+
+        for chunk in parsed {
+            chunk_stmt
+                .execute(params![
+                    file_id,
+                    chunk.chunk_id,
+                    chunk.total_chains as i64,
+                    chunk.secs,
+                    chunk.corrupt as i64,
+                ])
+                .unwrap_or_else(|e| {
+                    eprintln!("Failed to insert chunk {}: {}", chunk.chunk_id, e);
+                    0
+                });
+
+            let chunk_row_id = conn.last_insert_rowid();
+
+            for (chain_length, row) in &chunk.matrix {
+                if row.sum == 0 {
+                    continue;
+                }
+                matrix_stmt
+                    .execute(params![
+                        chunk_row_id,
+                        *chain_length as i64,
+                        row.n as i64,
+                        row.sum as i64,
+                        row.min as i64,
+                        row.max as i64,
+                    ])
+                    .unwrap_or_else(|e| {
+                        eprintln!(
+                            "Failed to insert chunk_matrix row for chunk {}: {}",
+                            chunk.chunk_id, e
+                        );
+                        0
+                    });
+            }
         }
     }
 }
@@ -444,7 +459,7 @@ fn main() {
         .unwrap(),
     );
 
-    const BATCH_SIZE: usize = 100;
+    const BATCH_SIZE: usize = 1000;
 
     let final_stats = files
         .par_chunks(BATCH_SIZE)
@@ -476,9 +491,7 @@ fn main() {
                 let conn = conn.lock().unwrap();
                 conn.execute_batch("BEGIN")
                     .expect("Failed to begin transaction");
-                for (path_str, parsed, file_corrupt) in &results {
-                    write_file_to_db(&conn, path_str, parsed, *file_corrupt);
-                }
+                write_batch_to_db(&conn, &results);
                 conn.execute_batch("COMMIT")
                     .expect("Failed to commit transaction");
             }
