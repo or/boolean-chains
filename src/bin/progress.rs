@@ -1,9 +1,8 @@
 use rayon::prelude::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs;
-use std::io::{self, BufRead, Write};
-use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::io::{self, BufRead};
+use std::path::Path;
 use walkdir::WalkDir;
 
 mod jobs;
@@ -32,13 +31,7 @@ impl MatrixRow {
 struct Stats {
     total_chains: u64,
     total_secs: f64,
-    jobs: HashSet<String>,
     matrix: HashMap<u32, MatrixRow>,
-}
-
-#[derive(Default)]
-struct ChunkResults {
-    results: HashMap<String, Vec<u64>>,
 }
 
 fn parse_time(field: &str) -> Option<f64> {
@@ -80,11 +73,6 @@ fn finalize_chunk_into_stats(chunk: &Chunk, stats: &mut Stats) {
     if let (Some(chains), Some(secs)) = (chunk.total_chains, chunk.secs) {
         stats.total_chains += chains;
         stats.total_secs += secs;
-        if let Some(ref args) = chunk.args {
-            if !args.is_empty() {
-                stats.jobs.insert(args.clone());
-            }
-        }
 
         for (k, row) in chunk.matrix.iter() {
             stats
@@ -96,26 +84,8 @@ fn finalize_chunk_into_stats(chunk: &Chunk, stats: &mut Stats) {
     }
 }
 
-fn finalize_chunk_into_results(chunk: &Chunk, results: &mut ChunkResults) {
-    if chunk.ignore || chunk.corrupt {
-        return;
-    }
-    if let (Some(chains), Some(_secs)) = (chunk.total_chains, chunk.secs) {
-        if let Some(ref args) = chunk.args {
-            if !args.is_empty() {
-                results
-                    .results
-                    .entry(args.clone())
-                    .or_insert_with(Vec::new)
-                    .push(chains);
-            }
-        }
-    }
-}
-
-fn process_file(path: &Path) -> (Stats, ChunkResults, bool) {
+fn process_file(path: &Path) -> (Stats, bool) {
     let mut stats = Stats::default();
-    let mut results = ChunkResults::default();
     let mut current = Chunk::default();
     let mut file_has_corrupt = false;
 
@@ -140,7 +110,6 @@ fn process_file(path: &Path) -> (Stats, ChunkResults, bool) {
                     && !current.corrupt
                 {
                     finalize_chunk_into_stats(&current, &mut stats);
-                    finalize_chunk_into_results(&current, &mut results);
                 }
                 current = Chunk::default();
 
@@ -189,7 +158,6 @@ fn process_file(path: &Path) -> (Stats, ChunkResults, bool) {
                     && !current.corrupt
                 {
                     finalize_chunk_into_stats(&current, &mut stats);
-                    finalize_chunk_into_results(&current, &mut results);
                 }
                 current = Chunk::default();
             } else if line_trim.starts_with("new expressions at chain length:") {
@@ -275,7 +243,7 @@ fn process_file(path: &Path) -> (Stats, ChunkResults, bool) {
         }
     }
 
-    (stats, results, file_has_corrupt)
+    (stats, file_has_corrupt)
 }
 
 fn main() {
@@ -307,26 +275,10 @@ fn main() {
         .map(|e| e.into_path())
         .collect();
 
-    let all_results = Mutex::new(ChunkResults::default());
-    let corrupt_files = Mutex::new(HashSet::<PathBuf>::new());
-
     let final_stats = files
         .par_iter()
         .map(|path| {
-            let (stats, results, has_corrupt) = process_file(path);
-
-            if has_corrupt {
-                corrupt_files.lock().unwrap().insert(path.clone());
-            }
-
-            let mut all_res = all_results.lock().unwrap();
-            for (chunk_id, chains) in results.results {
-                all_res
-                    .results
-                    .entry(chunk_id)
-                    .or_insert_with(Vec::new)
-                    .extend(chains);
-            }
+            let (stats, _has_corrupt) = process_file(path);
 
             stats
         })
@@ -335,7 +287,6 @@ fn main() {
             |mut a, b| {
                 a.total_chains += b.total_chains;
                 a.total_secs += b.total_secs;
-                a.jobs.extend(b.jobs);
 
                 for (k, row_b) in b.matrix.iter() {
                     a.matrix
@@ -350,7 +301,6 @@ fn main() {
 
     println!();
     println!("total number of chains: {}", final_stats.total_chains);
-    println!("total number of jobs:   {}", final_stats.jobs.len());
 
     let total_days = final_stats.total_secs / 3600.0 / 24.0;
     let total_years = total_days / 365.2524;
@@ -389,91 +339,5 @@ fn main() {
             row.min,
             row.max
         );
-    }
-
-    let mut jobs: Vec<_> = final_stats.jobs.into_iter().collect();
-    jobs.sort();
-    let out_path = Path::new(".").join("processed-chunks.txt");
-    let content = if jobs.is_empty() {
-        String::new()
-    } else {
-        jobs.join("\n") + "\n"
-    };
-    if let Err(e) = fs::write(&out_path, content) {
-        eprintln!("Failed to write {}: {}", out_path.display(), e);
-    } else {
-        println!("\nWrote processed-chunks to {}", out_path.display());
-    }
-
-    let all_res = all_results.lock().unwrap();
-
-    let jobs_count_path = Path::new(".").join("number-of-jobs-per-chunk.txt");
-    match fs::File::create(&jobs_count_path) {
-        Ok(mut file) => {
-            for (chunk_id, results) in all_res.results.iter() {
-                if let Err(e) = writeln!(file, "{},{}", chunk_id, results.len()) {
-                    eprintln!("Failed to write line: {}", e);
-                }
-            }
-            println!(
-                "Wrote number-of-jobs-per-chunk to {}",
-                jobs_count_path.display()
-            );
-        }
-        Err(e) => eprintln!("Failed to create {}: {}", jobs_count_path.display(), e),
-    }
-
-    let verified_path = Path::new(".").join("verified-chunks.txt");
-    match fs::File::create(&verified_path) {
-        Ok(mut file) => {
-            for (chunk_id, results) in all_res.results.iter() {
-                if results.len() >= 2 {
-                    let unique: HashSet<_> = results.iter().collect();
-                    if unique.len() < results.len() {
-                        if let Err(e) = writeln!(file, "{}", chunk_id) {
-                            eprintln!("Failed to write line: {}", e);
-                        }
-                    }
-                }
-            }
-            println!("Wrote verified-chunks to {}", verified_path.display());
-        }
-        Err(e) => eprintln!("Failed to create {}: {}", verified_path.display(), e),
-    }
-
-    let mismatching_path = Path::new(".").join("mismatching-chunks.txt");
-    match fs::File::create(&mismatching_path) {
-        Ok(mut file) => {
-            for (chunk_id, results) in all_res.results.iter() {
-                if results.len() >= 2 {
-                    let unique: HashSet<_> = results.iter().collect();
-                    if unique.len() == results.len() {
-                        if let Err(e) = writeln!(file, "{}", chunk_id) {
-                            eprintln!("Failed to write line: {}", e);
-                        }
-                    }
-                }
-            }
-            println!("Wrote mismatching-chunks to {}", mismatching_path.display());
-        }
-        Err(e) => eprintln!("Failed to create {}: {}", mismatching_path.display(), e),
-    }
-
-    let corrupt_path = Path::new(".").join("corrupt-output-files.txt");
-    match fs::File::create(&corrupt_path) {
-        Ok(mut file) => {
-            let corrupt = corrupt_files.lock().unwrap();
-            for path in corrupt.iter() {
-                if let Err(e) = writeln!(file, "{}", path.display()) {
-                    eprintln!("Failed to write line: {}", e);
-                }
-            }
-            println!(
-                "Wrote corrupt-output-files to {} ({} files)",
-                corrupt_path.display(),
-                corrupt.len()
-            );
-        }
-        Err(e) => eprintln!("Failed to create {}: {}", corrupt_path.display(), e),
     }
 }
