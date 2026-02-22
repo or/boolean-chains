@@ -575,45 +575,47 @@ fn main() {
 
     pb.finish_with_message("done");
 
-    println!();
-    println!("total number of chains: {}", final_stats.total_chains);
+    if final_stats.total_chains > 0 {
+        println!();
+        println!("total number of chains: {}", final_stats.total_chains);
 
-    let total_days = final_stats.total_secs / 3600.0 / 24.0;
-    let total_years = total_days / 365.2524;
-    println!(
-        "total duration:         {} days / {:.2} years",
-        total_days.round() as u64,
-        total_years
-    );
-
-    println!();
-
-    if final_stats.total_secs > 0.0 {
-        let speed = final_stats.total_chains as f64 / final_stats.total_secs;
-        println!("speed: {:.2} chains/sec", speed);
-    }
-
-    println!("\nAggregated matrix:\n");
-    println!(
-        "{:>4}  {:>17} {:>17} {:>12} {:>12} {:>12}",
-        "n", "count", "sum", "avg", "min", "max"
-    );
-    let mut keys: Vec<_> = final_stats.matrix.keys().cloned().collect();
-    keys.sort();
-    for k in keys {
-        let row = &final_stats.matrix[&k];
+        let total_days = final_stats.total_secs / 3600.0 / 24.0;
+        let total_years = total_days / 365.2524;
         println!(
-            "{:>4}: {:>17} {:>17} {:>12.2} {:>12} {:>12}",
-            k,
-            row.n,
-            row.sum,
-            if row.n == 0 {
-                0.0
-            } else {
-                row.sum as f64 / row.n as f64
-            },
-            row.min,
-            row.max
+            "total duration:         {} days / {:.2} years",
+            total_days.round() as u64,
+            total_years
         );
+
+        println!();
+
+        if final_stats.total_secs > 0.0 {
+            let speed = final_stats.total_chains as f64 / final_stats.total_secs;
+            println!("speed: {:.2} chains/sec", speed);
+        }
+
+        println!("\nAggregated matrix:\n");
+        println!(
+            "{:>4}  {:>17} {:>17} {:>12} {:>12} {:>12}",
+            "n", "count", "sum", "avg", "min", "max"
+        );
+        let mut keys: Vec<_> = final_stats.matrix.keys().cloned().collect();
+        keys.sort();
+        for k in keys {
+            let row = &final_stats.matrix[&k];
+            println!(
+                "{:>4}: {:>17} {:>17} {:>12.2} {:>12} {:>12}",
+                k,
+                row.n,
+                row.sum,
+                if row.n == 0 {
+                    0.0
+                } else {
+                    row.sum as f64 / row.n as f64
+                },
+                row.min,
+                row.max
+            );
+        }
     }
 }
