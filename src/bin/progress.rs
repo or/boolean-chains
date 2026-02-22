@@ -444,23 +444,47 @@ fn main() {
         .unwrap(),
     );
 
-    let final_stats = files
-        .par_iter()
-        .map(|path| {
-            let (stats, parsed, file_corrupt) = process_file(path);
-            let path_str = path.display().to_string();
+    const BATCH_SIZE: usize = 100;
 
+    let final_stats = files
+        .par_chunks(BATCH_SIZE)
+        .map(|batch| {
+            // Parse all files in this batch sequentially — no lock held during parsing.
+            let mut batch_stats = Stats::default();
+            let mut results: Vec<(String, Vec<ParsedChunk>, bool)> =
+                Vec::with_capacity(batch.len());
+
+            for path in batch {
+                let (stats, parsed, file_corrupt) = process_file(path);
+                let path_str = path.display().to_string();
+
+                batch_stats.total_chains += stats.total_chains;
+                batch_stats.total_secs += stats.total_secs;
+                for (k, row_b) in stats.matrix.iter() {
+                    batch_stats
+                        .matrix
+                        .entry(*k)
+                        .and_modify(|row_a| row_a.merge(row_b))
+                        .or_insert_with(|| row_b.clone());
+                }
+
+                results.push((path_str, parsed, file_corrupt));
+            }
+
+            // Write the entire batch in a single transaction.
             {
                 let conn = conn.lock().unwrap();
                 conn.execute_batch("BEGIN")
                     .expect("Failed to begin transaction");
-                write_file_to_db(&conn, &path_str, &parsed, file_corrupt);
+                for (path_str, parsed, file_corrupt) in &results {
+                    write_file_to_db(&conn, path_str, parsed, *file_corrupt);
+                }
                 conn.execute_batch("COMMIT")
                     .expect("Failed to commit transaction");
             }
 
-            pb.inc(1);
-            stats
+            pb.inc(batch.len() as u64);
+            batch_stats
         })
         .reduce(
             || Stats::default(),
