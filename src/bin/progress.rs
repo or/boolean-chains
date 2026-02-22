@@ -1,4 +1,5 @@
 use rayon::prelude::*;
+use rusqlite::Connection;
 use std::collections::HashMap;
 use std::fs;
 use std::io::{self, BufRead};
@@ -246,7 +247,69 @@ fn process_file(path: &Path) -> (Stats, bool) {
     (stats, file_has_corrupt)
 }
 
+fn open_db(path: &str) -> Connection {
+    let conn = Connection::open(path).unwrap_or_else(|e| {
+        eprintln!("Failed to open database {}: {}", path, e);
+        std::process::exit(1);
+    });
+    conn.execute_batch(
+        "
+        CREATE TABLE IF NOT EXISTS files (
+            id      INTEGER PRIMARY KEY,
+            path    TEXT NOT NULL UNIQUE,
+            corrupt INTEGER NOT NULL DEFAULT 0,
+            ignore  INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS chunks (
+            id           INTEGER PRIMARY KEY,
+            file_id      INTEGER NOT NULL REFERENCES files(id),
+            chunk_id     TEXT NOT NULL,
+            total_chains INTEGER NOT NULL,
+            secs         REAL NOT NULL,
+            bad          INTEGER NOT NULL DEFAULT 0,
+            corrupt      INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE INDEX IF NOT EXISTS chunks_chunk_id_idx ON chunks(chunk_id);
+
+        CREATE TABLE IF NOT EXISTS chunk_matrix (
+            id           INTEGER PRIMARY KEY,
+            chunk_row_id INTEGER NOT NULL REFERENCES chunks(id),
+            chain_length INTEGER NOT NULL,
+            n            INTEGER NOT NULL,
+            sum          INTEGER NOT NULL,
+            min          INTEGER NOT NULL,
+            max          INTEGER NOT NULL,
+            UNIQUE(chunk_row_id, chain_length)
+        );
+    ",
+    )
+    .unwrap_or_else(|e| {
+        eprintln!("Failed to create schema: {}", e);
+        std::process::exit(1);
+    });
+    conn
+}
+
 fn main() {
+    let mut args = std::env::args().skip(1);
+    let db_path = if let Some(flag) = args.next() {
+        if flag == "--db" {
+            args.next().unwrap_or_else(|| {
+                eprintln!("--db requires a path argument");
+                std::process::exit(1);
+            })
+        } else {
+            eprintln!("Unknown argument: {}", flag);
+            std::process::exit(1);
+        }
+    } else {
+        "results.sqlite3".to_string()
+    };
+
+    let _conn = open_db(&db_path);
+
     let files: Vec<_> = WalkDir::new(".")
         .into_iter()
         .filter_map(Result::ok)

@@ -1,3 +1,53 @@
 * boolean-chains
 
 https://orunge.org/boolean-chains/
+
+* Database format (~results.sqlite3~)
+
+The ~progress~ binary writes results to a SQLite database (~results.sqlite3~ by
+default, overridable via the ~--db~ CLI argument). The schema has three tables.
+
+** ~files~
+
+One row per output file scanned.
+
+| Column    | Type    | Notes                                              |
+|-----------+---------+----------------------------------------------------|
+| ~id~      | INTEGER | Primary key                                        |
+| ~path~    | TEXT    | Absolute or relative path; unique                  |
+| ~corrupt~ | INTEGER | Boolean — file contains at least one corrupt chunk |
+| ~ignore~  | INTEGER | Boolean — manually set to skip file on re-scans    |
+
+** ~chunks~
+
+One row per valid chunk found inside an output file.
+
+| Column         | Type    | Notes                                               |
+|----------------+---------+-----------------------------------------------------|
+| ~id~           | INTEGER | Primary key                                         |
+| ~file_id~      | INTEGER | Foreign key → ~files.id~                            |
+| ~chunk_id~     | TEXT    | Space-joined arg integers, e.g. ~"0 10 23 26 70"~  |
+| ~total_chains~ | INTEGER | Total chains explored (also used for dedup checks)  |
+| ~secs~         | REAL    | Wall-clock time reported by the run                 |
+| ~bad~          | INTEGER | Boolean — manually flagged as a bad result          |
+| ~corrupt~      | INTEGER | Boolean — detected corrupt during parsing           |
+
+An index on ~chunk_id~ supports fast lookup when comparing runs of the same
+chunk across multiple files.
+
+** ~chunk_matrix~
+
+One row per chain-length entry in a chunk's stats matrix. The ~avg~ from the
+raw output is omitted — it is derivable as ~sum / n~.
+
+| Column         | Type    | Notes                                   |
+|----------------+---------+-----------------------------------------|
+| ~id~           | INTEGER | Primary key                             |
+| ~chunk_row_id~ | INTEGER | Foreign key → ~chunks.id~               |
+| ~chain_length~ | INTEGER | The ~n~ value from the matrix header    |
+| ~n~            | INTEGER | Count of new expressions at this length |
+| ~sum~          | INTEGER | Sum of expression counts                |
+| ~min~          | INTEGER | Minimum expression count                |
+| ~max~          | INTEGER | Maximum expression count                |
+
+~(chunk_row_id, chain_length)~ is unique.
