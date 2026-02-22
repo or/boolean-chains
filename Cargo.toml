@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+indicatif = "0.17"
 rayon = "1"
 regex = "1"
 rusqlite = { version = "0.31", features = ["bundled"] }

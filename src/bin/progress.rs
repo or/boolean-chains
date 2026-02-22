@@ -1,9 +1,11 @@
+use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
-use rusqlite::Connection;
-use std::collections::HashMap;
+use rusqlite::{params, Connection};
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::{self, BufRead};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use walkdir::WalkDir;
 
 mod jobs;
@@ -32,6 +34,14 @@ impl MatrixRow {
 struct Stats {
     total_chains: u64,
     total_secs: f64,
+    matrix: HashMap<u32, MatrixRow>,
+}
+
+struct ParsedChunk {
+    chunk_id: String,
+    total_chains: u64,
+    secs: f64,
+    corrupt: bool,
     matrix: HashMap<u32, MatrixRow>,
 }
 
@@ -67,26 +77,40 @@ struct Chunk {
     last_tuple: Vec<u64>,
 }
 
-fn finalize_chunk_into_stats(chunk: &Chunk, stats: &mut Stats) {
-    if chunk.ignore || chunk.corrupt {
+fn finalize_chunk(chunk: &Chunk, stats: &mut Stats, parsed: &mut Vec<ParsedChunk>) {
+    if chunk.ignore {
         return;
     }
     if let (Some(chains), Some(secs)) = (chunk.total_chains, chunk.secs) {
-        stats.total_chains += chains;
-        stats.total_secs += secs;
+        let chunk_id = chunk.args.as_deref().unwrap_or("").to_string();
 
-        for (k, row) in chunk.matrix.iter() {
-            stats
-                .matrix
-                .entry(*k)
-                .and_modify(|row_a| row_a.merge(row))
-                .or_insert_with(|| row.clone());
+        if !chunk.corrupt {
+            stats.total_chains += chains;
+            stats.total_secs += secs;
+            for (k, row) in chunk.matrix.iter() {
+                stats
+                    .matrix
+                    .entry(*k)
+                    .and_modify(|row_a| row_a.merge(row))
+                    .or_insert_with(|| row.clone());
+            }
+        }
+
+        if !chunk_id.is_empty() {
+            parsed.push(ParsedChunk {
+                chunk_id,
+                total_chains: chains,
+                secs,
+                corrupt: chunk.corrupt,
+                matrix: chunk.matrix.clone(),
+            });
         }
     }
 }
 
-fn process_file(path: &Path) -> (Stats, bool) {
+fn process_file(path: &Path) -> (Stats, Vec<ParsedChunk>, bool) {
     let mut stats = Stats::default();
+    let mut parsed: Vec<ParsedChunk> = Vec::new();
     let mut current = Chunk::default();
     let mut file_has_corrupt = false;
 
@@ -107,10 +131,8 @@ fn process_file(path: &Path) -> (Stats, bool) {
                 if current.total_chains.is_some()
                     && current.total_chains.unwrap() > 0
                     && current.real_seen
-                    && !current.ignore
-                    && !current.corrupt
                 {
-                    finalize_chunk_into_stats(&current, &mut stats);
+                    finalize_chunk(&current, &mut stats, &mut parsed);
                 }
                 current = Chunk::default();
 
@@ -124,7 +146,6 @@ fn process_file(path: &Path) -> (Stats, bool) {
                     let args_vec: Vec<&str> = tokens.collect();
                     if !args_vec.is_empty() {
                         current.args = Some(args_vec.join(" "));
-                        // Parse chunk ID
                         current.chunk_id = args_vec
                             .iter()
                             .filter_map(|s| s.parse::<u64>().ok())
@@ -155,10 +176,8 @@ fn process_file(path: &Path) -> (Stats, bool) {
                 if current.real_seen
                     && current.total_chains.is_some()
                     && current.total_chains.unwrap() > 0
-                    && !current.ignore
-                    && !current.corrupt
                 {
-                    finalize_chunk_into_stats(&current, &mut stats);
+                    finalize_chunk(&current, &mut stats, &mut parsed);
                 }
                 current = Chunk::default();
             } else if line_trim.starts_with("new expressions at chain length:") {
@@ -190,7 +209,6 @@ fn process_file(path: &Path) -> (Stats, bool) {
                     }
                 }
             } else if current.in_progress {
-                // Validate progress lines
                 if let Some(space_idx) = line_trim.rfind(' ') {
                     let tuple_part = &line_trim[..space_idx];
                     let numbers: Vec<u64> = tuple_part
@@ -200,12 +218,10 @@ fn process_file(path: &Path) -> (Stats, bool) {
                         .collect();
 
                     if numbers.len() >= current.chunk_id.len() + 1 {
-                        // Check if it starts with chunk ID
                         let prefix_matches =
                             numbers[..current.chunk_id.len()] == current.chunk_id[..];
 
                         if prefix_matches {
-                            // Check if tuple is strictly increasing
                             let mut valid_tuple = true;
                             for i in 1..numbers.len() {
                                 if numbers[i] <= numbers[i - 1] {
@@ -215,11 +231,8 @@ fn process_file(path: &Path) -> (Stats, bool) {
                             }
 
                             if valid_tuple {
-                                // Check if this tuple is greater than the last one
-                                if !current.last_tuple.is_empty() {
-                                    if numbers <= current.last_tuple {
-                                        current.corrupt = true;
-                                    }
+                                if !current.last_tuple.is_empty() && numbers <= current.last_tuple {
+                                    current.corrupt = true;
                                 }
                                 current.last_tuple = numbers;
                             } else {
@@ -231,7 +244,6 @@ fn process_file(path: &Path) -> (Stats, bool) {
                     }
                 }
             } else if line_trim.starts_with("---") {
-                // Entering progress section after first ---
                 if current.args.is_some() && !current.in_progress {
                     current.in_progress = true;
                     current.last_tuple.clear();
@@ -244,7 +256,7 @@ fn process_file(path: &Path) -> (Stats, bool) {
         }
     }
 
-    (stats, file_has_corrupt)
+    (stats, parsed, file_has_corrupt)
 }
 
 fn open_db(path: &str) -> Connection {
@@ -254,6 +266,9 @@ fn open_db(path: &str) -> Connection {
     });
     conn.execute_batch(
         "
+        PRAGMA journal_mode=WAL;
+        PRAGMA synchronous=NORMAL;
+
         CREATE TABLE IF NOT EXISTS files (
             id      INTEGER PRIMARY KEY,
             path    TEXT NOT NULL UNIQUE,
@@ -292,6 +307,71 @@ fn open_db(path: &str) -> Connection {
     conn
 }
 
+fn write_file_to_db(conn: &Connection, path_str: &str, parsed: &[ParsedChunk], file_corrupt: bool) {
+    conn.execute(
+        "INSERT OR IGNORE INTO files (path, corrupt) VALUES (?1, ?2)",
+        params![path_str, file_corrupt as i64],
+    )
+    .unwrap_or_else(|e| {
+        eprintln!("Failed to insert file {}: {}", path_str, e);
+        0
+    });
+
+    let file_id: i64 = conn
+        .query_row(
+            "SELECT id FROM files WHERE path = ?1",
+            params![path_str],
+            |r| r.get(0),
+        )
+        .unwrap_or_else(|e| {
+            eprintln!("Failed to fetch file id for {}: {}", path_str, e);
+            std::process::exit(1);
+        });
+
+    for chunk in parsed {
+        conn.execute(
+            "INSERT INTO chunks (file_id, chunk_id, total_chains, secs, corrupt)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                file_id,
+                chunk.chunk_id,
+                chunk.total_chains as i64,
+                chunk.secs,
+                chunk.corrupt as i64,
+            ],
+        )
+        .unwrap_or_else(|e| {
+            eprintln!("Failed to insert chunk {}: {}", chunk.chunk_id, e);
+            0
+        });
+
+        let chunk_row_id = conn.last_insert_rowid();
+
+        for (chain_length, row) in &chunk.matrix {
+            conn.execute(
+                "INSERT OR IGNORE INTO chunk_matrix
+                 (chunk_row_id, chain_length, n, sum, min, max)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    chunk_row_id,
+                    *chain_length as i64,
+                    row.n as i64,
+                    row.sum as i64,
+                    row.min as i64,
+                    row.max as i64,
+                ],
+            )
+            .unwrap_or_else(|e| {
+                eprintln!(
+                    "Failed to insert chunk_matrix row for chunk {}: {}",
+                    chunk.chunk_id, e
+                );
+                0
+            });
+        }
+    }
+}
+
 fn main() {
     let mut args = std::env::args().skip(1);
     let db_path = if let Some(flag) = args.next() {
@@ -308,9 +388,22 @@ fn main() {
         "results.sqlite3".to_string()
     };
 
-    let _conn = open_db(&db_path);
+    let conn = open_db(&db_path);
 
-    let files: Vec<_> = WalkDir::new(".")
+    // Fetch all already-processed file paths in one query.
+    let seen: HashSet<String> = {
+        let mut stmt = conn
+            .prepare("SELECT path FROM files")
+            .expect("Failed to prepare seen-files query");
+        stmt.query_map([], |r| r.get(0))
+            .expect("Failed to query seen files")
+            .filter_map(Result::ok)
+            .collect()
+    };
+
+    let conn = Mutex::new(conn);
+
+    let files: Vec<PathBuf> = WalkDir::new(".")
         .into_iter()
         .filter_map(Result::ok)
         .filter(|e| {
@@ -333,16 +426,40 @@ fn main() {
                 }
             }
 
+            let path_str = e.path().display().to_string();
+            if seen.contains(&path_str) {
+                return false;
+            }
+
             true
         })
         .map(|e| e.into_path())
         .collect();
 
+    let pb = ProgressBar::new(files.len() as u64);
+    pb.set_style(
+        ProgressStyle::with_template(
+            "[{elapsed_precise}] {bar:40.cyan/blue} {pos}/{len} files ({eta})",
+        )
+        .unwrap(),
+    );
+
     let final_stats = files
         .par_iter()
         .map(|path| {
-            let (stats, _has_corrupt) = process_file(path);
+            let (stats, parsed, file_corrupt) = process_file(path);
+            let path_str = path.display().to_string();
 
+            {
+                let conn = conn.lock().unwrap();
+                conn.execute_batch("BEGIN")
+                    .expect("Failed to begin transaction");
+                write_file_to_db(&conn, &path_str, &parsed, file_corrupt);
+                conn.execute_batch("COMMIT")
+                    .expect("Failed to commit transaction");
+            }
+
+            pb.inc(1);
             stats
         })
         .reduce(
@@ -361,6 +478,8 @@ fn main() {
                 a
             },
         );
+
+    pb.finish_with_message("done");
 
     println!();
     println!("total number of chains: {}", final_stats.total_chains);
