@@ -151,3 +151,7 @@ DELETE FROM chunks WHERE file_id IN (
 DELETE FROM files WHERE id IN (
 );
 #+end_src
+*** Pick a random chunk of all unverified files
+#+begin_src shell
+sqlite3 results.sqlite3 "SELECT c.chunk_id FROM chunks c JOIN files f ON c.file_id = f.id WHERE f.ignore = 0 AND f.corrupt = 0 AND NOT EXISTS (SELECT 1 FROM chunks c2 WHERE c2.file_id = f.id AND c2.verified = 1) AND c.id = (SELECT c3.id FROM chunks c3 WHERE c3.file_id = c.file_id ORDER BY RANDOM() LIMIT 1);" > unverified.txt
+#+end_src
