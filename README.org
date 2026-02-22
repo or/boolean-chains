@@ -2,7 +2,7 @@
 
 https://orunge.org/boolean-chains/
 
-* Database format (~results.sqlite3~)
+** Progress database format (~results.sqlite3~)
 
 The ~progress~ binary writes results to a SQLite database (~results.sqlite3~ by
 default, overridable via the ~--db~ CLI argument). The schema has three tables.
@@ -11,29 +11,34 @@ default, overridable via the ~--db~ CLI argument). The schema has three tables.
 
 One row per output file scanned.
 
-| Column    | Type    | Notes                                              |
-|-----------+---------+----------------------------------------------------|
-| ~id~      | INTEGER | Primary key                                        |
-| ~path~    | TEXT    | Absolute or relative path; unique                  |
-| ~corrupt~ | INTEGER | Boolean — file contains at least one corrupt chunk |
-| ~ignore~  | INTEGER | Boolean — manually set to skip file on re-scans    |
+| Column    | Type    | Notes                                                              |
+|-----------+---------+--------------------------------------------------------------------|
+| ~id~      | INTEGER | Primary key                                                        |
+| ~path~    | TEXT    | Absolute or relative path; unique                                  |
+| ~corrupt~ | INTEGER | Boolean — file contains at least one corrupt chunk                 |
+| ~ignore~  | INTEGER | Boolean — manually set to indicate that the file should be ignored |
 
 ** ~chunks~
 
 One row per valid chunk found inside an output file.
 
-| Column         | Type    | Notes                                               |
-|----------------+---------+-----------------------------------------------------|
-| ~id~           | INTEGER | Primary key                                         |
-| ~file_id~      | INTEGER | Foreign key → ~files.id~                            |
-| ~chunk_id~     | TEXT    | Space-joined arg integers, e.g. ~"0 10 23 26 70"~  |
-| ~total_chains~ | INTEGER | Total chains explored (also used for dedup checks)  |
-| ~secs~         | REAL    | Wall-clock time reported by the run                 |
-| ~bad~          | INTEGER | Boolean — manually flagged as a bad result          |
-| ~corrupt~      | INTEGER | Boolean — detected corrupt during parsing           |
+| Column         | Type    | Notes                                                              |
+|----------------+---------+--------------------------------------------------------------------|
+| ~id~           | INTEGER | Primary key                                                        |
+| ~file_id~      | INTEGER | Foreign key → ~files.id~                                           |
+| ~chunk_id~     | TEXT    | Space-joined arg integers, e.g. ~"0 10 23 26 70"~                  |
+| ~total_chains~ | INTEGER | Total chains explored (also used for dedup checks)                 |
+| ~secs~         | REAL    | Wall-clock time reported by the run                                |
+| ~bad~          | INTEGER | Boolean — manually flagged as a bad result                         |
+| ~corrupt~      | INTEGER | Boolean — detected corrupt during parsing                          |
+| ~ignore~       | INTEGER | Boolean — manually set to indicate that the file should be ignored |
 
 An index on ~chunk_id~ supports fast lookup when comparing runs of the same
 chunk across multiple files.
+
+An index on ~(ignore, corrupt)~ in the ~files~ table supports fast filtering on
+both columns. As ~ignore~ is the leftmost column, it also covers queries that
+filter on ~ignore~ alone.
 
 ** ~chunk_matrix~
 
@@ -52,3 +57,14 @@ raw output is omitted — it is derivable as ~sum / n~.
 
 ~(chunk_row_id, chain_length)~ is unique. Only rows where ~sum > 0~ are stored;
 all-zero chain-length entries from the raw output are omitted.
+
+** Queries
+*** Update ignore flag at chunks level
+#+begin_src sql
+UPDATE chunks
+SET ignore = (
+    SELECT f.ignore
+    FROM files f
+    WHERE f.id = chunks.file_id
+);
+#+end_src

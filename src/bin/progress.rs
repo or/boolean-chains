@@ -283,10 +283,13 @@ fn open_db(path: &str) -> Connection {
             total_chains INTEGER NOT NULL,
             secs         REAL NOT NULL,
             bad          INTEGER NOT NULL DEFAULT 0,
-            corrupt      INTEGER NOT NULL DEFAULT 0
+            corrupt      INTEGER NOT NULL DEFAULT 0,
+            ignore       INTEGER NOT NULL DEFAULT 0
         );
 
         CREATE INDEX IF NOT EXISTS chunks_chunk_id_idx ON chunks(chunk_id);
+        CREATE INDEX IF NOT EXISTS files_ignore_corrupt_idx ON files(ignore, corrupt);
+        CREATE INDEX chunks_covering_idx ON chunks(ignore, corrupt, chunk_id, total_chains);
 
         CREATE TABLE IF NOT EXISTS chunk_matrix (
             id           INTEGER PRIMARY KEY,
@@ -318,8 +321,8 @@ fn write_batch_to_db(conn: &Connection, batch: &[(String, Vec<ParsedChunk>, bool
 
     let mut chunk_stmt = conn
         .prepare_cached(
-            "INSERT INTO chunks (file_id, chunk_id, total_chains, secs, corrupt)
-             VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT INTO chunks (file_id, chunk_id, total_chains, secs, corrupt, ignore)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
         )
         .expect("Failed to prepare chunk insert");
 
@@ -354,6 +357,7 @@ fn write_batch_to_db(conn: &Connection, batch: &[(String, Vec<ParsedChunk>, bool
                     chunk.total_chains as i64,
                     chunk.secs,
                     chunk.corrupt as i64,
+                    *file_ignore as i64,
                 ])
                 .unwrap_or_else(|e| {
                     eprintln!("Failed to insert chunk {}: {}", chunk.chunk_id, e);
