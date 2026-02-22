@@ -307,9 +307,9 @@ fn open_db(path: &str) -> Connection {
     conn
 }
 
-fn write_batch_to_db(conn: &Connection, batch: &[(String, Vec<ParsedChunk>, bool)]) {
+fn write_batch_to_db(conn: &Connection, batch: &[(String, Vec<ParsedChunk>, bool, bool)]) {
     let mut file_stmt = conn
-        .prepare_cached("INSERT OR IGNORE INTO files (path, corrupt) VALUES (?1, ?2)")
+        .prepare_cached("INSERT OR IGNORE INTO files (path, corrupt, ignore) VALUES (?1, ?2, ?3)")
         .expect("Failed to prepare file insert");
 
     let mut file_id_stmt = conn
@@ -331,9 +331,9 @@ fn write_batch_to_db(conn: &Connection, batch: &[(String, Vec<ParsedChunk>, bool
         )
         .expect("Failed to prepare chunk_matrix insert");
 
-    for (path_str, parsed, file_corrupt) in batch {
+    for (path_str, parsed, file_corrupt, file_ignore) in batch {
         file_stmt
-            .execute(params![path_str, *file_corrupt as i64])
+            .execute(params![path_str, *file_corrupt as i64, *file_ignore as i64])
             .unwrap_or_else(|e| {
                 eprintln!("Failed to insert file {}: {}", path_str, e);
                 0
@@ -435,12 +435,6 @@ fn main() {
                 return false;
             }
 
-            if let Some(base) = file_name.strip_suffix("__file_output") {
-                if jobs::JOBS_TO_IGNORE.contains(base) {
-                    return false;
-                }
-            }
-
             let path_str = e.path().display().to_string();
             if seen.contains(&path_str) {
                 return false;
@@ -466,12 +460,19 @@ fn main() {
         .map(|batch| {
             // Parse all files in this batch sequentially — no lock held during parsing.
             let mut batch_stats = Stats::default();
-            let mut results: Vec<(String, Vec<ParsedChunk>, bool)> =
+            let mut results: Vec<(String, Vec<ParsedChunk>, bool, bool)> =
                 Vec::with_capacity(batch.len());
 
             for path in batch {
                 let (stats, parsed, file_corrupt) = process_file(path);
                 let path_str = path.display().to_string();
+
+                let file_ignore = path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .and_then(|n| n.strip_suffix("__file_output"))
+                    .map(|base| jobs::JOBS_TO_IGNORE.contains(base))
+                    .unwrap_or(false);
 
                 batch_stats.total_chains += stats.total_chains;
                 batch_stats.total_secs += stats.total_secs;
@@ -483,7 +484,7 @@ fn main() {
                         .or_insert_with(|| row_b.clone());
                 }
 
-                results.push((path_str, parsed, file_corrupt));
+                results.push((path_str, parsed, file_corrupt, file_ignore));
             }
 
             // Write the entire batch in a single transaction.
