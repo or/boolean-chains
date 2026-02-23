@@ -457,31 +457,30 @@ fn main() {
 
     let conn = Mutex::new(conn);
 
-    let files: Vec<PathBuf> = WalkDir::new(".")
+    // Each entry is (open_path, db_path):
+    // - open_path: CWD-relative, used to open the file
+    // - db_path:   DB-dir-relative, used for storage and dedup
+    let files: Vec<(PathBuf, String)> = WalkDir::new(".")
         .into_iter()
         .filter_map(Result::ok)
-        .filter(|e| {
+        .filter_map(|e| {
             if !e.file_type().is_file() {
-                return false;
+                return None;
             }
 
-            let file_name = match e.path().file_name().and_then(|n| n.to_str()) {
-                Some(s) => s,
-                None => return false,
-            };
+            let file_name = e.path().file_name().and_then(|n| n.to_str())?;
 
             if !file_name.ends_with("output") {
-                return false;
+                return None;
             }
 
-            // Compute path relative to DB dir without per-file canonicalize.
             let rel_to_cwd = match e.path().strip_prefix(".") {
                 Ok(r) => r.to_path_buf(),
                 Err(_) => e.path().to_path_buf(),
             };
             let abs = cwd.join(&rel_to_cwd);
-            let rel = match abs.strip_prefix(&db_dir) {
-                Ok(r) => r.to_path_buf(),
+            let db_rel = match abs.strip_prefix(&db_dir) {
+                Ok(r) => format!("./{}", r.display()),
                 Err(_) => {
                     eprintln!(
                         "Path {} is not relative to db directory {}",
@@ -492,22 +491,11 @@ fn main() {
                 }
             };
 
-            let path_str = format!("./{}", rel.display());
-            if seen.contains(&path_str) {
-                return false;
+            if seen.contains(&db_rel) {
+                return None;
             }
 
-            true
-        })
-        .filter_map(|e| {
-            let rel_to_cwd = match e.path().strip_prefix(".") {
-                Ok(r) => r.to_path_buf(),
-                Err(_) => e.path().to_path_buf(),
-            };
-            let abs = cwd.join(&rel_to_cwd);
-            abs.strip_prefix(&db_dir)
-                .map(|r| PathBuf::from(format!("./{}", r.display())))
-                .ok()
+            Some((e.path().to_path_buf(), db_rel))
         })
         .collect();
 
@@ -532,11 +520,10 @@ fn main() {
             let mut results: Vec<(String, Vec<ParsedChunk>, bool, bool)> =
                 Vec::with_capacity(batch.len());
 
-            for path in batch {
-                let (stats, parsed, file_corrupt) = process_file(path);
-                let path_str = path.display().to_string();
+            for (open_path, db_path) in batch {
+                let (stats, parsed, file_corrupt) = process_file(open_path);
 
-                let file_ignore = path
+                let file_ignore = open_path
                     .file_name()
                     .and_then(|n| n.to_str())
                     .and_then(|n| n.strip_suffix("__file_output"))
@@ -553,7 +540,7 @@ fn main() {
                         .or_insert_with(|| row_b.clone());
                 }
 
-                results.push((path_str, parsed, file_corrupt, file_ignore));
+                results.push((db_path.clone(), parsed, file_corrupt, file_ignore));
             }
 
             // Write the entire batch in a single transaction.
