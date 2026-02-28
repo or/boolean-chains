@@ -2,36 +2,24 @@
 #include <cinttypes>
 #include <csignal>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
+
+#ifdef __APPLE__
+#include <sys/sysctl.h>
+#endif
+#if defined(__x86_64__)
+#include <cpuid.h>
+#endif
 
 #ifndef CAPTURE_STATS
 #define CAPTURE_STATS 1
 #endif
-
 #ifndef PLAN_MODE
 #define PLAN_MODE 0
 #endif
-
 #define CHUNK_START_LENGTH 9
-
-#if CAPTURE_STATS
-#define CAPTURE_STATS_CALL(chain_size)                                         \
-  {                                                                            \
-    const auto new_expressions =                                               \
-        expressions_size[chain_size] - expressions_size[chain_size - 1];       \
-    stats_min_num_expressions[chain_size] +=                                   \
-        (new_expressions < stats_min_num_expressions[chain_size]) *            \
-        (new_expressions - stats_min_num_expressions[chain_size]);             \
-    stats_max_num_expressions[chain_size] +=                                   \
-        (new_expressions > stats_max_num_expressions[chain_size]) *            \
-        (new_expressions - stats_max_num_expressions[chain_size]);             \
-    stats_total_num_expressions[chain_size] += new_expressions;                \
-    stats_num_data_points[chain_size]++;                                       \
-  }
-#else
-#define CAPTURE_STATS_CALL(chain_size)
-#endif
 
 constexpr uint32_t N = 16;
 constexpr uint32_t SIZE = 1 << (N - 1);
@@ -58,421 +46,356 @@ constexpr uint32_t TARGETS[] = {
 constexpr uint32_t NUM_TARGETS = sizeof(TARGETS) / sizeof(uint32_t);
 
 uint32_t plan_depth = 1;
-
-uint32_t start_chain_length;
+uint32_t start_chain_length = 4;
 uint64_t total_chains = 0;
+
 #if CAPTURE_STATS
 #define UNDEFINED 0xffffffff
 uint64_t stats_total_num_expressions[25] = {0};
-uint32_t stats_min_num_expressions[25] = {UNDEFINED};
+uint32_t stats_min_num_expressions[25] = {0};
 uint32_t stats_max_num_expressions[25] = {0};
 uint64_t stats_num_data_points[25] = {0};
 #endif
 
+#if CAPTURE_STATS
+#define CAPTURE_STATS_CALL(chain_size)                                         \
+  {                                                                            \
+    const auto new_expressions =                                               \
+        expressions_size[chain_size] - expressions_size[chain_size - 1];       \
+    stats_min_num_expressions[chain_size] +=                                   \
+        (new_expressions < stats_min_num_expressions[chain_size]) *            \
+        (new_expressions - stats_min_num_expressions[chain_size]);             \
+    stats_max_num_expressions[chain_size] +=                                   \
+        (new_expressions > stats_max_num_expressions[chain_size]) *            \
+        (new_expressions - stats_max_num_expressions[chain_size]);             \
+    stats_total_num_expressions[chain_size] += new_expressions;                \
+    stats_num_data_points[chain_size]++;                                       \
+  }
+#else
+#define CAPTURE_STATS_CALL(chain_size)
+#endif
+
 #define PRINT_PROGRESS(chain_size, last)                                       \
-  for (uint32_t j = start_chain_length; j < chain_size; ++j) {                 \
-    printf("%d, ", choices[j]);                                                \
+  for (uint32_t _j = start_chain_length; _j < chain_size; ++_j) {              \
+    printf("%d, ", choices[_j]);                                               \
   }                                                                            \
   printf("%d %" PRIu64 "\n", last, total_chains);                              \
   fflush(stdout);
 
-#define ADD_EXPRESSION(value, chain_size)                                      \
-  expressions[_expr_size] = value;                                             \
-  _expr_size += unseen[value];                                                 \
-  unseen[value] = 0;
+// ---- Unseen accessors: plain ----
 
-#define ADD_EXPRESSION_TARGET(value, chain_size)                               \
-  {                                                                            \
-    const uint32_t v = value;                                                  \
-    const uint32_t a = unseen[v] & target_lookup[v];                           \
-    expressions[_expr_size] = v;                                               \
-    _expr_size += a;                                                           \
-    unseen[v] &= ~a;                                                           \
-  }
+#define UNSEEN_PLAIN_GET(v) unseen_plain[(v)]
+#define UNSEEN_PLAIN_CLEAR(v) unseen_plain[(v)] = 0
+#define UNSEEN_PLAIN_CLEAR_COND(v, c) unseen_plain[(v)] &= ~(uint8_t)(c)
+#define UNSEEN_PLAIN_RESTORE(v) unseen_plain[(v)] = 1
+#define UNSEEN_PLAIN_INIT() memset(unseen_plain, 1, sizeof(unseen_plain))
 
-#define GENERATE_NEW_EXPRESSIONS(chain_size, add_expression)                   \
-  {                                                                            \
-    uint32_t _expr_size = expressions_size[chain_size - 1];                    \
-    const uint32_t h = chain[chain_size - 1];                                  \
-    const uint32_t not_h = not_chain[chain_size - 1];                          \
-                                                                               \
-    uint32_t j = 0;                                                            \
-    _Pragma("loop unroll(full)") for (; j < chain_size - 4; j += 4) {          \
-      const uint32_t g0 = chain[j], g1 = chain[j + 1], g2 = chain[j + 2],      \
-                     g3 = chain[j + 3];                                        \
-      const uint32_t not_g0 = not_chain[j], not_g1 = not_chain[j + 1],         \
-                     not_g2 = not_chain[j + 2], not_g3 = not_chain[j + 3];     \
-                                                                               \
-      add_expression(g0 & h, chain_size);                                      \
-      add_expression(g1 & h, chain_size);                                      \
-      add_expression(g2 & h, chain_size);                                      \
-      add_expression(g3 & h, chain_size);                                      \
-                                                                               \
-      add_expression(not_g0 & h, chain_size);                                  \
-      add_expression(not_g1 & h, chain_size);                                  \
-      add_expression(not_g2 & h, chain_size);                                  \
-      add_expression(not_g3 & h, chain_size);                                  \
-                                                                               \
-      add_expression(g0 & not_h, chain_size);                                  \
-      add_expression(g1 & not_h, chain_size);                                  \
-      add_expression(g2 & not_h, chain_size);                                  \
-      add_expression(g3 & not_h, chain_size);                                  \
-                                                                               \
-      add_expression(g0 ^ h, chain_size);                                      \
-      add_expression(g1 ^ h, chain_size);                                      \
-      add_expression(g2 ^ h, chain_size);                                      \
-      add_expression(g3 ^ h, chain_size);                                      \
-                                                                               \
-      add_expression(g0 | h, chain_size);                                      \
-      add_expression(g1 | h, chain_size);                                      \
-      add_expression(g2 | h, chain_size);                                      \
-      add_expression(g3 | h, chain_size);                                      \
-    }                                                                          \
-                                                                               \
-    _Pragma("loop unroll(full)") for (; j < chain_size - 1; j++) {             \
-      const uint32_t g = chain[j];                                             \
-      const uint32_t not_g = not_chain[j];                                     \
-      add_expression(g & h, chain_size);                                       \
-      add_expression(not_g & h, chain_size);                                   \
-      add_expression(g & not_h, chain_size);                                   \
-      add_expression(g ^ h, chain_size);                                       \
-      add_expression(g | h, chain_size);                                       \
-    }                                                                          \
-                                                                               \
-    expressions_size[chain_size] = _expr_size;                                 \
-  }
+// ---- Unseen accessors: bitset ----
 
-#define FORWARD_DFS(CS, PREV_CS, NEXT_CS)                                      \
-  GENERATE_NEW_EXPRESSIONS(CS, ADD_EXPRESSION)                                 \
-  CAPTURE_STATS_CALL(CS)                                                       \
-                                                                               \
-  const uint32_t limit_##CS = expressions_size[CS];                            \
-  for (uint32_t i##CS = i##PREV_CS + 1; i##CS < limit_##CS; ++i##CS) {         \
-    chain[CS] = expressions[i##CS];                                            \
-    not_chain[CS] = ~chain[CS];                                                \
-    choices[CS] = i##CS;                                                       \
-    const uint8_t is_target = target_lookup[chain[CS]];                        \
-                                                                               \
-    if (PLAN_MODE) {                                                           \
-      if (CS >= CHUNK_START_LENGTH - 1) {                                      \
-        for (uint32_t j = start_chain_length; j <= CS; ++j) {                  \
-          printf("%d ", choices[j]);                                           \
-        }                                                                      \
-        printf("\n");                                                          \
-        continue;                                                              \
-      }                                                                        \
-    }                                                                          \
-                                                                               \
-    total_chains++;                                                            \
-                                                                               \
-    if (!PLAN_MODE && CS + 1 == PRINT_PROGRESS_LENGTH) {                       \
-      PRINT_PROGRESS(CS, i##CS);                                               \
-    }                                                                          \
-                                                                               \
-    num_unfulfilled_targets -= is_target;                                      \
-    if (CS < MAX_LENGTH - 1 && NEXT_CS >= MAX_LENGTH - NUM_TARGETS) {          \
-      if (__builtin_expect(NEXT_CS + num_unfulfilled_targets == MAX_LENGTH,    \
-                           1)) {                                               \
-        tmp_chain_size = NEXT_CS;                                              \
-        generated_chain_size = CS;                                             \
-        tmp_num_unfulfilled_targets = num_unfulfilled_targets;                 \
-        uint32_t j = i##CS + 1;                                                \
-                                                                               \
-        next_##CS : if (__builtin_expect(tmp_chain_size < MAX_LENGTH, 1)) {    \
-          GENERATE_NEW_EXPRESSIONS(tmp_chain_size, ADD_EXPRESSION_TARGET)      \
-          generated_chain_size = tmp_chain_size;                               \
-                                                                               \
-          for (; j < expressions_size[tmp_chain_size]; ++j) {                  \
-            total_chains++;                                                    \
-            if (__builtin_expect(target_lookup[expressions[j]], 0)) {          \
-              chain[tmp_chain_size] = expressions[j];                          \
-              not_chain[tmp_chain_size] = ~chain[tmp_chain_size];              \
-              tmp_num_unfulfilled_targets--;                                   \
-              tmp_chain_size++;                                                \
-              if (__builtin_expect(!tmp_num_unfulfilled_targets, 0)) {         \
-                print_chain(chain, target_lookup, tmp_chain_size);             \
-                break;                                                         \
-              }                                                                \
-              j++;                                                             \
-              goto next_##CS;                                                  \
-            }                                                                  \
-          }                                                                    \
-        }                                                                      \
-                                                                               \
-        for (uint32_t i = expressions_size[CS];                                \
-             i < expressions_size[generated_chain_size]; i++) {                \
-          unseen[expressions[i]] = 1;                                          \
-        }                                                                      \
-                                                                               \
-        num_unfulfilled_targets += is_target;                                  \
-        i##CS += (is_target << 16);                                            \
-        continue;                                                              \
-      }                                                                        \
-    }
+#define UNSEEN_BITS_GET(v) ((unseen_bits[(v) >> 6] >> ((v) & 63)) & 1)
+#define UNSEEN_BITS_CLEAR(v) unseen_bits[(v) >> 6] &= ~(1ULL << ((v) & 63))
+#define UNSEEN_BITS_CLEAR_COND(v, c)                                           \
+  unseen_bits[(v) >> 6] &= ~((uint64_t)(c) << ((v) & 63))
+#define UNSEEN_BITS_RESTORE(v) unseen_bits[(v) >> 6] |= (1ULL << ((v) & 63))
+#define UNSEEN_BITS_INIT() memset(unseen_bits, 0xFF, sizeof(unseen_bits))
 
-#define BACKTRACK_DFS(CS, PREV_CS, NEXT_CS)                                    \
-  num_unfulfilled_targets += is_target;                                        \
-  i##CS += (is_target << 16);                                                  \
-  }                                                                            \
-                                                                               \
-  for (uint32_t i = expressions_size[PREV_CS]; i < expressions_size[CS];       \
-       i++) {                                                                  \
-    unseen[expressions[i]] = 1;                                                \
-  }
+// ---- Target accessors: plain ----
 
-void print_chain(const uint32_t *chain, const uint8_t *target_lookup,
-                 const uint32_t chain_size) {
-  printf("chain (%d):\n", chain_size);
-  for (uint32_t i = 0; i < chain_size; i++) {
-    printf("x%d", i + 1);
-    for (uint32_t j = 0; j < i; j++) {
-      for (uint32_t k = j + 1; k < i; k++) {
-        char op = 0;
-        if (chain[i] == (chain[j] & chain[k])) {
-          op = '&';
-        } else if (chain[i] == (chain[j] | chain[k])) {
-          op = '|';
-        } else if (chain[i] == (chain[j] ^ chain[k])) {
-          op = '^';
-        } else if (chain[i] == ((~chain[j]) & chain[k])) {
-          op = '<';
-        } else if (chain[i] == (chain[j] & (~chain[k]))) {
-          op = '>';
-        } else {
-          continue;
+#define TARGET_PLAIN_GET(v) target_plain[(v)]
+#define TARGET_PLAIN_INIT()                                                    \
+  do {                                                                         \
+    memset(target_plain, 0, sizeof(target_plain));                             \
+    for (uint32_t _i = 0; _i < NUM_TARGETS; _i++)                              \
+      target_plain[TARGETS[_i]] = 1;                                           \
+  } while (0)
+
+// ---- Target accessors: bitset ----
+
+#define TARGET_BITS_GET(v)                                                     \
+  ((uint8_t)((target_bits[(v) >> 6] >> ((v) & 63)) & 1))
+#define TARGET_BITS_INIT()                                                     \
+  do {                                                                         \
+    memset(target_bits, 0, sizeof(target_bits));                               \
+    for (uint32_t _i = 0; _i < NUM_TARGETS; _i++)                              \
+      target_bits[TARGETS[_i] >> 6] |= 1ULL << (TARGETS[_i] & 63);             \
+  } while (0)
+
+static void get_cpu_brand(char *brand, size_t max_len) {
+#if defined(__APPLE__)
+  size_t len = max_len;
+  if (sysctlbyname("machdep.cpu.brand_string", brand, &len, nullptr, 0) == 0)
+    return;
+#endif
+#if defined(__linux__)
+  FILE *f = fopen("/proc/cpuinfo", "r");
+  if (f) {
+    char line[256];
+    while (fgets(line, sizeof(line), f)) {
+      if (strncmp(line, "model name", 10) == 0 ||
+          strncmp(line, "Model name", 10) == 0) {
+        char *colon = strchr(line, ':');
+        if (colon) {
+          colon++;
+          while (*colon == ' ' || *colon == '\t')
+            colon++;
+          size_t slen = strlen(colon);
+          if (slen > 0 && colon[slen - 1] == '\n')
+            colon[slen - 1] = '\0';
+          strncpy(brand, colon, max_len - 1);
+          brand[max_len - 1] = '\0';
+          fclose(f);
+          return;
         }
-
-        printf(" = x%d %c x%d", j + 1, op, k + 1);
       }
     }
-    printf(" = %s", std::bitset<N>(chain[i]).to_string().c_str());
-    if (target_lookup[chain[i]]) {
-      printf(" [target]");
-    }
-    printf("\n");
+    fclose(f);
   }
+#endif
+#if defined(__x86_64__)
+  uint32_t regs[12];
+  if (__get_cpuid(0x80000002, &regs[0], &regs[1], &regs[2], &regs[3]) &&
+      __get_cpuid(0x80000003, &regs[4], &regs[5], &regs[6], &regs[7]) &&
+      __get_cpuid(0x80000004, &regs[8], &regs[9], &regs[10], &regs[11])) {
+    size_t copy_len = 48 < max_len ? 48 : max_len;
+    memcpy(brand, regs, copy_len);
+    brand[copy_len - 1] = '\0';
+    char *s = brand;
+    while (*s == ' ')
+      s++;
+    if (s != brand)
+      memmove(brand, s, strlen(s) + 1);
+    return;
+  }
+#endif
+  strncpy(brand, "unknown", max_len - 1);
+  brand[max_len - 1] = '\0';
 }
 
-void on_exit() {
-  printf("total chains: %" PRIu64 "\n", total_chains);
+static uint32_t get_l1d_size() {
+#if defined(__APPLE__)
+  uint64_t size = 0;
+  size_t len = sizeof(size);
+  // P-cores (perflevel0) — what matters for compute-heavy work
+  if (sysctlbyname("hw.perflevel0.l1dcachesize", &size, &len, nullptr, 0) == 0)
+    return (uint32_t)size;
+  // Fallback to generic (returns E-core value on Apple Silicon)
+  len = sizeof(size);
+  if (sysctlbyname("hw.l1dcachesize", &size, &len, nullptr, 0) == 0)
+    return (uint32_t)size;
+#endif
+#if defined(__linux__)
+  for (int idx = 0; idx < 10; idx++) {
+    char path[128], buf[32];
+    snprintf(path, sizeof(path),
+             "/sys/devices/system/cpu/cpu0/cache/index%d/level", idx);
+    FILE *f = fopen(path, "r");
+    if (!f)
+      break;
+    int level = 0;
+    if (fscanf(f, "%d", &level) != 1) {
+      fclose(f);
+      continue;
+    }
+    fclose(f);
+    if (level != 1)
+      continue;
+    snprintf(path, sizeof(path),
+             "/sys/devices/system/cpu/cpu0/cache/index%d/type", idx);
+    f = fopen(path, "r");
+    if (!f)
+      continue;
+    buf[0] = 0;
+    if (fscanf(f, "%31s", buf) != 1) {
+      fclose(f);
+      continue;
+    }
+    fclose(f);
+    if (strcmp(buf, "Data") != 0)
+      continue;
+    snprintf(path, sizeof(path),
+             "/sys/devices/system/cpu/cpu0/cache/index%d/size", idx);
+    f = fopen(path, "r");
+    if (!f)
+      continue;
+    uint32_t size = 0;
+    char unit = 0;
+    if (fscanf(f, "%u%c", &size, &unit) >= 1) {
+      fclose(f);
+      if (unit == 'K' || unit == 'k')
+        return size * 1024;
+      if (unit == 'M' || unit == 'm')
+        return size * 1024 * 1024;
+      return size;
+    }
+    fclose(f);
+  }
+#endif
+#if defined(__x86_64__)
+  uint32_t eax, ebx, ecx, edx;
+  if (__get_cpuid(0x80000005, &eax, &ebx, &ecx, &edx)) {
+    uint32_t l1d_kb = (ecx >> 24) & 0xFF;
+    if (l1d_kb > 0)
+      return l1d_kb * 1024;
+  }
+  for (uint32_t sub = 0; sub < 10; sub++) {
+    if (!__get_cpuid_count(4, sub, &eax, &ebx, &ecx, &edx))
+      break;
+    uint32_t type = eax & 0x1F;
+    if (type == 0)
+      break;
+    if (type == 1 && ((eax >> 5) & 0x7) == 1) {
+      uint32_t ways = ((ebx >> 22) & 0x3FF) + 1;
+      uint32_t parts = ((ebx >> 12) & 0x3FF) + 1;
+      uint32_t line = (ebx & 0xFFF) + 1;
+      uint32_t sets = ecx + 1;
+      return ways * parts * line * sets;
+    }
+  }
+#endif
+  return 32 * 1024;
+}
 
+static void on_exit_handler() {
+  printf("total chains: %" PRIu64 "\n", total_chains);
 #if CAPTURE_STATS
   printf("new expressions at chain length:\n");
-  printf("                   n                       sum              avg     "
-         "         "
-         "min              max\n");
-
+  printf("                   n                       sum              avg"
+         "              min              max\n");
   stats_total_num_expressions[start_chain_length] +=
       stats_total_num_expressions[start_chain_length - 1];
   stats_min_num_expressions[start_chain_length] +=
       stats_min_num_expressions[start_chain_length - 1];
   stats_max_num_expressions[start_chain_length] +=
       stats_min_num_expressions[start_chain_length - 1];
-  for (int i = start_chain_length; i < MAX_LENGTH; i++) {
+  for (uint32_t i = start_chain_length; i < MAX_LENGTH; i++) {
     printf("%2d: %16" PRIu64 " %25" PRIu64 " %16" PRIu64 " %16" PRId32
            " %16" PRIu32 "\n",
            i, stats_num_data_points[i], stats_total_num_expressions[i],
            stats_num_data_points[i] == 0
-               ? 0
+               ? (uint64_t)0
                : stats_total_num_expressions[i] / stats_num_data_points[i],
            stats_min_num_expressions[i] == UNDEFINED
-               ? 0
+               ? (uint32_t)0
                : stats_min_num_expressions[i],
            stats_max_num_expressions[i]);
   }
 #endif
 }
 
-void signal_handler(int signal) { exit(signal); }
+static void signal_handler(int sig) { exit(sig); }
+
+// 00: both plain
+#define SEARCH_FUNC search_both_plain
+#define UNSEEN_GET(v) UNSEEN_PLAIN_GET(v)
+#define UNSEEN_CLEAR(v) UNSEEN_PLAIN_CLEAR(v)
+#define UNSEEN_CLEAR_COND(v, c) UNSEEN_PLAIN_CLEAR_COND(v, c)
+#define UNSEEN_RESTORE(v) UNSEEN_PLAIN_RESTORE(v)
+#define UNSEEN_INIT() UNSEEN_PLAIN_INIT()
+#define TARGET_GET(v) TARGET_PLAIN_GET(v)
+#define TARGET_INIT() TARGET_PLAIN_INIT()
+#include "search-impl.cpp"
+
+// 01: unseen bitset
+#define SEARCH_FUNC search_unseen_bitset
+#define UNSEEN_GET(v) UNSEEN_BITS_GET(v)
+#define UNSEEN_CLEAR(v) UNSEEN_BITS_CLEAR(v)
+#define UNSEEN_CLEAR_COND(v, c) UNSEEN_BITS_CLEAR_COND(v, c)
+#define UNSEEN_RESTORE(v) UNSEEN_BITS_RESTORE(v)
+#define UNSEEN_INIT() UNSEEN_BITS_INIT()
+#define TARGET_GET(v) TARGET_PLAIN_GET(v)
+#define TARGET_INIT() TARGET_PLAIN_INIT()
+#include "search-impl.cpp"
+
+// 10: target bitset
+#define SEARCH_FUNC search_target_bitset
+#define UNSEEN_GET(v) UNSEEN_PLAIN_GET(v)
+#define UNSEEN_CLEAR(v) UNSEEN_PLAIN_CLEAR(v)
+#define UNSEEN_CLEAR_COND(v, c) UNSEEN_PLAIN_CLEAR_COND(v, c)
+#define UNSEEN_RESTORE(v) UNSEEN_PLAIN_RESTORE(v)
+#define UNSEEN_INIT() UNSEEN_PLAIN_INIT()
+#define TARGET_GET(v) TARGET_BITS_GET(v)
+#define TARGET_INIT() TARGET_BITS_INIT()
+#include "search-impl.cpp"
+
+// 11: both bitset
+#define SEARCH_FUNC search_both_bitset
+#define UNSEEN_GET(v) UNSEEN_BITS_GET(v)
+#define UNSEEN_CLEAR(v) UNSEEN_BITS_CLEAR(v)
+#define UNSEEN_CLEAR_COND(v, c) UNSEEN_BITS_CLEAR_COND(v, c)
+#define UNSEEN_RESTORE(v) UNSEEN_BITS_RESTORE(v)
+#define UNSEEN_INIT() UNSEEN_BITS_INIT()
+#define TARGET_GET(v) TARGET_BITS_GET(v)
+#define TARGET_INIT() TARGET_BITS_INIT()
+#include "search-impl.cpp"
 
 int main(int argc, char *argv[]) {
-  uint32_t num_unfulfilled_targets = NUM_TARGETS;
-  uint32_t start_indices_size __attribute__((aligned(64))) = 0;
-  uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
-  uint32_t choices[30] __attribute__((aligned(64)));
-  uint8_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
-  uint8_t unseen[SIZE] __attribute__((aligned(64)));
-  uint32_t chain[25] __attribute__((aligned(64)));
-  uint32_t not_chain[25] __attribute__((aligned(64)));
-  uint32_t expressions[600] __attribute__((aligned(64)));
-  uint32_t expressions_size[25] __attribute__((aligned(64)));
-  uint32_t tmp_chain_size;
-  uint32_t generated_chain_size;
-  uint32_t tmp_num_unfulfilled_targets;
+  int mode = -1;
+  int arg_skip = 0;
+
+  if (argc >= 3 && strcmp(argv[1], "-m") == 0) {
+    const char *m = argv[2];
+    if (strlen(m) == 2 && (m[0] == '0' || m[0] == '1') &&
+        (m[1] == '0' || m[1] == '1')) {
+      mode = (m[0] - '0') * 2 + (m[1] - '0');
+      arg_skip = 2;
+    } else {
+      fprintf(stderr,
+              "Invalid -m argument: %s\n"
+              "  Expected 00, 01, 10, or 11\n"
+              "  First bit = target_bitset, second bit = unseen_bitset\n",
+              m);
+      return 1;
+    }
+  }
+
+  char cpu_brand[128] = {0};
+  get_cpu_brand(cpu_brand, sizeof(cpu_brand));
+  uint32_t l1d = get_l1d_size();
+
+  printf("CPU: %s\n", cpu_brand);
+  printf("L1d cache: %u KB\n", l1d / 1024);
+
+  if (mode < 0) {
+    if (l1d > 65536)
+      mode = 0;
+    else if (l1d > 32768)
+      mode = 2;
+    else
+      mode = 3;
+  }
+
+  static const char *mode_names[] = {
+      "00 (both plain)",
+      "01 (unseen bitset)",
+      "10 (target bitset)",
+      "11 (both bitset)",
+  };
+  printf("Mode: %s%s\n", mode_names[mode], arg_skip ? "" : " (auto)");
+  fflush(stdout);
 
 #if !PLAN_MODE
-  atexit(on_exit);
+  atexit(on_exit_handler);
   signal(SIGINT, signal_handler);
   signal(SIGTERM, signal_handler);
 #endif
 
-  chain[0] = 0b0000000011111111 >> (16 - N);
-  chain[1] = 0b0000111100001111 >> (16 - N);
-  chain[2] = 0b0011001100110011 >> (16 - N);
-  chain[3] = 0b0101010101010101 >> (16 - N);
-  not_chain[0] = ~chain[0];
-  not_chain[1] = ~chain[1];
-  not_chain[2] = ~chain[2];
-  not_chain[3] = ~chain[3];
-  uint32_t chain_size = 4;
-  start_chain_length = chain_size;
+  int sa = argc - arg_skip;
+  char **sv = argv + arg_skip;
 
-#if !PLAN_MODE
-  for (uint32_t i = 0; i < chain_size; i++) {
-    start_indices[start_indices_size++] = 0;
+  switch (mode) {
+  case 0:
+    search_both_plain(sa, sv);
+    break;
+  case 1:
+    search_unseen_bitset(sa, sv);
+    break;
+  case 2:
+    search_target_bitset(sa, sv);
+    break;
+  case 3:
+    search_both_bitset(sa, sv);
+    break;
   }
-
-  // read the progress vector, e.g 5 2 9, commas will be ignored: 5, 2, 9
-  for (uint32_t i = 1; i < argc; i++) {
-    start_indices[start_indices_size++] = atoi(argv[i]);
-  }
-
-  if (start_indices_size != CHUNK_START_LENGTH) {
-    printf("expected %d integers as chunk prefix\n",
-           CHUNK_START_LENGTH - chain_size);
-    return -1;
-  }
-#endif
-
-  for (uint32_t i = 0; i < SIZE; i++) {
-    // flip the logic: 1 means unseen, 0 unseen, that'll avoid one operation
-    // when setting this flag
-    unseen[i] = 1;
-  }
-
-  for (uint32_t i = 0; i < NUM_TARGETS; i++) {
-    target_lookup[TARGETS[i]] = 1;
-  }
-
-#if PLAN_MODE != 1
-  printf("N = %d, MAX_LENGTH: %d, CAPTURE_STATS: %d\n", N, MAX_LENGTH,
-         CAPTURE_STATS);
-  printf("%d targets:\n", NUM_TARGETS);
-  for (uint32_t i = 0; i < NUM_TARGETS; i++) {
-    printf("  %s\n", std::bitset<N>(TARGETS[i]).to_string().c_str());
-  }
-  fflush(stdout);
-#endif
-
-#if CAPTURE_STATS
-  memset(stats_min_num_expressions, UNDEFINED,
-         sizeof(stats_min_num_expressions));
-#endif
-  unseen[0] = 0;
-  for (uint32_t i = 0; i < chain_size; i++) {
-    unseen[chain[i]] = 0;
-  }
-
-  chain_size--;
-  uint32_t _expr_size = 0;
-  for (uint32_t k = 1; k < chain_size; k++) {
-    const uint32_t h = chain[k];
-    const uint32_t not_h = not_chain[k];
-    for (uint32_t j = 0; j < k; j++) {
-      const uint32_t g = chain[j];
-      const uint32_t not_g = not_chain[j];
-
-      ADD_EXPRESSION(g & h, chain_size)
-      ADD_EXPRESSION(g & not_h, chain_size)
-      ADD_EXPRESSION(g ^ h, chain_size)
-      ADD_EXPRESSION(g | h, chain_size)
-      ADD_EXPRESSION(not_g & h, chain_size)
-    }
-  }
-  expressions_size[chain_size] = _expr_size;
-
-  // just to get the initial branch before the algorithm even starts
-  CAPTURE_STATS_CALL(chain_size)
-  chain_size++;
-
-#if PLAN_MODE
-  uint32_t i3 = 0xffffffff;
-#else
-  // restore progress
-  while (chain_size < start_indices_size) {
-    GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
-    // this can be used to output the first expressions with the index,
-    // which allows some custom order for promising expressions
-    // if (chain_size == 4) {
-    //   for (int m = 0; m < expressions_size[4]; m++) {
-    //     uint32_t e = expressions[m];
-    //     printf("%d: ", m);
-    //     for (uint32_t j = 0; j < 4; j++) {
-    //       for (uint32_t k = j + 1; k < 4; k++) {
-    //         char op = 0;
-    //         if (e == (chain[j] & chain[k])) {
-    //           op = '&';
-    //         } else if (e == (chain[j] | chain[k])) {
-    //           op = '|';
-    //         } else if (e == (chain[j] ^ chain[k])) {
-    //           op = '^';
-    //         } else if (e == ((~chain[j]) & chain[k])) {
-    //           op = '<';
-    //         } else if (e == (chain[j] & (~chain[k]))) {
-    //           op = '>';
-    //         } else {
-    //           continue;
-    //         }
-    //         printf(" = x%d %c x%d", j + 1, op, k + 1);
-    //       }
-    //     }
-    //     printf("\n");
-    //   }
-    // }
-    choices[chain_size] = start_indices[chain_size];
-    chain[chain_size] = expressions[choices[chain_size]];
-    not_chain[chain_size] = ~chain[chain_size];
-    num_unfulfilled_targets -= target_lookup[chain[chain_size]];
-    chain_size++;
-  }
-
-  uint32_t i8 = choices[chain_size - 1];
-
-#endif
-
-#if PLAN_MODE
-  FORWARD_DFS(4, 3, 5)
-  FORWARD_DFS(5, 4, 6)
-  FORWARD_DFS(6, 5, 7)
-  FORWARD_DFS(7, 6, 8)
-  FORWARD_DFS(8, 7, 9)
-#endif
-  FORWARD_DFS(9, 8, 10)
-  FORWARD_DFS(10, 9, 11)
-  FORWARD_DFS(11, 10, 12)
-  FORWARD_DFS(12, 11, 13)
-  FORWARD_DFS(13, 12, 14)
-  FORWARD_DFS(14, 13, 15)
-  FORWARD_DFS(15, 14, 16)
-  FORWARD_DFS(16, 15, 17)
-  FORWARD_DFS(17, 16, 18)
-  FORWARD_DFS(18, 17, 19)
-  FORWARD_DFS(19, 18, 20)
-  FORWARD_DFS(20, 19, 21)
-  FORWARD_DFS(21, 20, 22)
-  FORWARD_DFS(22, 21, 23)
-
-  BACKTRACK_DFS(22, 21, 23)
-  BACKTRACK_DFS(21, 20, 22)
-  BACKTRACK_DFS(20, 19, 21)
-  BACKTRACK_DFS(19, 18, 20)
-  BACKTRACK_DFS(18, 17, 19)
-  BACKTRACK_DFS(17, 16, 18)
-  BACKTRACK_DFS(16, 15, 17)
-  BACKTRACK_DFS(15, 14, 16)
-  BACKTRACK_DFS(14, 13, 15)
-  BACKTRACK_DFS(13, 12, 14)
-  BACKTRACK_DFS(12, 11, 13)
-  BACKTRACK_DFS(11, 10, 12)
-  BACKTRACK_DFS(10, 9, 11)
-  BACKTRACK_DFS(9, 8, 10)
-#if PLAN_MODE
-  BACKTRACK_DFS(8, 7, 9)
-  BACKTRACK_DFS(7, 6, 8)
-  BACKTRACK_DFS(6, 5, 7)
-  BACKTRACK_DFS(5, 4, 6)
-  BACKTRACK_DFS(4, 3, 5)
-#endif
 
   return 0;
 }
