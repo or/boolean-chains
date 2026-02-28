@@ -77,22 +77,22 @@ uint64_t stats_num_data_points[25] = {0};
   fflush(stdout);
 
 #define ADD_EXPRESSION(value, chain_size)                                      \
-  expressions[expressions_size[chain_size]] = value;                           \
-  expressions_size[chain_size] += unseen[value];                               \
+  expressions[_expr_size] = value;                                             \
+  _expr_size += unseen[value];                                                 \
   unseen[value] = 0;
 
 #define ADD_EXPRESSION_TARGET(value, chain_size)                               \
   {                                                                            \
     const uint32_t v = value;                                                  \
     const uint32_t a = unseen[v] & target_lookup[v];                           \
-    expressions[expressions_size[chain_size]] = v;                             \
-    expressions_size[chain_size] += a;                                         \
+    expressions[_expr_size] = v;                                               \
+    _expr_size += a;                                                           \
     unseen[v] &= ~a;                                                           \
   }
 
 #define GENERATE_NEW_EXPRESSIONS(chain_size, add_expression)                   \
   {                                                                            \
-    expressions_size[chain_size] = expressions_size[chain_size - 1];           \
+    uint32_t _expr_size = expressions_size[chain_size - 1];                    \
     const uint32_t h = chain[chain_size - 1];                                  \
     const uint32_t not_h = not_chain[chain_size - 1];                          \
                                                                                \
@@ -138,14 +138,16 @@ uint64_t stats_num_data_points[25] = {0};
       add_expression(g ^ h, chain_size);                                       \
       add_expression(g | h, chain_size);                                       \
     }                                                                          \
+                                                                               \
+    expressions_size[chain_size] = _expr_size;                                 \
   }
 
 #define FORWARD_DFS(CS, PREV_CS, NEXT_CS)                                      \
   GENERATE_NEW_EXPRESSIONS(CS, ADD_EXPRESSION)                                 \
   CAPTURE_STATS_CALL(CS)                                                       \
                                                                                \
-  for (uint32_t i##CS = i##PREV_CS + 1; i##CS < expressions_size[CS];          \
-       ++i##CS) {                                                              \
+  const uint32_t limit_##CS = expressions_size[CS];                            \
+  for (uint32_t i##CS = i##PREV_CS + 1; i##CS < limit_##CS; ++i##CS) {         \
     chain[CS] = expressions[i##CS];                                            \
     not_chain[CS] = ~chain[CS];                                                \
     choices[CS] = i##CS;                                                       \
@@ -362,7 +364,7 @@ int main(int argc, char *argv[]) {
   }
 
   chain_size--;
-  expressions_size[chain_size] = 0;
+  uint32_t _expr_size = 0;
   for (uint32_t k = 1; k < chain_size; k++) {
     const uint32_t h = chain[k];
     const uint32_t not_h = not_chain[k];
@@ -377,6 +379,7 @@ int main(int argc, char *argv[]) {
       ADD_EXPRESSION(not_g & h, chain_size)
     }
   }
+  expressions_size[chain_size] = _expr_size;
 
   // just to get the initial branch before the algorithm even starts
   CAPTURE_STATS_CALL(chain_size)
