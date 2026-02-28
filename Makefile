@@ -51,3 +51,6 @@ target/full-search-x86_64: src/full-search.cpp Makefile
 
 target/full-search-arm64: src/full-search.cpp Makefile
 	zig c++ src/full-search.cpp -o target/full-search-arm64 -std=c++20 -O3 -flto -ffast-math -fomit-frame-pointer -funroll-loops -fno-sanitize=all -fno-builtin-memcpy -fno-delete-null-pointer-checks -fno-exceptions -fno-rtti -target aarch64-linux
+
+target/full-search-macos-arm64: src/full-search.cpp Makefile
+	zig c++ src/full-search.cpp -o target/full-search-macos-arm64 -std=c++20 -O3 -ffast-math -fomit-frame-pointer -funroll-loops -fno-sanitize=all -fno-builtin-memcpy -fno-delete-null-pointer-checks -fno-exceptions -fno-rtti -target aarch64-macos
