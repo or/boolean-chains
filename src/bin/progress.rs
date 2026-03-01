@@ -309,6 +309,7 @@ fn open_db(path: &str) -> Connection {
         CREATE INDEX IF NOT EXISTS chunks_chunk_id_verified_idx ON chunks(chunk_id, verified, wrong);
         CREATE INDEX IF NOT EXISTS chunks_file_id_verified_idx ON chunks(file_id, verified, wrong);
         CREATE INDEX IF NOT EXISTS chunks_wrong_idx ON chunks(wrong);
+        CREATE INDEX IF NOT EXISTS chunks_find_unverified_idx ON chunks(chunk_id, ignore, corrupt, verified);
 
         CREATE TABLE IF NOT EXISTS chunk_matrix (
             id           INTEGER PRIMARY KEY,

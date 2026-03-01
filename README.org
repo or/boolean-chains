@@ -182,3 +182,31 @@ FROM (
     GROUP BY chunk_id
 );
 #+end_src
+*** Find unverified mismatching chunks
+#+begin_src sql
+-- this isn't perfect; it might find a case where we have results A, A, B, C, so
+-- A and A would be verified, but we still have two mismatching ones
+SELECT chunk_id, COUNT(*) AS run_count, COUNT(DISTINCT total_chains) AS distinct_results
+FROM chunks
+WHERE verified = 0
+  AND ignore = 0
+  AND corrupt = 0
+GROUP BY chunk_id
+HAVING COUNT(*) > 1
+ORDER BY chunk_id;
+
+-- safer version to verify that there are no verified rows, but it takes 2.5x as long
+SELECT chunk_id, COUNT(*) AS run_count, COUNT(DISTINCT total_chains) AS distinct_results
+FROM chunks
+WHERE verified = 0
+  AND ignore = 0
+  AND corrupt = 0
+  AND NOT EXISTS (
+      SELECT 1 FROM chunks c2
+      WHERE c2.chunk_id = chunks.chunk_id
+        AND c2.verified = 1
+  )
+GROUP BY chunk_id
+HAVING COUNT(*) > 1
+ORDER BY chunk_id;
+#+end_src
