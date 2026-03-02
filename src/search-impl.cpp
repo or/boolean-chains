@@ -160,6 +160,7 @@ static void SEARCH_FUNC(int argc, char *argv[]) {
   uint64_t unseen_bits[SIZE / 64] __attribute__((aligned(64)));
   uint8_t target_plain[SIZE] __attribute__((aligned(64)));
   uint64_t target_bits[SIZE / 64] __attribute__((aligned(64)));
+  uint8_t combined[SIZE] __attribute__((aligned(64)));
 
   uint32_t num_unfulfilled_targets = NUM_TARGETS;
   uint32_t start_indices_size __attribute__((aligned(64))) = 0;

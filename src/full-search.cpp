@@ -99,6 +99,20 @@ uint64_t stats_num_data_points[25] = {0};
 #define UNSEEN_BITS_RESTORE(v) unseen_bits[(v) >> 6] |= (1ULL << ((v) & 63))
 #define UNSEEN_BITS_INIT() memset(unseen_bits, 0xFF, sizeof(unseen_bits))
 
+// c: combined plain
+#define UNSEEN_COMBINED_GET(v) (combined[(v)] & 1)
+#define UNSEEN_COMBINED_CLEAR(v) combined[(v)] &= 0xFE
+#define UNSEEN_COMBINED_CLEAR_COND(v, c) combined[(v)] &= ~(uint8_t)(c)
+#define UNSEEN_COMBINED_RESTORE(v) combined[(v)] |= 1
+#define UNSEEN_COMBINED_INIT() memset(combined, 1, sizeof(combined))
+
+#define TARGET_COMBINED_GET(v) ((combined[(v)] >> 1) & 1)
+#define TARGET_COMBINED_INIT()                                                 \
+  do {                                                                         \
+    for (uint32_t _i = 0; _i < NUM_TARGETS; _i++)                              \
+      combined[TARGETS[_i]] |= 2;                                              \
+  } while (0)
+
 // ---- Target accessors: plain ----
 
 #define TARGET_PLAIN_GET(v) target_plain[(v)]
@@ -328,14 +342,28 @@ static void signal_handler(int sig) { exit(sig); }
 #define TARGET_INIT() TARGET_BITS_INIT()
 #include "search-impl.cpp"
 
+// c: combined array (unseen=bit0, target=bit1)
+#define SEARCH_FUNC search_combined
+#define UNSEEN_GET(v) UNSEEN_COMBINED_GET(v)
+#define UNSEEN_CLEAR(v) UNSEEN_COMBINED_CLEAR(v)
+#define UNSEEN_CLEAR_COND(v, c) UNSEEN_COMBINED_CLEAR_COND(v, c)
+#define UNSEEN_RESTORE(v) UNSEEN_COMBINED_RESTORE(v)
+#define UNSEEN_INIT() UNSEEN_COMBINED_INIT()
+#define TARGET_GET(v) TARGET_COMBINED_GET(v)
+#define TARGET_INIT() TARGET_COMBINED_INIT()
+#include "search-impl.cpp"
+
 int main(int argc, char *argv[]) {
   int mode = -1;
   int arg_skip = 0;
 
   if (argc >= 3 && strcmp(argv[1], "-m") == 0) {
     const char *m = argv[2];
-    if (strlen(m) == 2 && (m[0] == '0' || m[0] == '1') &&
-        (m[1] == '0' || m[1] == '1')) {
+    if (strcmp(m, "c") == 0) {
+      mode = 4;
+      arg_skip = 2;
+    } else if (strlen(m) == 2 && (m[0] == '0' || m[0] == '1') &&
+               (m[1] == '0' || m[1] == '1')) {
       mode = (m[0] - '0') * 2 + (m[1] - '0');
       arg_skip = 2;
     } else {
@@ -365,10 +393,11 @@ int main(int argc, char *argv[]) {
   }
 
   static const char *mode_names[] = {
-      "00 (both plain)",
-      "01 (unseen bitset)",
-      "10 (target bitset)",
-      "11 (both bitset)",
+      "00 (both plain)",    //
+      "01 (unseen bitset)", //
+      "10 (target bitset)", //
+      "11 (both bitset)",   //
+      "c (combined array)", //
   };
   printf("Mode: %s%s\n", mode_names[mode], arg_skip ? "" : " (auto)");
   fflush(stdout);
@@ -394,6 +423,9 @@ int main(int argc, char *argv[]) {
     break;
   case 3:
     search_both_bitset(sa, sv);
+    break;
+  case 4:
+    search_combined(sa, sv);
     break;
   }
 
