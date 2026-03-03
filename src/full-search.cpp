@@ -360,6 +360,11 @@ static const uint16_t target_hash_table[8] = {0x5D40, 0x481C, 0x4921, 0x3EFF,
   (target_hash_table[((uint32_t)((v) * 11) >> 12) & 7] == (uint16_t)(v))
 #define TARGET_HASH_INIT() ((void)0)
 
+#define TARGET_BLOOM_GET(v)                                                    \
+  (((0x8000000218001801ULL >> ((v) & 63)) & 1) &&                              \
+   target_hash_table[((uint32_t)((v) * 11) >> 12) & 7] == (uint16_t)(v))
+#define TARGET_BLOOM_INIT() ((void)0)
+
 // h: plain unseen + hash target
 #define SEARCH_FUNC search_hash_target
 #define UNSEEN_GET(v) UNSEEN_PLAIN_GET(v)
@@ -367,8 +372,8 @@ static const uint16_t target_hash_table[8] = {0x5D40, 0x481C, 0x4921, 0x3EFF,
 #define UNSEEN_CLEAR_COND(v, c) UNSEEN_PLAIN_CLEAR_COND(v, c)
 #define UNSEEN_RESTORE(v) UNSEEN_PLAIN_RESTORE(v)
 #define UNSEEN_INIT() UNSEEN_PLAIN_INIT()
-#define TARGET_GET(v) TARGET_HASH_GET(v)
-#define TARGET_INIT() TARGET_HASH_INIT()
+#define TARGET_GET(v) TARGET_BLOOM_GET(v)
+#define TARGET_INIT() TARGET_BLOOM_INIT()
 #include "search-impl.cpp"
 
 int main(int argc, char *argv[]) {
