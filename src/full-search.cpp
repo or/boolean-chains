@@ -399,6 +399,35 @@ static uint16_t g_target_by_hi[128];
 #define TARGET_INIT() TARGET_SPLIT_INIT()
 #include "search-impl.cpp"
 
+// ---- Target accessor: add-pair ----
+
+static uint8_t g_target_hi_add[128];
+static uint8_t g_target_lo_add[256];
+
+#define TARGET_ADD_GET(v)                                                      \
+  (g_target_hi_add[(v) >> 8] + g_target_lo_add[(v) & 0xFF] == 8)
+
+#define TARGET_ADD_INIT()                                                      \
+  do {                                                                         \
+    memset(g_target_hi_add, 0, sizeof(g_target_hi_add));                       \
+    memset(g_target_lo_add, 0, sizeof(g_target_lo_add));                       \
+    for (uint32_t _i = 0; _i < NUM_TARGETS; _i++) {                            \
+      g_target_hi_add[TARGETS[_i] >> 8] = _i + 1;                              \
+      g_target_lo_add[TARGETS[_i] & 0xFF] = 7 - _i;                            \
+    }                                                                          \
+  } while (0)
+
+// a: add split table target, plain unseen
+#define SEARCH_FUNC search_add_split_target
+#define UNSEEN_GET(v) UNSEEN_PLAIN_GET(v)
+#define UNSEEN_CLEAR(v) UNSEEN_PLAIN_CLEAR(v)
+#define UNSEEN_CLEAR_COND(v, c) UNSEEN_PLAIN_CLEAR_COND(v, c)
+#define UNSEEN_RESTORE(v) UNSEEN_PLAIN_RESTORE(v)
+#define UNSEEN_INIT() UNSEEN_PLAIN_INIT()
+#define TARGET_GET(v) TARGET_ADD_GET(v)
+#define TARGET_INIT() TARGET_ADD_INIT()
+#include "search-impl.cpp"
+
 int main(int argc, char *argv[]) {
   int mode = -1;
   int arg_skip = 0;
@@ -413,6 +442,9 @@ int main(int argc, char *argv[]) {
       arg_skip = 2;
     } else if (strcmp(m, "s") == 0) {
       mode = 6;
+      arg_skip = 2;
+    } else if (strcmp(m, "a") == 0) {
+      mode = 7;
       arg_skip = 2;
     } else if (strlen(m) == 2 && (m[0] == '0' || m[0] == '1') &&
                (m[1] == '0' || m[1] == '1')) {
@@ -445,13 +477,14 @@ int main(int argc, char *argv[]) {
   }
 
   static const char *mode_names[] = {
-      "00 (both plain)",                //
-      "01 (unseen bitset)",             //
-      "10 (target bitset)",             //
-      "11 (both bitset)",               //
-      "c (combined array)",             //
-      "h (hash target, plain unseen)",  //
-      "s (split target, plain unseen)", //
+      "00 (both plain)",                    //
+      "01 (unseen bitset)",                 //
+      "10 (target bitset)",                 //
+      "11 (both bitset)",                   //
+      "c (combined array)",                 //
+      "h (hash target, plain unseen)",      //
+      "s (split target, plain unseen)",     //
+      "a (add split target, plain unseen)", //
   };
   printf("Mode: %s%s\n", mode_names[mode], arg_skip ? "" : " (auto)");
   fflush(stdout);
@@ -486,6 +519,9 @@ int main(int argc, char *argv[]) {
     break;
   case 6:
     search_split_target(sa, sv);
+    break;
+  case 7:
+    search_add_split_target(sa, sv);
     break;
   }
 
