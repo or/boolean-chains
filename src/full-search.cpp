@@ -353,6 +353,24 @@ static void signal_handler(int sig) { exit(sig); }
 #define TARGET_INIT() TARGET_COMBINED_INIT()
 #include "search-impl.cpp"
 
+static const uint16_t target_hash_table[8] = {0x5D40, 0x481C, 0x4921, 0x3EFF,
+                                              0x061B, 0x700C, 0x200B, 0xFFFF};
+
+#define TARGET_HASH_GET(v)                                                     \
+  (target_hash_table[((uint32_t)((v) * 11) >> 12) & 7] == (uint16_t)(v))
+#define TARGET_HASH_INIT() ((void)0)
+
+// h: plain unseen + hash target
+#define SEARCH_FUNC search_hash_target
+#define UNSEEN_GET(v) UNSEEN_PLAIN_GET(v)
+#define UNSEEN_CLEAR(v) UNSEEN_PLAIN_CLEAR(v)
+#define UNSEEN_CLEAR_COND(v, c) UNSEEN_PLAIN_CLEAR_COND(v, c)
+#define UNSEEN_RESTORE(v) UNSEEN_PLAIN_RESTORE(v)
+#define UNSEEN_INIT() UNSEEN_PLAIN_INIT()
+#define TARGET_GET(v) TARGET_HASH_GET(v)
+#define TARGET_INIT() TARGET_HASH_INIT()
+#include "search-impl.cpp"
+
 int main(int argc, char *argv[]) {
   int mode = -1;
   int arg_skip = 0;
@@ -361,6 +379,9 @@ int main(int argc, char *argv[]) {
     const char *m = argv[2];
     if (strcmp(m, "c") == 0) {
       mode = 4;
+      arg_skip = 2;
+    } else if (strcmp(m, "h") == 0) {
+      mode = 5;
       arg_skip = 2;
     } else if (strlen(m) == 2 && (m[0] == '0' || m[0] == '1') &&
                (m[1] == '0' || m[1] == '1')) {
@@ -393,11 +414,12 @@ int main(int argc, char *argv[]) {
   }
 
   static const char *mode_names[] = {
-      "00 (both plain)",    //
-      "01 (unseen bitset)", //
-      "10 (target bitset)", //
-      "11 (both bitset)",   //
-      "c (combined array)", //
+      "00 (both plain)",               //
+      "01 (unseen bitset)",            //
+      "10 (target bitset)",            //
+      "11 (both bitset)",              //
+      "c (combined array)",            //
+      "h (hash target, plain unseen)", //
   };
   printf("Mode: %s%s\n", mode_names[mode], arg_skip ? "" : " (auto)");
   fflush(stdout);
@@ -426,6 +448,9 @@ int main(int argc, char *argv[]) {
     break;
   case 4:
     search_combined(sa, sv);
+    break;
+  case 5:
+    search_hash_target(sa, sv);
     break;
   }
 
