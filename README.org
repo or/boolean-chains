@@ -234,3 +234,11 @@ GROUP BY chunk_id
 HAVING COUNT(*) > 1
 ORDER BY chunk_id;
 #+end_src
+** Verify corrupt solutions
+- [X] 0 36 48 58 67
+- [X] 4 8 25 32 40
+- [X] 7 25 29 41 56
+- [X] 7 30 37 43 67
+- [X] 16 21 27 28 45
+- [X] 3 6 11 12 19
+- [X] 6 12 13 29 41
