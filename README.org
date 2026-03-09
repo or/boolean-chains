@@ -83,6 +83,7 @@ UPDATE chunks
 SET verified = 1
 WHERE ignore = 0
   AND corrupt = 0
+  AND verified = 0
   AND EXISTS (
       SELECT 1 FROM chunks c2
       WHERE c2.chunk_id = chunks.chunk_id
@@ -113,6 +114,10 @@ SELECT COUNT(*) AS unverified_files
 FROM files f
 WHERE f.ignore = 0
   AND f.corrupt = 0
+  AND EXISTS (
+      SELECT 1 FROM chunks c
+      WHERE c.file_id = f.id
+  )
   AND NOT EXISTS (
       SELECT 1 FROM chunks c
       WHERE c.file_id = f.id
@@ -155,13 +160,31 @@ DELETE FROM files WHERE id IN (
 #+end_src
 *** Pick a random chunk of all unverified files
 #+begin_src shell
-sqlite3 results.sqlite3 "SELECT c.chunk_id FROM chunks c JOIN files f ON c.file_id = f.id WHERE f.ignore = 0 AND f.corrupt = 0 AND NOT EXISTS (SELECT 1 FROM chunks c2 WHERE c2.file_id = f.id AND c2.verified = 1) AND c.id = (SELECT c3.id FROM chunks c3 WHERE c3.file_id = c.file_id ORDER BY RANDOM() LIMIT 1);" > unverified.txt
+sqlite3 results.sqlite3 "SELECT (
+    SELECT c.chunk_id FROM chunks c
+    WHERE c.file_id = f.id
+    ORDER BY RANDOM() LIMIT 1
+) AS chunk_id
+FROM files f
+WHERE f.ignore = 0
+  AND f.corrupt = 0
+  AND EXISTS (
+      SELECT 1 FROM chunks c
+      WHERE c.file_id = f.id
+  )
+  AND NOT EXISTS (
+      SELECT 1 FROM chunks c2
+      WHERE c2.file_id = f.id
+        AND c2.verified = 1
+  );
+" > unverified.txt
 #+end_src
-*** Find minimum total runtime of non-wrong chunk results
+*** Find total runtime of the FIRST non-wrong chunk results
 #+begin_src sql
-SELECT SUM(min_secs) AS total_secs
-FROM (
-    SELECT chunk_id, MIN(secs) AS min_secs
+SELECT SUM(secs) AS total_secs, SUM(total_chains) AS total_chains
+FROM chunks
+WHERE id IN (
+    SELECT MIN(id)
     FROM chunks
     WHERE wrong = 0
       AND ignore = 0
@@ -169,11 +192,12 @@ FROM (
     GROUP BY chunk_id
 );
 #+end_src
-*** Find maximum total runtime of verified chunk results
+*** Find total runtime of verified chunk results
 #+begin_src sql
-SELECT SUM(max_secs) AS total_secs
-FROM (
-    SELECT chunk_id, MAX(secs) AS max_secs
+SELECT SUM(secs) AS total_secs, SUM(total_chains) AS total_chains
+FROM chunks
+WHERE id IN (
+    SELECT MAX(id)
     FROM chunks
     WHERE wrong = 0
       AND ignore = 0
