@@ -242,3 +242,16 @@ ORDER BY chunk_id;
 - [X] 16 21 27 28 45
 - [X] 3 6 11 12 19
 - [X] 6 12 13 29 41
+** Results for 16-22-third
+- first run:
+  - 14204277943 secs ~ 450 years
+  - total number of chains: 2567815524926566380
+  - ~180777618 chains per second
+- verification:
+  - 4132558326 secs ~ 131 years
+  - total number of chains: 736285265774600386
+  - ~178166939 chains per second
+- total, including double verification, corrupt chunks, etc.
+  - 18601288154 secs ~ 589 years
+  - total number of chains: 3344213169302670015
+  - ~179783956 chains per second

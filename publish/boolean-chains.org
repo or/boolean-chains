@@ -769,7 +769,7 @@ programming.
 | 14 digits |      16 |            35 |            71 |     1,172,393,232,657,510 |    156 days |     100% |        AWS ECS, 1 vCPU/job | [[old-full-search-at:4ab3460f][4ab3460f]] |
 | 15 digits |      17 |             1 |             1 |    30,968,277,080,052,517 |  3.93 years |          |        AWS ECS, 1 vCPU/job | [[old-full-search-at:4ab3460f][4ab3460f]] |
 |           |         |               |               |    37,444,981,252,103,000 |  5.86 years |     100% |     BOINC Central, various | [[full-search-at:ba16ebb4][ba16ebb4]] |
-| 16 digits |      18 |             0 |             0 | 2,500,016,525,716,072,267 |   446 years |    94.5% |     BOINC Central, various | [[full-search-at:ba16ebb4][ba16ebb4]] |
+| 16 digits |      18 |             0 |             0 | 2,567,815,524,926,566,380 |   450 years |     100% |     BOINC Central, various | [[full-search-at:ba16ebb4][ba16ebb4]] |
 Note: the runs of 14 digits and the first 10% of the 15 digits on
 AWS ECS use the version that didn't yet stop the branch after finding a
 target function; that version generated about 70-80% more chains than the newer
@@ -777,6 +777,32 @@ version.
 
 Thanks to [[https://boinc.berkeley.edu/central/][BOINC Central]] for providing computing capacity for this search!
 
+#+begin_export html
+<details>
+<summary>More info on verification and confidence</summary>
+
+<p>For the 16 digit run I ran many batches via BOINC Central, each batch consisted of 1000 jobs, each job
+consisted of 10 chunks. After many years of processing I encountered some obviously corrupted results, which
+appear to have been caused by bit flips in memory, likely due to hardware failure or cosmic rays.
+I ignored files from those hosts, but it worried me that this could have happened with other jobs,
+without changing the result in a way that I would detect the corruption.</p>
+
+<p>For that reason I re-ran a random sample of 3,556,138 chunks a second time to verify the results.
+That's ~26% of all the 13,695,883 chunks of the search space. I also made sure that I included at least
+one random chunk from every job. I found 19 chunks that differed from the first run. For those I verified
+the result with a third run, discarded all the results of the job the problematic cases were part of,
+and re-ran them.</p>
+
+<p>Given those results I estimate a corruption chance of about 1 in 187,000 chunks. A missed solution would
+have to lie in one of the 70-100 corrupt chunks of 13.696 million total chunks. It would also have to be
+missed by the random verification sample of 3.556 million chunks, which verified at least one chunk of
+every 10-chunk jobs. The probability of this should be about 1 in 250,000. Therefore I'm confident, that
+there is no boolean chain of length 18 for this problem. The one of length 19 is optimal.
+
+<p><b>Note</b>: The runtime in the table only includes the first valid run of every chunk. The verification
+took another ~131 years in total.</p>
+</details>
+#+end_export
 ** Hungry search
 :PROPERTIES:
 :CUSTOM_ID: results-hungry
