@@ -81,7 +81,7 @@ of relevance:
    is better.
 3. The index of the instruction based on the order Algorithm U generated them
    in. Some generation orders might be better than others, this could be a
-   heuristic in its own right, but I haven' investigated this. I've used the
+   heuristic in its own right, but I haven't investigated this. I've used the
    order from Algorithm U in the book.
 
 The book greedily picks the instruction that appears in most target
@@ -847,8 +847,8 @@ With bite sizes 31, 31, 31, 11, 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 3, 3, 2, 1.
 No chains were found for those bite sizes. I think that's a strong indicator
 that there are no solutions of length 18, because the first 4 bite sizes were
 pretty big and would've found all the optimal solutions for lower number of
-digits. Nonetheless this is no proof, I'm still trying to do an exhaustive
-search for 16 digits, see above.
+digits. Nonetheless this is no proof, so I did an exhaustive search for 16
+digits, see above.
 
 ** Branching
 :PROPERTIES:
