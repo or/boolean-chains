@@ -69,6 +69,19 @@ uint32_t stats_max_num_expressions[25] = {0};
 uint64_t stats_num_data_points[25] = {0};
 #endif
 
+uint32_t num_unfulfilled_targets = NUM_TARGETS;
+uint32_t start_indices_size __attribute__((aligned(64))) = 0;
+uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
+uint32_t choices[30] __attribute__((aligned(64)));
+uint8_t unseen[SIZE] __attribute__((aligned(64)));
+uint32_t chain[25] __attribute__((aligned(64)));
+uint32_t not_chain[25] __attribute__((aligned(64)));
+uint32_t expressions[600] __attribute__((aligned(64)));
+uint32_t expressions_size[25] __attribute__((aligned(64)));
+uint32_t tmp_chain_size;
+uint32_t generated_chain_size;
+uint32_t tmp_num_unfulfilled_targets;
+
 #define PRINT_PROGRESS(chain_size, last)                                       \
   for (uint32_t j = start_chain_length; j < chain_size; ++j) {                 \
     printf("%d, ", choices[j]);                                                \
@@ -240,10 +253,8 @@ void print_chain(const uint32_t *chain, const uint32_t chain_size) {
 }
 
 template <int CS>
-__attribute__((always_inline)) bool
-endgame(uint32_t *chain, uint32_t *not_chain, uint8_t *unseen,
-        uint32_t *expressions, uint32_t *expressions_size, uint32_t &j,
-        uint32_t num_unfulfilled) {
+__attribute__((always_inline)) bool endgame(uint32_t &j,
+                                            uint32_t num_unfulfilled) {
   if constexpr (CS >= MAX_LENGTH) {
     return false;
   } else {
@@ -263,8 +274,7 @@ endgame(uint32_t *chain, uint32_t *not_chain, uint8_t *unseen,
           break;
         }
 
-        if (endgame<CS + 1>(chain, not_chain, unseen, expressions,
-                            expressions_size, j, num_unfulfilled - 1)) {
+        if (endgame<CS + 1>(j, num_unfulfilled - 1)) {
           found_all = true;
           break;
         }
@@ -280,6 +290,51 @@ endgame(uint32_t *chain, uint32_t *not_chain, uint8_t *unseen,
     }
 
     return found_all;
+  }
+}
+
+template <int CS>
+__attribute__((always_inline)) void dfs(uint32_t i,
+                                        uint32_t num_unfulfilled_targets) {
+  GENERATE_NEW_EXPRESSIONS(CS, ADD_EXPRESSION)
+  CAPTURE_STATS_CALL(CS)
+
+  for (; i < expressions_size[CS]; ++i) {
+    chain[CS] = expressions[i];
+    not_chain[CS] = ~chain[CS];
+    choices[CS] = i;
+    const uint8_t is_target = unseen[chain[CS]] >> 1;
+
+    total_chains++;
+
+    if constexpr (CS + 1 == PRINT_PROGRESS_LENGTH) {
+      PRINT_PROGRESS(CS, i);
+    }
+
+    num_unfulfilled_targets -= is_target;
+
+    if constexpr (CS < MAX_LENGTH - 1 && CS + 1 >= MAX_LENGTH - NUM_TARGETS) {
+      if (__builtin_expect(CS + 1 + num_unfulfilled_targets == MAX_LENGTH, 1)) {
+        uint32_t endgame_j = i + 1;
+        endgame<CS + 1>(endgame_j, num_unfulfilled_targets);
+        total_chains += endgame_j - (i + 1);
+        num_unfulfilled_targets += is_target;
+        i += (is_target << 16);
+        continue;
+      }
+    }
+
+    if constexpr (CS + 1 <= MAX_LENGTH) {
+      dfs<CS + 1>(i + 1, num_unfulfilled_targets);
+    }
+
+    num_unfulfilled_targets += is_target;
+    i += (is_target << 16);
+  }
+
+  for (uint32_t idx = expressions_size[CS - 1]; idx < expressions_size[CS];
+       idx++) {
+    unseen[expressions[idx]] |= 1;
   }
 }
 
@@ -316,19 +371,6 @@ void on_exit() {
 void signal_handler(int signal) { exit(signal); }
 
 int main(int argc, char *argv[]) {
-  uint32_t num_unfulfilled_targets = NUM_TARGETS;
-  uint32_t start_indices_size __attribute__((aligned(64))) = 0;
-  uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
-  uint32_t choices[30] __attribute__((aligned(64)));
-  uint8_t unseen[SIZE] __attribute__((aligned(64)));
-  uint32_t chain[25] __attribute__((aligned(64)));
-  uint32_t not_chain[25] __attribute__((aligned(64)));
-  uint32_t expressions[600] __attribute__((aligned(64)));
-  uint32_t expressions_size[25] __attribute__((aligned(64)));
-  uint32_t tmp_chain_size;
-  uint32_t generated_chain_size;
-  uint32_t tmp_num_unfulfilled_targets;
-
 #if !PLAN_MODE
   atexit(on_exit);
   signal(SIGINT, signal_handler);
@@ -414,9 +456,6 @@ int main(int argc, char *argv[]) {
   CAPTURE_STATS_CALL(chain_size)
   chain_size++;
 
-#if PLAN_MODE
-  uint32_t i3 = 0xffffffff;
-#else
   // restore progress
   while (chain_size < start_indices_size) {
     GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
@@ -457,51 +496,7 @@ int main(int argc, char *argv[]) {
 
   uint32_t i8 = choices[chain_size - 1];
 
-#endif
-
-#if PLAN_MODE
-  FORWARD_DFS(4, 3, 5)
-  FORWARD_DFS(5, 4, 6)
-  FORWARD_DFS(6, 5, 7)
-  FORWARD_DFS(7, 6, 8)
-  FORWARD_DFS(8, 7, 9)
-#endif
-  FORWARD_DFS(9, 8, 10)
-  FORWARD_DFS(10, 9, 11)
-  FORWARD_DFS(11, 10, 12)
-  FORWARD_DFS(12, 11, 13)
-  FORWARD_DFS(13, 12, 14)
-  FORWARD_DFS(14, 13, 15)
-  FORWARD_DFS(15, 14, 16)
-  FORWARD_DFS(16, 15, 17)
-  FORWARD_DFS(17, 16, 18)
-  FORWARD_DFS(18, 17, 19)
-  FORWARD_DFS(19, 18, 20)
-  FORWARD_DFS(20, 19, 21)
-  FORWARD_DFS(21, 20, 22)
-  FORWARD_DFS(22, 21, 23)
-
-  BACKTRACK_DFS(22, 21, 23)
-  BACKTRACK_DFS(21, 20, 22)
-  BACKTRACK_DFS(20, 19, 21)
-  BACKTRACK_DFS(19, 18, 20)
-  BACKTRACK_DFS(18, 17, 19)
-  BACKTRACK_DFS(17, 16, 18)
-  BACKTRACK_DFS(16, 15, 17)
-  BACKTRACK_DFS(15, 14, 16)
-  BACKTRACK_DFS(14, 13, 15)
-  BACKTRACK_DFS(13, 12, 14)
-  BACKTRACK_DFS(12, 11, 13)
-  BACKTRACK_DFS(11, 10, 12)
-  BACKTRACK_DFS(10, 9, 11)
-  BACKTRACK_DFS(9, 8, 10)
-#if PLAN_MODE
-  BACKTRACK_DFS(8, 7, 9)
-  BACKTRACK_DFS(7, 6, 8)
-  BACKTRACK_DFS(6, 5, 7)
-  BACKTRACK_DFS(5, 4, 6)
-  BACKTRACK_DFS(4, 3, 5)
-#endif
+  dfs<CHUNK_START_LENGTH>(i8 + 1, num_unfulfilled_targets);
 
   return 0;
 }
