@@ -176,40 +176,13 @@ uint64_t stats_num_data_points[25] = {0};
     if (CS < MAX_LENGTH - 1 && NEXT_CS >= MAX_LENGTH - NUM_TARGETS) {          \
       if (__builtin_expect(NEXT_CS + num_unfulfilled_targets == MAX_LENGTH,    \
                            1)) {                                               \
-        tmp_chain_size = NEXT_CS;                                              \
-        generated_chain_size = CS;                                             \
-        tmp_num_unfulfilled_targets = num_unfulfilled_targets;                 \
-        uint32_t j = i##CS + 1;                                                \
-        uint32_t j_start = j;                                                  \
+        uint32_t endgame_j = i##CS + 1;                                        \
                                                                                \
-        next_##CS : if (__builtin_expect(tmp_chain_size < MAX_LENGTH, 1)) {    \
-          GENERATE_NEW_EXPRESSIONS(tmp_chain_size, ADD_EXPRESSION_TARGET)      \
-          generated_chain_size = tmp_chain_size;                               \
+        endgame<NEXT_CS>(chain, not_chain, unseen, expressions,                \
+                         expressions_size, endgame_j,                          \
+                         num_unfulfilled_targets);                             \
                                                                                \
-          for (; j < expressions_size[tmp_chain_size]; ++j) {                  \
-            if (__builtin_expect(unseen[expressions[j]] & 2, 0)) {             \
-              chain[tmp_chain_size] = expressions[j];                          \
-              not_chain[tmp_chain_size] = ~chain[tmp_chain_size];              \
-              tmp_num_unfulfilled_targets--;                                   \
-              tmp_chain_size++;                                                \
-              j++; /* account for this iteration here, in case we break,       \
-                      because the total_chains computation below relies on it; \
-                      furthermore we need this because goto next_<> will       \
-                      need to jump this j */                                   \
-              if (__builtin_expect(!tmp_num_unfulfilled_targets, 0)) {         \
-                print_chain(chain, tmp_chain_size);                            \
-                break;                                                         \
-              }                                                                \
-              goto next_##CS;                                                  \
-            }                                                                  \
-          }                                                                    \
-          total_chains += j - j_start;                                         \
-        }                                                                      \
-                                                                               \
-        for (uint32_t i = expressions_size[CS];                                \
-             i < expressions_size[generated_chain_size]; i++) {                \
-          unseen[expressions[i]] |= 1;                                         \
-        }                                                                      \
+        total_chains += endgame_j - (i##CS + 1);                               \
                                                                                \
         num_unfulfilled_targets += is_target;                                  \
         i##CS += (is_target << 16);                                            \
@@ -263,6 +236,50 @@ void print_chain(const uint32_t *chain, const uint32_t chain_size) {
       printf(" [target]");
     }
     printf("\n");
+  }
+}
+
+template <int CS>
+__attribute__((always_inline)) bool
+endgame(uint32_t *chain, uint32_t *not_chain, uint8_t *unseen,
+        uint32_t *expressions, uint32_t *expressions_size, uint32_t &j,
+        uint32_t num_unfulfilled) {
+  if constexpr (CS >= MAX_LENGTH) {
+    return false;
+  } else {
+    GENERATE_NEW_EXPRESSIONS(CS, ADD_EXPRESSION_TARGET)
+
+    bool found_all = false;
+    const uint32_t limit = expressions_size[CS];
+    while (j < limit) {
+      if (__builtin_expect(unseen[expressions[j]] & 2, 0)) {
+        chain[CS] = expressions[j];
+        not_chain[CS] = ~chain[CS];
+        j++;
+
+        if (__builtin_expect(num_unfulfilled == 1, 0)) {
+          print_chain(chain, CS + 1);
+          found_all = true;
+          break;
+        }
+
+        if (endgame<CS + 1>(chain, not_chain, unseen, expressions,
+                            expressions_size, j, num_unfulfilled - 1)) {
+          found_all = true;
+          break;
+        }
+        // j already advanced by manual j++ and recursive call
+        // no extra increment
+      } else {
+        j++;
+      }
+    }
+
+    for (uint32_t i = expressions_size[CS - 1]; i < expressions_size[CS]; i++) {
+      unseen[expressions[i]] |= 1;
+    }
+
+    return found_all;
   }
 }
 
