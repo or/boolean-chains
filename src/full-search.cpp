@@ -77,17 +77,20 @@ uint64_t stats_num_data_points[25] = {0};
   fflush(stdout);
 
 #define ADD_EXPRESSION(value, chain_size)                                      \
-  expressions[_expr_size] = value;                                             \
-  _expr_size += unseen[value];                                                 \
-  unseen[value] = 0;
+  {                                                                            \
+    const uint8_t u = unseen[value];                                           \
+    expressions[_expr_size] = value;                                           \
+    _expr_size += u & 1;                                                       \
+    unseen[value] = u & 2;                                                     \
+  }
 
 #define ADD_EXPRESSION_TARGET(value, chain_size)                               \
   {                                                                            \
-    const uint32_t v = value;                                                  \
-    const uint32_t a = unseen[v] & target_lookup[v];                           \
-    expressions[_expr_size] = v;                                               \
+    const uint8_t u = unseen[value];                                           \
+    const uint8_t a = u == 3;                                                  \
+    expressions[_expr_size] = value;                                           \
     _expr_size += a;                                                           \
-    unseen[v] &= ~a;                                                           \
+    unseen[value] = u - a;                                                     \
   }
 
 #define GENERATE_NEW_EXPRESSIONS(chain_size, add_expression)                   \
@@ -151,7 +154,7 @@ uint64_t stats_num_data_points[25] = {0};
     chain[CS] = expressions[i##CS];                                            \
     not_chain[CS] = ~chain[CS];                                                \
     choices[CS] = i##CS;                                                       \
-    const uint8_t is_target = target_lookup[chain[CS]];                        \
+    const uint8_t is_target = unseen[chain[CS]] >> 1;                          \
                                                                                \
     if (PLAN_MODE) {                                                           \
       if (CS >= CHUNK_START_LENGTH - 1) {                                      \
@@ -184,7 +187,7 @@ uint64_t stats_num_data_points[25] = {0};
           generated_chain_size = tmp_chain_size;                               \
                                                                                \
           for (; j < expressions_size[tmp_chain_size]; ++j) {                  \
-            if (__builtin_expect(target_lookup[expressions[j]], 0)) {          \
+            if (__builtin_expect(unseen[expressions[j]] & 2, 0)) {             \
               chain[tmp_chain_size] = expressions[j];                          \
               not_chain[tmp_chain_size] = ~chain[tmp_chain_size];              \
               tmp_num_unfulfilled_targets--;                                   \
@@ -194,7 +197,7 @@ uint64_t stats_num_data_points[25] = {0};
                       furthermore we need this because goto next_<> will       \
                       need to jump this j */                                   \
               if (__builtin_expect(!tmp_num_unfulfilled_targets, 0)) {         \
-                print_chain(chain, target_lookup, tmp_chain_size);             \
+                print_chain(chain, tmp_chain_size);                            \
                 break;                                                         \
               }                                                                \
               goto next_##CS;                                                  \
@@ -205,7 +208,7 @@ uint64_t stats_num_data_points[25] = {0};
                                                                                \
         for (uint32_t i = expressions_size[CS];                                \
              i < expressions_size[generated_chain_size]; i++) {                \
-          unseen[expressions[i]] = 1;                                          \
+          unseen[expressions[i]] |= 1;                                         \
         }                                                                      \
                                                                                \
         num_unfulfilled_targets += is_target;                                  \
@@ -221,11 +224,10 @@ uint64_t stats_num_data_points[25] = {0};
                                                                                \
   for (uint32_t i = expressions_size[PREV_CS]; i < expressions_size[CS];       \
        i++) {                                                                  \
-    unseen[expressions[i]] = 1;                                                \
+    unseen[expressions[i]] |= 1;                                               \
   }
 
-void print_chain(const uint32_t *chain, const uint8_t *target_lookup,
-                 const uint32_t chain_size) {
+void print_chain(const uint32_t *chain, const uint32_t chain_size) {
   printf("chain (%d):\n", chain_size);
   for (uint32_t i = 0; i < chain_size; i++) {
     printf("x%d", i + 1);
@@ -250,7 +252,14 @@ void print_chain(const uint32_t *chain, const uint8_t *target_lookup,
       }
     }
     printf(" = %s", std::bitset<N>(chain[i]).to_string().c_str());
-    if (target_lookup[chain[i]]) {
+    uint8_t is_target = 0;
+    for (uint32_t i = 0; i < NUM_TARGETS; i++) {
+      if (chain[i] == TARGETS[i]) {
+        is_target = 1;
+        break;
+      }
+    }
+    if (is_target) {
       printf(" [target]");
     }
     printf("\n");
@@ -294,7 +303,6 @@ int main(int argc, char *argv[]) {
   uint32_t start_indices_size __attribute__((aligned(64))) = 0;
   uint16_t start_indices[100] __attribute__((aligned(64))) = {0};
   uint32_t choices[30] __attribute__((aligned(64)));
-  uint8_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
   uint8_t unseen[SIZE] __attribute__((aligned(64)));
   uint32_t chain[25] __attribute__((aligned(64)));
   uint32_t not_chain[25] __attribute__((aligned(64)));
@@ -345,7 +353,7 @@ int main(int argc, char *argv[]) {
   }
 
   for (uint32_t i = 0; i < NUM_TARGETS; i++) {
-    target_lookup[TARGETS[i]] = 1;
+    unseen[TARGETS[i]] |= 2;
   }
 
 #if PLAN_MODE != 1
@@ -426,7 +434,7 @@ int main(int argc, char *argv[]) {
     choices[chain_size] = start_indices[chain_size];
     chain[chain_size] = expressions[choices[chain_size]];
     not_chain[chain_size] = ~chain[chain_size];
-    num_unfulfilled_targets -= target_lookup[chain[chain_size]];
+    num_unfulfilled_targets -= unseen[chain[chain_size]] >> 1;
     chain_size++;
   }
 
