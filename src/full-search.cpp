@@ -177,26 +177,30 @@ uint64_t stats_num_data_points[25] = {0};
         generated_chain_size = CS;                                             \
         tmp_num_unfulfilled_targets = num_unfulfilled_targets;                 \
         uint32_t j = i##CS + 1;                                                \
+        uint32_t j_start = j;                                                  \
                                                                                \
         next_##CS : if (__builtin_expect(tmp_chain_size < MAX_LENGTH, 1)) {    \
           GENERATE_NEW_EXPRESSIONS(tmp_chain_size, ADD_EXPRESSION_TARGET)      \
           generated_chain_size = tmp_chain_size;                               \
                                                                                \
           for (; j < expressions_size[tmp_chain_size]; ++j) {                  \
-            total_chains++;                                                    \
             if (__builtin_expect(target_lookup[expressions[j]], 0)) {          \
               chain[tmp_chain_size] = expressions[j];                          \
               not_chain[tmp_chain_size] = ~chain[tmp_chain_size];              \
               tmp_num_unfulfilled_targets--;                                   \
               tmp_chain_size++;                                                \
+              j++; /* account for this iteration here, in case we break,       \
+                      because the total_chains computation below relies on it; \
+                      furthermore we need this because goto next_<> will       \
+                      need to jump this j */                                   \
               if (__builtin_expect(!tmp_num_unfulfilled_targets, 0)) {         \
                 print_chain(chain, target_lookup, tmp_chain_size);             \
                 break;                                                         \
               }                                                                \
-              j++;                                                             \
               goto next_##CS;                                                  \
             }                                                                  \
           }                                                                    \
+          total_chains += j - j_start;                                         \
         }                                                                      \
                                                                                \
         for (uint32_t i = expressions_size[CS];                                \
