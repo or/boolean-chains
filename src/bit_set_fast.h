@@ -6,11 +6,11 @@
 
 using namespace std;
 
-const size_t ARRAY_SIZE = 24;
+const size_t ARRAY_SIZE = 12;
 
 class BitSet {
 private:
-  uint32_t bit_set[ARRAY_SIZE];
+  uint64_t bit_set[ARRAY_SIZE];
 
 public:
   BitSet() { memset(bit_set, 0, sizeof(bit_set)); }
@@ -28,18 +28,18 @@ public:
   }
 
   bool get(uint32_t bit) const {
-    uint32_t index = bit >> 5;
-    uint32_t bit_index = bit & 0b11111;
+    uint32_t index = bit >> 6;
+    uint32_t bit_index = bit & 0b111111;
     if (ARRAY_SIZE <= index) {
       return false;
     }
-    return bit_set[index] & (1 << bit_index);
+    return bit_set[index] & (1ULL << bit_index);
   }
 
   void insert(uint32_t bit) {
-    uint32_t index = bit >> 5;
-    uint32_t bit_index = bit & 0b11111;
-    bit_set[index] |= (1 << bit_index);
+    uint32_t index = bit >> 6;
+    uint32_t bit_index = bit & 0b111111;
+    bit_set[index] |= (1ULL << bit_index);
   }
 
   void add(const BitSet &other) {
