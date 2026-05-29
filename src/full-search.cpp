@@ -313,7 +313,10 @@ void on_exit() {
 #endif
 }
 
-void signal_handler(int signal) { exit(signal); }
+void signal_handler(int signal) {
+  printf("Interrupted.\n");
+  exit(signal);
+}
 
 int main(int argc, char *argv[]) {
   uint32_t num_unfulfilled_targets = NUM_TARGETS;
