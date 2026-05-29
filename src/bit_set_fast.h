@@ -6,25 +6,39 @@
 
 using namespace std;
 
+// 12 uint64 = 768 bits total. ARRAY_SIZE chosen tightly for MAX_LENGTH=22;
+// going smaller corrupts state. The storage is paired as 6 x (2 x uint64)
+// vectors so clang emits NEON / SSE2 instead of scalar code for the bulk
+// ops. Bit indexing in get() / insert() still treats bit_set as a flat
+// array of uint64 lanes — vector lane order matches scalar array order
+// on both ARM and x86.
 const size_t ARRAY_SIZE = 12;
+const size_t VEC_LANES = 2;
+const size_t VEC_COUNT = ARRAY_SIZE / VEC_LANES;
+
+typedef uint64_t bs_u64x2 __attribute__((vector_size(16)));
 
 class BitSet {
 private:
-  uint64_t bit_set[ARRAY_SIZE];
+  union {
+    bs_u64x2 vec[VEC_COUNT];
+    uint64_t bit_set[ARRAY_SIZE];
+  };
 
 public:
   BitSet() { memset(bit_set, 0, sizeof(bit_set)); }
   BitSet(const BitSet &other) {
-    memcpy(bit_set, other.bit_set, sizeof(bit_set));
+    for (size_t i = 0; i < VEC_COUNT; ++i) {
+      vec[i] = other.vec[i];
+    }
   }
 
   bool is_disjoint(const BitSet &other) const {
-    for (size_t i = 0; i < ARRAY_SIZE; ++i) {
-      if (bit_set[i] & other.bit_set[i]) {
-        return false;
-      }
+    bs_u64x2 acc = {0, 0};
+    for (size_t i = 0; i < VEC_COUNT; ++i) {
+      acc |= vec[i] & other.vec[i];
     }
-    return true;
+    return (acc[0] | acc[1]) == 0;
   }
 
   bool get(uint32_t bit) const {
@@ -43,14 +57,14 @@ public:
   }
 
   void add(const BitSet &other) {
-    for (size_t i = 0; i < ARRAY_SIZE; ++i) {
-      bit_set[i] |= other.bit_set[i];
+    for (size_t i = 0; i < VEC_COUNT; ++i) {
+      vec[i] |= other.vec[i];
     }
   }
 
   void intersect(const BitSet &other) {
-    for (size_t i = 0; i < ARRAY_SIZE; ++i) {
-      bit_set[i] &= other.bit_set[i];
+    for (size_t i = 0; i < VEC_COUNT; ++i) {
+      vec[i] &= other.vec[i];
     }
   }
 
