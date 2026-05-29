@@ -35,7 +35,7 @@
 
 constexpr uint32_t N = 16;
 constexpr uint32_t SIZE = 1 << (N - 1);
-constexpr uint32_t MAX_LENGTH = 22;
+constexpr uint32_t MAX_LENGTH = 16;
 constexpr uint32_t TAUTOLOGY = (1 << N) - 1;
 constexpr uint32_t TARGET_1 =
     ((~(uint32_t)0b1011011111100011) >> (16 - N)) & TAUTOLOGY;
@@ -335,23 +335,23 @@ int main(int argc, char *argv[]) {
   for (size_t i = 0; i < MAX_LENGTH; i++) {
     bite_size[i] = 1;
   }
-  bite_size[4] = 31;
-  bite_size[5] = 31;
-  bite_size[6] = 31;
-  bite_size[7] = 11;
+  bite_size[4] = 3;
+  bite_size[5] = 7;
+  bite_size[6] = 7;
+  bite_size[7] = 5;
   bite_size[8] = 5;
   bite_size[9] = 5;
   bite_size[10] = 5;
-  bite_size[11] = 5;
-  bite_size[12] = 5;
-  bite_size[13] = 5;
-  bite_size[14] = 4;
-  bite_size[15] = 4;
-  bite_size[16] = 4;
-  bite_size[17] = 4;
-  bite_size[18] = 4;
-  bite_size[19] = 3;
-  bite_size[20] = 3;
+  bite_size[11] = 3;
+  bite_size[12] = 3;
+  bite_size[13] = 3;
+  bite_size[14] = 3;
+  bite_size[15] = 2;
+  bite_size[16] = 2;
+  bite_size[17] = 2;
+  bite_size[18] = 2;
+  bite_size[19] = 2;
+  bite_size[20] = 2;
   bite_size[21] = 2;
   bite_size[22] = 1;
 
@@ -445,7 +445,7 @@ next:
         expressions[chain_size][priorities[chain_size][choices[chain_size]]];
 
     total_chains++;
-    if (__builtin_expect(chain_size <= 10, 0)) {
+    if (__builtin_expect(chain_size <= 5, 0)) {
       for (size_t j = start_chain_length; j < chain_size; ++j) {
         printf("%d, ", choices[j]);
       }
