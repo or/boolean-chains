@@ -326,7 +326,7 @@ int main(int argc, char *argv[]) {
   uint8_t unseen[SIZE] __attribute__((aligned(64)));
   uint32_t chain[25] __attribute__((aligned(64)));
   uint32_t not_chain[25] __attribute__((aligned(64)));
-  uint32_t expressions[600] __attribute__((aligned(64)));
+  uint32_t expressions[1000] __attribute__((aligned(64)));
   uint32_t expressions_size[25] __attribute__((aligned(64)));
   uint32_t tmp_chain_size;
   uint32_t generated_chain_size;
