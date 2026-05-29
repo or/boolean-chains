@@ -18,7 +18,7 @@ const size_t VEC_COUNT = ARRAY_SIZE / VEC_LANES;
 
 typedef uint64_t bs_u64x2 __attribute__((vector_size(16)));
 
-class BitSet {
+class alignas(64) BitSet {
 private:
   union {
     bs_u64x2 vec[VEC_COUNT];
