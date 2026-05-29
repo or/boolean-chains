@@ -14,6 +14,28 @@
 #define CAPTURE_STATS 1
 #endif
 
+#ifdef PROFILE_TIMERS
+#include <chrono>
+using prof_clock = std::chrono::steady_clock;
+uint64_t prof_memset_ns = 0;
+uint64_t prof_gen_first_ns = 0;
+uint64_t prof_u4_ns = 0;
+uint64_t prof_capture_stats_ns = 0;
+uint64_t prof_count_freq_ns = 0;
+uint64_t prof_sort_ns = 0;
+uint64_t prof_calls = 0;
+prof_clock::time_point prof_start_time;
+#define PROF_TBEGIN(name) auto _pt_##name = prof_clock::now()
+#define PROF_TEND(name)                                                        \
+  prof_##name##_ns +=                                                          \
+      (uint64_t)std::chrono::duration_cast<std::chrono::nanoseconds>(          \
+          prof_clock::now() - _pt_##name)                                      \
+          .count()
+#else
+#define PROF_TBEGIN(name) ((void)0)
+#define PROF_TEND(name) ((void)0)
+#endif
+
 #if CAPTURE_STATS
 #define CAPTURE_STATS_CALL                                                     \
   {                                                                            \
@@ -98,10 +120,14 @@ uint8_t target_lookup[SIZE] __attribute__((aligned(64))) = {0};
     priorities[chain_size].push_back(i);                                       \
   }                                                                            \
                                                                                \
+  PROF_TBEGIN(count_freq);                                                     \
   count_first_expressions_in_footprints(expressions_size[chain_size]);         \
+  PROF_TEND(count_freq);                                                       \
                                                                                \
+  PROF_TBEGIN(sort);                                                           \
   sort(priorities[chain_size].begin(), priorities[chain_size].end(),           \
-       [&](size_t x, size_t y) { return get_priority(x) < get_priority(y); });
+       [&](size_t x, size_t y) { return get_priority(x) < get_priority(y); });\
+  PROF_TEND(sort);
 
 void print_expression(const uint32_t *chain, const uint32_t index,
                       const size_t chain_size, const uint32_t f) {
@@ -184,16 +210,24 @@ void generate_first_expressions(const uint32_t *chain, const size_t chain_size,
 
 void algorithm_l_with_footprints(const uint32_t *chain,
                                  const size_t chain_size) {
+#ifdef PROFILE_TIMERS
+  prof_calls++;
+#endif
+  PROF_TBEGIN(memset);
   memset(costs, 0xff, sizeof(costs));
   memset(footprints, 0, sizeof(footprints));
+  PROF_TEND(memset);
   uint32_t c = 1 << (N - 1);
 
   // for 0x00000000
   costs[0] = 0;
   c--;
 
+  PROF_TBEGIN(gen_first);
   generate_first_expressions(chain, chain_size, c);
+  PROF_TEND(gen_first);
 
+  PROF_TBEGIN(u4);
   // U3. Loop over r = 2, 3, ... while c > 0
   uint32_t r;
   for (r = 2; c > 0; ++r) {
@@ -263,7 +297,11 @@ void algorithm_l_with_footprints(const uint32_t *chain,
     }
   }
 
+  PROF_TEND(u4);
+
+  PROF_TBEGIN(capture_stats);
   CAPTURE_STATS_CALL
+  PROF_TEND(capture_stats);
 }
 
 void count_first_expressions_in_footprints(const uint32_t expressions_size) {
@@ -314,6 +352,55 @@ void on_exit() {
                : stats_num_tries[i] / stats_num_data_points[i]);
   }
 #endif
+
+#ifdef PROFILE_TIMERS
+  uint64_t prof_total_ns = (uint64_t)std::chrono::duration_cast<
+                               std::chrono::nanoseconds>(prof_clock::now() -
+                                                         prof_start_time)
+                               .count();
+  uint64_t prof_algo_l_ns = prof_memset_ns + prof_gen_first_ns + prof_u4_ns +
+                            prof_capture_stats_ns;
+  uint64_t prof_per_call_phases = prof_algo_l_ns + prof_count_freq_ns +
+                                  prof_sort_ns;
+  uint64_t prof_other_ns =
+      prof_total_ns > prof_per_call_phases ? prof_total_ns - prof_per_call_phases
+                                           : 0;
+
+  auto pct = [&](uint64_t ns) {
+    return prof_total_ns ? 100.0 * ns / prof_total_ns : 0.0;
+  };
+  auto per_call_us = [&](uint64_t ns) {
+    return prof_calls ? (double)ns / prof_calls / 1000.0 : 0.0;
+  };
+
+  printf("\n==== Profile (algorithm_l calls: %" PRIu64 ") ====\n", prof_calls);
+  printf("phase                 |   total ms |  per call us |   %% total\n");
+  printf("----------------------+------------+--------------+----------\n");
+  printf("memset (costs+fp)     | %10.2f | %12.3f | %7.2f%%\n",
+         prof_memset_ns / 1e6, per_call_us(prof_memset_ns),
+         pct(prof_memset_ns));
+  printf("generate_first_expr   | %10.2f | %12.3f | %7.2f%%\n",
+         prof_gen_first_ns / 1e6, per_call_us(prof_gen_first_ns),
+         pct(prof_gen_first_ns));
+  printf("U4 pair loop          | %10.2f | %12.3f | %7.2f%%\n",
+         prof_u4_ns / 1e6, per_call_us(prof_u4_ns), pct(prof_u4_ns));
+  printf("CAPTURE_STATS_CALL    | %10.2f | %12.3f | %7.2f%%\n",
+         prof_capture_stats_ns / 1e6, per_call_us(prof_capture_stats_ns),
+         pct(prof_capture_stats_ns));
+  printf("  >> algorithm_l SUB  | %10.2f | %12.3f | %7.2f%%\n",
+         prof_algo_l_ns / 1e6, per_call_us(prof_algo_l_ns),
+         pct(prof_algo_l_ns));
+  printf("count_first_expr_fp   | %10.2f | %12.3f | %7.2f%%\n",
+         prof_count_freq_ns / 1e6, per_call_us(prof_count_freq_ns),
+         pct(prof_count_freq_ns));
+  printf("sort priorities       | %10.2f | %12.3f | %7.2f%%\n",
+         prof_sort_ns / 1e6, per_call_us(prof_sort_ns), pct(prof_sort_ns));
+  printf("other (main loop etc) | %10.2f | %12s | %7.2f%%\n",
+         prof_other_ns / 1e6, "-", pct(prof_other_ns));
+  printf("----------------------+------------+--------------+----------\n");
+  printf("TOTAL wall            | %10.2f |              |  100.00%%\n",
+         prof_total_ns / 1e6);
+#endif
 }
 
 void signal_handler(int signal) { exit(signal); }
@@ -358,6 +445,10 @@ int main(int argc, char *argv[]) {
   atexit(on_exit);
   signal(SIGINT, signal_handler);
   signal(SIGTERM, signal_handler);
+
+#ifdef PROFILE_TIMERS
+  prof_start_time = prof_clock::now();
+#endif
 
 #if CAPTURE_STATS
   memset(stats_min_num_expressions, UNDEFINED,

@@ -34,6 +34,12 @@ target/full-search-optimized: src/full-search.cpp Makefile default.profdata
 target/hungry-search: src/hungry-search.cpp src/*.h Makefile
 	$(COMPILER) -o target/hungry-search src/hungry-search.cpp $(OPT_FLAGS) 2>&1
 
+target/hungry-search-instrumented: src/hungry-search-instrumented.cpp src/*.h Makefile
+	$(COMPILER) -o target/hungry-search-instrumented src/hungry-search-instrumented.cpp $(OPT_FLAGS) 2>&1
+
+target/hungry-search-profile: src/hungry-search.cpp src/*.h Makefile
+	$(COMPILER) -DPROFILE_TIMERS=1 -o target/hungry-search-profile src/hungry-search.cpp $(OPT_FLAGS) 2>&1
+
 target/reverse-hungry-search: src/reverse-hungry-search.cpp src/*.h Makefile
 	$(COMPILER) -o target/reverse-hungry-search src/reverse-hungry-search.cpp $(OPT_FLAGS) 2>&1
 
