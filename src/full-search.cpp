@@ -78,19 +78,20 @@ uint64_t stats_num_data_points[25] = {0};
 
 #define ADD_EXPRESSION(value, chain_size)                                      \
   {                                                                            \
-    const uint8_t u = unseen[value];                                           \
-    expressions[_expr_size] = value;                                           \
-    _expr_size += u & 1;                                                       \
-    unseen[value] = u & 2;                                                     \
+    if (unseen[value] & 1) {                                                   \
+      expressions[_expr_size] = value;                                         \
+      ++_expr_size;                                                            \
+      --unseen[value];                                                         \
+    }                                                                          \
   }
 
 #define ADD_EXPRESSION_TARGET(value, chain_size)                               \
   {                                                                            \
-    const uint8_t u = unseen[value];                                           \
-    const uint8_t a = u == 3;                                                  \
-    expressions[_expr_size] = value;                                           \
-    _expr_size += a;                                                           \
-    unseen[value] = u - a;                                                     \
+    if (unseen[value] == 3) {                                                  \
+      expressions[_expr_size] = value;                                         \
+      ++_expr_size;                                                            \
+      unseen[value] = 2;                                                       \
+    }                                                                          \
   }
 
 #define GENERATE_NEW_EXPRESSIONS(chain_size, add_expression)                   \
