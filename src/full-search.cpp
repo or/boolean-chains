@@ -78,11 +78,10 @@ uint64_t stats_num_data_points[25] = {0};
 
 #define ADD_EXPRESSION(value, chain_size)                                      \
   {                                                                            \
-    if (__builtin_expect(unseen[value] & 1, 1)) {                              \
-      expressions[_expr_size] = value;                                         \
-      ++_expr_size;                                                            \
-      --unseen[value];                                                         \
-    }                                                                          \
+    const uint8_t u = unseen[value];                                           \
+    expressions[_expr_size] = value;                                           \
+    _expr_size += u & 1;                                                       \
+    unseen[value] = u & 2;                                                     \
   }
 
 #define ADD_EXPRESSION_TARGET(value, chain_size)                               \
