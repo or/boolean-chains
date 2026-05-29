@@ -142,17 +142,25 @@ int main(int argc, char *argv[]) {
 
   chain_size++;
 
+  uint32_t j = 0;
   for (size_t i = 0; i < solution_size; i++) {
     GENERATE_NEW_EXPRESSIONS(chain_size, ADD_EXPRESSION)
 
     bool found = false;
-    for (size_t j = 0; j < expressions_size[chain_size]; j++) {
-      if (expressions[j] == solution[i]) {
-        choices[i] = j;
-        found = true;
+    for (; j < expressions_size[chain_size]; j++) {
+      for (size_t k = 0; k < solution_size; k++) {
+        if (expressions[j] == solution[k]) {
+          choices[i] = j;
+          j++;
+          found = true;
+          break;
+        }
+      }
+      if (found) {
         break;
       }
     }
+
     if (!found) {
       printf("error: couldn't find the index for function number %zu: %s\n", i,
              std::bitset<16>(solution[i]).to_string().c_str());
