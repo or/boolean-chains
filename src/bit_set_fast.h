@@ -24,16 +24,31 @@ private:
     bs_u64x2 vec[VEC_COUNT];
     uint64_t bit_set[ARRAY_SIZE];
   };
+  // summary hash: bit (i % 64) is OR'd in for every set atom-index i.
+  // (summary_A & summary_B) == 0 implies set(A) and set(B) are
+  // disjoint, so it's a sound conservative pre-filter for is_disjoint.
+  // After intersect we keep summary as the bitwise AND of the two
+  // summaries, which is an over-approximation of summary(A ∩ B) and
+  // also safe for the same reason (may report false overlap but never
+  // false disjoint).
+  uint64_t summary;
 
 public:
-  BitSet() { memset(bit_set, 0, sizeof(bit_set)); }
+  BitSet() {
+    memset(bit_set, 0, sizeof(bit_set));
+    summary = 0;
+  }
   BitSet(const BitSet &other) {
     for (size_t i = 0; i < VEC_COUNT; ++i) {
       vec[i] = other.vec[i];
     }
+    summary = other.summary;
   }
 
   bool is_disjoint(const BitSet &other) const {
+    if ((summary & other.summary) == 0) {
+      return true;
+    }
     bs_u64x2 acc = {0, 0};
     for (size_t i = 0; i < VEC_COUNT; ++i) {
       acc |= vec[i] & other.vec[i];
@@ -54,19 +69,25 @@ public:
     uint32_t index = bit >> 6;
     uint32_t bit_index = bit & 0b111111;
     bit_set[index] |= (1ULL << bit_index);
+    summary |= (1ULL << (bit & 63));
   }
 
   void add(const BitSet &other) {
     for (size_t i = 0; i < VEC_COUNT; ++i) {
       vec[i] |= other.vec[i];
     }
+    summary |= other.summary;
   }
 
   void intersect(const BitSet &other) {
     for (size_t i = 0; i < VEC_COUNT; ++i) {
       vec[i] &= other.vec[i];
     }
+    summary &= other.summary;
   }
 
-  void clear() { memset(bit_set, 0, sizeof(bit_set)); }
+  void clear() {
+    memset(bit_set, 0, sizeof(bit_set));
+    summary = 0;
+  }
 };
